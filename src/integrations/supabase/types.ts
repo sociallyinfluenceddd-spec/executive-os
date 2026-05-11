@@ -14,7 +14,90 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      exec_os_daily: {
+        Row: {
+          blockers: string | null
+          created_at: string
+          energy_level: number | null
+          entry_date: string
+          id: string
+          mood: string | null
+          must_move_1: string | null
+          must_move_2: string | null
+          must_move_3: string | null
+          tomorrow_seed: string | null
+          top_priority: string | null
+          updated_at: string
+          user_id: string
+          what_didnt: string | null
+          what_moved: string | null
+        }
+        Insert: {
+          blockers?: string | null
+          created_at?: string
+          energy_level?: number | null
+          entry_date?: string
+          id?: string
+          mood?: string | null
+          must_move_1?: string | null
+          must_move_2?: string | null
+          must_move_3?: string | null
+          tomorrow_seed?: string | null
+          top_priority?: string | null
+          updated_at?: string
+          user_id: string
+          what_didnt?: string | null
+          what_moved?: string | null
+        }
+        Update: {
+          blockers?: string | null
+          created_at?: string
+          energy_level?: number | null
+          entry_date?: string
+          id?: string
+          mood?: string | null
+          must_move_1?: string | null
+          must_move_2?: string | null
+          must_move_3?: string | null
+          tomorrow_seed?: string | null
+          top_priority?: string | null
+          updated_at?: string
+          user_id?: string
+          what_didnt?: string | null
+          what_moved?: string | null
+        }
+        Relationships: []
+      }
+      exec_os_decisions: {
+        Row: {
+          category: string | null
+          context: string | null
+          created_at: string
+          decided_at: string
+          decision_text: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          category?: string | null
+          context?: string | null
+          created_at?: string
+          decided_at?: string
+          decision_text: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          category?: string | null
+          context?: string | null
+          created_at?: string
+          decided_at?: string
+          decision_text?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
