@@ -14,7 +14,6 @@ import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as DecisionsRouteImport } from './routes/decisions'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as ApiPublicIngestEmailRouteImport } from './routes/api/public/ingest-email'
 
 const TodayRoute = TodayRouteImport.update({
   id: '/today',
@@ -41,11 +40,6 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ApiPublicIngestEmailRoute = ApiPublicIngestEmailRouteImport.update({
-  id: '/api/public/ingest-email',
-  path: '/api/public/ingest-email',
-  getParentRoute: () => rootRouteImport,
-} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -53,7 +47,6 @@ export interface FileRoutesByFullPath {
   '/login': typeof LoginRoute
   '/settings': typeof SettingsRoute
   '/today': typeof TodayRoute
-  '/api/public/ingest-email': typeof ApiPublicIngestEmailRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -61,7 +54,6 @@ export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/settings': typeof SettingsRoute
   '/today': typeof TodayRoute
-  '/api/public/ingest-email': typeof ApiPublicIngestEmailRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -70,33 +62,13 @@ export interface FileRoutesById {
   '/login': typeof LoginRoute
   '/settings': typeof SettingsRoute
   '/today': typeof TodayRoute
-  '/api/public/ingest-email': typeof ApiPublicIngestEmailRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths:
-    | '/'
-    | '/decisions'
-    | '/login'
-    | '/settings'
-    | '/today'
-    | '/api/public/ingest-email'
+  fullPaths: '/' | '/decisions' | '/login' | '/settings' | '/today'
   fileRoutesByTo: FileRoutesByTo
-  to:
-    | '/'
-    | '/decisions'
-    | '/login'
-    | '/settings'
-    | '/today'
-    | '/api/public/ingest-email'
-  id:
-    | '__root__'
-    | '/'
-    | '/decisions'
-    | '/login'
-    | '/settings'
-    | '/today'
-    | '/api/public/ingest-email'
+  to: '/' | '/decisions' | '/login' | '/settings' | '/today'
+  id: '__root__' | '/' | '/decisions' | '/login' | '/settings' | '/today'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -105,7 +77,6 @@ export interface RootRouteChildren {
   LoginRoute: typeof LoginRoute
   SettingsRoute: typeof SettingsRoute
   TodayRoute: typeof TodayRoute
-  ApiPublicIngestEmailRoute: typeof ApiPublicIngestEmailRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -145,13 +116,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/public/ingest-email': {
-      id: '/api/public/ingest-email'
-      path: '/api/public/ingest-email'
-      fullPath: '/api/public/ingest-email'
-      preLoaderRoute: typeof ApiPublicIngestEmailRouteImport
-      parentRoute: typeof rootRouteImport
-    }
   }
 }
 
@@ -161,8 +125,17 @@ const rootRouteChildren: RootRouteChildren = {
   LoginRoute: LoginRoute,
   SettingsRoute: SettingsRoute,
   TodayRoute: TodayRoute,
-  ApiPublicIngestEmailRoute: ApiPublicIngestEmailRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
