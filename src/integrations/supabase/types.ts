@@ -98,6 +98,66 @@ export type Database = {
         }
         Relationships: []
       }
+      exec_os_emails: {
+        Row: {
+          account: string
+          attendees: Json | null
+          created_at: string
+          external_id: string | null
+          id: string
+          kind: string
+          raw_classification: Json | null
+          received_at: string | null
+          scheduled_at: string | null
+          sender_email: string | null
+          sender_name: string | null
+          snippet: string | null
+          status: string | null
+          subject: string | null
+          updated_at: string
+          user_id: string
+          video_url: string | null
+        }
+        Insert: {
+          account: string
+          attendees?: Json | null
+          created_at?: string
+          external_id?: string | null
+          id?: string
+          kind: string
+          raw_classification?: Json | null
+          received_at?: string | null
+          scheduled_at?: string | null
+          sender_email?: string | null
+          sender_name?: string | null
+          snippet?: string | null
+          status?: string | null
+          subject?: string | null
+          updated_at?: string
+          user_id: string
+          video_url?: string | null
+        }
+        Update: {
+          account?: string
+          attendees?: Json | null
+          created_at?: string
+          external_id?: string | null
+          id?: string
+          kind?: string
+          raw_classification?: Json | null
+          received_at?: string | null
+          scheduled_at?: string | null
+          sender_email?: string | null
+          sender_name?: string | null
+          snippet?: string | null
+          status?: string | null
+          subject?: string | null
+          updated_at?: string
+          user_id?: string
+          video_url?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
