@@ -6,14 +6,9 @@ import { AppShell } from "@/components/AppShell";
 import { SavedIndicator } from "@/components/SavedIndicator";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Slider } from "@/components/ui/slider";
 import { Label } from "@/components/ui/label";
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@/components/ui/collapsible";
-import { ChevronDown } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Plus } from "lucide-react";
 
 export const Route = createFileRoute("/today")({
   component: () => (
@@ -49,12 +44,26 @@ const EMPTY: DailyRow = {
   tomorrow_seed: "",
 };
 
+const ENERGY_OPTIONS = [
+  { value: 2, emoji: "😴", label: "Drained" },
+  { value: 4, emoji: "😐", label: "Low" },
+  { value: 6, emoji: "🙂", label: "Okay" },
+  { value: 8, emoji: "⚡", label: "Sharp" },
+  { value: 10, emoji: "🔥", label: "On fire" },
+];
+
+const MOOD_PRESETS = ["calm", "scattered", "focused", "anxious", "tired", "energized"];
+
+const REFLECTION_STEPS = [
+  { key: "blockers", label: "Blockers", placeholder: "e.g. waiting on legal review" },
+  { key: "what_moved", label: "What moved", placeholder: "e.g. shipped Q3 plan" },
+  { key: "what_didnt", label: "What didn't", placeholder: "e.g. pricing deck stalled" },
+  { key: "tomorrow_seed", label: "Tomorrow's seed", placeholder: "e.g. start with the deck" },
+] as const;
+
 function todayDate() {
   const d = new Date();
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, "0");
-  const day = String(d.getDate()).padStart(2, "0");
-  return `${y}-${m}-${day}`;
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
 
 function greeting() {
@@ -64,20 +73,24 @@ function greeting() {
   return "Good evening";
 }
 
-const ENERGY_EMOJI = ["😴", "😪", "😐", "🙂", "😌", "😊", "💪", "⚡", "🔥", "🚀"];
-
 function TodayPage() {
   const { user } = useAuth();
   const [row, setRow] = useState<DailyRow>(EMPTY);
   const [loaded, setLoaded] = useState(false);
   const [savedAt, setSavedAt] = useState<number | null>(null);
+  const [showMustMoves, setShowMustMoves] = useState(false);
+  const [showReflection, setShowReflection] = useState(false);
+  const [reflectionStep, setReflectionStep] = useState(0);
+  const [moodCustom, setMoodCustom] = useState(false);
+
   const entryDate = useMemo(() => todayDate(), []);
   const firstName = useMemo(() => {
     const display = (user?.user_metadata?.display_name as string | undefined)?.trim();
     if (display) return display.split(" ")[0];
-    const handle = user?.email?.split("@")[0] ?? "";
-    return handle;
+    return user?.email?.split("@")[0] ?? "";
   }, [user]);
+
+  const lastSaved = useRef<string>(JSON.stringify(EMPTY));
 
   useEffect(() => {
     if (!user) return;
@@ -92,7 +105,20 @@ function TodayPage() {
         .eq("entry_date", entryDate)
         .maybeSingle();
       if (!active) return;
-      if (data) setRow({ ...EMPTY, ...data });
+      if (data) {
+        const merged = { ...EMPTY, ...data };
+        setRow(merged);
+        lastSaved.current = JSON.stringify(merged);
+        if (merged.must_move_1 || merged.must_move_2 || merged.must_move_3) {
+          setShowMustMoves(true);
+        }
+        if (merged.blockers || merged.what_moved || merged.what_didnt || merged.tomorrow_seed) {
+          setShowReflection(true);
+        }
+        if (merged.mood && !MOOD_PRESETS.includes(merged.mood)) {
+          setMoodCustom(true);
+        }
+      }
       setLoaded(true);
     })();
     return () => {
@@ -100,25 +126,16 @@ function TodayPage() {
     };
   }, [user, entryDate]);
 
-  const lastSaved = useRef<string>(JSON.stringify(EMPTY));
-
-  const saveField = useCallback(
-    async (patch: Partial<DailyRow>) => {
+  const persist = useCallback(
+    async (next: DailyRow) => {
       if (!user) return;
-      const next = { ...row, ...patch };
-      // Skip if no actual change vs last saved snapshot
       if (JSON.stringify(next) === lastSaved.current) return;
-      // Only upsert when at least one field has a non-empty value
       const hasContent = Object.values(next).some(
         (v) => (typeof v === "string" && v.trim() !== "") || typeof v === "number"
       );
       if (!hasContent) return;
       const { error } = await supabase.from("exec_os_daily").upsert(
-        {
-          user_id: user.id,
-          entry_date: entryDate,
-          ...next,
-        },
+        { user_id: user.id, entry_date: entryDate, ...next },
         { onConflict: "user_id,entry_date" }
       );
       if (!error) {
@@ -126,12 +143,21 @@ function TodayPage() {
         setSavedAt(Date.now());
       }
     },
-    [user, row, entryDate]
+    [user, entryDate]
   );
 
-  const update = (patch: Partial<DailyRow>) => setRow((r) => ({ ...r, ...patch }));
+  const saveField = useCallback(
+    (patch: Partial<DailyRow>) => persist({ ...row, ...patch }),
+    [row, persist]
+  );
 
-  const afterFivePM = new Date().getHours() >= 17;
+  const setAndSave = (patch: Partial<DailyRow>) => {
+    const next = { ...row, ...patch };
+    setRow(next);
+    persist(next);
+  };
+
+  const update = (patch: Partial<DailyRow>) => setRow((r) => ({ ...r, ...patch }));
 
   if (!loaded) {
     return (
@@ -170,112 +196,201 @@ function TodayPage() {
         </Label>
         <Textarea
           className="mt-3 min-h-[110px] text-lg leading-relaxed border-0 bg-transparent focus-visible:ring-0 px-0 resize-none"
-          placeholder="What's the one thing that moves the needle today?"
+          placeholder="e.g. close the Acme proposal"
           value={row.top_priority ?? ""}
           onChange={(e) => update({ top_priority: e.target.value })}
           onBlur={() => saveField({ top_priority: row.top_priority })}
         />
       </section>
 
-      {/* Must-Move */}
-      <section className="rounded-xl border border-border bg-card p-6 space-y-3">
+      {/* Energy */}
+      <section className="rounded-xl border border-border bg-card p-6">
         <Label className="text-xs uppercase tracking-wider text-muted-foreground">
-          Must move
+          Energy
         </Label>
-        {([1, 2, 3] as const).map((n) => {
-          const key = `must_move_${n}` as const;
-          return (
-            <div key={n} className="flex items-center gap-3">
-              <span className="text-sm font-medium text-[color:var(--sage)] w-5 tabular-nums">
-                {n}.
-              </span>
-              <Input
-                value={row[key] ?? ""}
-                placeholder={`Must move ${n}`}
-                onChange={(e) => update({ [key]: e.target.value } as Partial<DailyRow>)}
-                onBlur={() => saveField({ [key]: row[key] } as Partial<DailyRow>)}
-              />
-            </div>
-          );
-        })}
+        <div className="mt-3 grid grid-cols-5 gap-2">
+          {ENERGY_OPTIONS.map((opt) => {
+            const active = row.energy_level === opt.value;
+            return (
+              <button
+                key={opt.value}
+                type="button"
+                onClick={() => setAndSave({ energy_level: opt.value })}
+                className={`flex flex-col items-center gap-1 rounded-lg border px-2 py-3 transition-colors ${
+                  active
+                    ? "border-[color:var(--navy)] bg-[color:var(--navy)]/5"
+                    : "border-border hover:bg-muted"
+                }`}
+              >
+                <span className="text-2xl leading-none">{opt.emoji}</span>
+                <span className="text-[11px] text-muted-foreground">{opt.label}</span>
+              </button>
+            );
+          })}
+        </div>
       </section>
 
-      {/* Energy + Mood */}
-      <section className="rounded-xl border border-border bg-card p-6 space-y-5">
-        <div>
-          <div className="flex items-center justify-between mb-3">
-            <Label className="text-xs uppercase tracking-wider text-muted-foreground">
-              Energy
-            </Label>
-            <span className="text-2xl">
-              {row.energy_level ? ENERGY_EMOJI[row.energy_level - 1] : "—"}
-              <span className="ml-2 text-sm text-muted-foreground tabular-nums">
-                {row.energy_level ?? "—"}/10
-              </span>
-            </span>
-          </div>
-          <Slider
-            value={[row.energy_level ?? 5]}
-            min={1}
-            max={10}
-            step={1}
-            onValueChange={(v) => update({ energy_level: v[0] })}
-            onValueCommit={(v) => saveField({ energy_level: v[0] })}
-          />
+      {/* Mood */}
+      <section className="rounded-xl border border-border bg-card p-6">
+        <Label className="text-xs uppercase tracking-wider text-muted-foreground">
+          Mood
+        </Label>
+        <div className="mt-3 flex flex-wrap gap-2">
+          {MOOD_PRESETS.map((m) => {
+            const active = row.mood === m;
+            return (
+              <button
+                key={m}
+                type="button"
+                onClick={() => {
+                  setMoodCustom(false);
+                  setAndSave({ mood: m });
+                }}
+                className={`px-3 py-1.5 rounded-full border text-sm transition-colors ${
+                  active
+                    ? "border-[color:var(--navy)] bg-[color:var(--navy)] text-[color:var(--primary-foreground)]"
+                    : "border-border hover:bg-muted"
+                }`}
+              >
+                {m}
+              </button>
+            );
+          })}
+          <button
+            type="button"
+            onClick={() => setMoodCustom((v) => !v)}
+            className={`px-3 py-1.5 rounded-full border text-sm transition-colors ${
+              moodCustom
+                ? "border-[color:var(--navy)] bg-muted"
+                : "border-dashed border-border hover:bg-muted"
+            }`}
+          >
+            Other…
+          </button>
         </div>
-        <div>
-          <Label className="text-xs uppercase tracking-wider text-muted-foreground">
-            Mood
-          </Label>
+        {moodCustom && (
           <Input
-            className="mt-2"
-            placeholder="One word, a phrase, anything…"
-            value={row.mood ?? ""}
+            className="mt-3"
+            placeholder="e.g. cautiously optimistic"
+            value={row.mood && !MOOD_PRESETS.includes(row.mood) ? row.mood : ""}
             onChange={(e) => update({ mood: e.target.value })}
             onBlur={() => saveField({ mood: row.mood })}
+            autoFocus
           />
-        </div>
+        )}
       </section>
 
-      {/* Reflection */}
-      <Collapsible defaultOpen={afterFivePM}>
-        <section className="rounded-xl border border-border bg-card overflow-hidden">
-          <CollapsibleTrigger className="w-full flex items-center justify-between p-6 group">
-            <span className="text-xs uppercase tracking-wider text-muted-foreground">
-              Reflection
-            </span>
-            <ChevronDown className="h-4 w-4 text-muted-foreground transition-transform group-data-[state=open]:rotate-180" />
-          </CollapsibleTrigger>
-          <CollapsibleContent>
-            <div className="px-6 pb-6 space-y-5">
-              {(
-                [
-                  ["blockers", "Blockers"],
-                  ["what_moved", "What moved"],
-                  ["what_didnt", "What didn't"],
-                  ["tomorrow_seed", "Tomorrow's seed"],
-                ] as const
-              ).map(([key, label]) => (
-                <div key={key}>
-                  <Label className="text-xs uppercase tracking-wider text-muted-foreground">
-                    {label}
-                  </Label>
-                  <Textarea
-                    className="mt-2 min-h-[80px] resize-none"
-                    value={row[key] ?? ""}
-                    onChange={(e) =>
-                      update({ [key]: e.target.value } as Partial<DailyRow>)
-                    }
-                    onBlur={() =>
-                      saveField({ [key]: row[key] } as Partial<DailyRow>)
-                    }
-                  />
-                </div>
-              ))}
+      {/* Must-Move */}
+      {!showMustMoves ? (
+        <Button
+          variant="outline"
+          className="w-full justify-start text-muted-foreground"
+          onClick={() => setShowMustMoves(true)}
+        >
+          <Plus className="h-4 w-4" /> Add must-moves
+        </Button>
+      ) : (
+        <section className="rounded-xl border border-border bg-card p-6 space-y-3">
+          <Label className="text-xs uppercase tracking-wider text-muted-foreground">
+            Must move
+          </Label>
+          <div className="flex items-center gap-3">
+            <span className="text-sm font-medium text-[color:var(--sage)] w-5 tabular-nums">1.</span>
+            <Input
+              value={row.must_move_1 ?? ""}
+              placeholder="e.g. send contract"
+              onChange={(e) => update({ must_move_1: e.target.value })}
+              onBlur={() => saveField({ must_move_1: row.must_move_1 })}
+              autoFocus
+            />
+          </div>
+          {(row.must_move_1 ?? "").trim() !== "" && (
+            <div className="flex items-center gap-3">
+              <span className="text-sm font-medium text-[color:var(--sage)] w-5 tabular-nums">2.</span>
+              <Input
+                value={row.must_move_2 ?? ""}
+                placeholder="+ another"
+                onChange={(e) => update({ must_move_2: e.target.value })}
+                onBlur={() => saveField({ must_move_2: row.must_move_2 })}
+              />
             </div>
-          </CollapsibleContent>
+          )}
+          {(row.must_move_2 ?? "").trim() !== "" && (
+            <div className="flex items-center gap-3">
+              <span className="text-sm font-medium text-[color:var(--sage)] w-5 tabular-nums">3.</span>
+              <Input
+                value={row.must_move_3 ?? ""}
+                placeholder="+ another"
+                onChange={(e) => update({ must_move_3: e.target.value })}
+                onBlur={() => saveField({ must_move_3: row.must_move_3 })}
+              />
+            </div>
+          )}
         </section>
-      </Collapsible>
+      )}
+
+      {/* Reflection */}
+      {!showReflection ? (
+        <Button
+          variant="outline"
+          className="w-full justify-start text-muted-foreground"
+          onClick={() => setShowReflection(true)}
+        >
+          <Plus className="h-4 w-4" /> Reflect on today
+        </Button>
+      ) : (
+        <section className="rounded-xl border border-border bg-card p-6 space-y-4">
+          <div className="flex items-center justify-between">
+            <Label className="text-xs uppercase tracking-wider text-muted-foreground">
+              {REFLECTION_STEPS[reflectionStep].label}
+            </Label>
+            <span className="text-xs text-muted-foreground tabular-nums">
+              {reflectionStep + 1} / {REFLECTION_STEPS.length}
+            </span>
+          </div>
+          {(() => {
+            const step = REFLECTION_STEPS[reflectionStep];
+            const key = step.key;
+            return (
+              <Textarea
+                key={key}
+                className="min-h-[100px] resize-none"
+                placeholder={step.placeholder}
+                value={(row[key] as string | null) ?? ""}
+                onChange={(e) => update({ [key]: e.target.value } as Partial<DailyRow>)}
+                onBlur={() => saveField({ [key]: row[key] } as Partial<DailyRow>)}
+                autoFocus
+              />
+            );
+          })()}
+          <div className="flex items-center justify-between gap-3">
+            <Button
+              variant="ghost"
+              size="sm"
+              disabled={reflectionStep === 0}
+              onClick={() => setReflectionStep((s) => Math.max(0, s - 1))}
+            >
+              ← Back
+            </Button>
+            {reflectionStep < REFLECTION_STEPS.length - 1 ? (
+              <Button
+                size="sm"
+                onClick={() => {
+                  saveField({
+                    [REFLECTION_STEPS[reflectionStep].key]:
+                      row[REFLECTION_STEPS[reflectionStep].key],
+                  } as Partial<DailyRow>);
+                  setReflectionStep((s) => s + 1);
+                }}
+              >
+                Next →
+              </Button>
+            ) : (
+              <span className="text-xs text-muted-foreground">All done.</span>
+            )}
+          </div>
+        </section>
+      )}
     </div>
   );
 }
