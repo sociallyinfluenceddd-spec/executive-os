@@ -73,11 +73,10 @@ function TodayPage() {
   const [savedAt, setSavedAt] = useState<number | null>(null);
   const entryDate = useMemo(() => todayDate(), []);
   const firstName = useMemo(() => {
-    const n =
-      (user?.user_metadata?.full_name as string | undefined) ||
-      user?.email?.split("@")[0] ||
-      "";
-    return n.split(" ")[0];
+    const display = (user?.user_metadata?.display_name as string | undefined)?.trim();
+    if (display) return display.split(" ")[0];
+    const handle = user?.email?.split("@")[0] ?? "";
+    return handle;
   }, [user]);
 
   useEffect(() => {
