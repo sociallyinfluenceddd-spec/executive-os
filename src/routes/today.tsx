@@ -3,6 +3,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { AppShell } from "@/components/AppShell";
+import { EmailPanel } from "@/components/EmailPanel";
 import { SavedIndicator } from "@/components/SavedIndicator";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -281,6 +282,8 @@ function TodayPage() {
           />
         )}
       </section>
+
+      <EmailPanel />
 
       {!showMore ? (
         <Button
