@@ -78,7 +78,9 @@ function TodayPage() {
   const [row, setRow] = useState<DailyRow>(EMPTY);
   const [loaded, setLoaded] = useState(false);
   const [savedAt, setSavedAt] = useState<number | null>(null);
+  const [showMore, setShowMore] = useState(false);
   const [showMustMoves, setShowMustMoves] = useState(false);
+  const [visibleMustMoves, setVisibleMustMoves] = useState(1);
   const [showReflection, setShowReflection] = useState(false);
   const [reflectionStep, setReflectionStep] = useState(0);
   const [moodCustom, setMoodCustom] = useState(false);
@@ -111,6 +113,7 @@ function TodayPage() {
         lastSaved.current = JSON.stringify(merged);
         if (merged.must_move_1 || merged.must_move_2 || merged.must_move_3) {
           setShowMustMoves(true);
+          setVisibleMustMoves(merged.must_move_3 ? 3 : merged.must_move_2 ? 2 : 1);
         }
         if (merged.blockers || merged.what_moved || merged.what_didnt || merged.tomorrow_seed) {
           setShowReflection(true);
@@ -269,8 +272,8 @@ function TodayPage() {
           </button>
         </div>
         {moodCustom && (
-          <Input
-            className="mt-3"
+          <Textarea
+            className="mt-3 min-h-[76px] resize-none"
             placeholder="e.g. cautiously optimistic"
             value={row.mood && !MOOD_PRESETS.includes(row.mood) ? row.mood : ""}
             onChange={(e) => update({ mood: e.target.value })}
