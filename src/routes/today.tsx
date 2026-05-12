@@ -283,116 +283,137 @@ function TodayPage() {
         )}
       </section>
 
-      {/* Must-Move */}
-      {!showMustMoves ? (
+      {!showMore ? (
         <Button
           variant="outline"
           className="w-full justify-start text-muted-foreground"
-          onClick={() => setShowMustMoves(true)}
+          onClick={() => setShowMore(true)}
         >
-          <Plus className="h-4 w-4" /> Add must-moves
+          <Plus className="h-4 w-4" /> Add more
         </Button>
       ) : (
-        <section className="rounded-xl border border-border bg-card p-6 space-y-3">
-          <Label className="text-xs uppercase tracking-wider text-muted-foreground">
-            Must move
-          </Label>
-          <div className="flex items-center gap-3">
-            <span className="text-sm font-medium text-[color:var(--sage)] w-5 tabular-nums">1.</span>
-            <Input
-              value={row.must_move_1 ?? ""}
-              placeholder="e.g. send contract"
-              onChange={(e) => update({ must_move_1: e.target.value })}
-              onBlur={() => saveField({ must_move_1: row.must_move_1 })}
-              autoFocus
-            />
-          </div>
-          {(row.must_move_1 ?? "").trim() !== "" && (
-            <div className="flex items-center gap-3">
-              <span className="text-sm font-medium text-[color:var(--sage)] w-5 tabular-nums">2.</span>
-              <Input
-                value={row.must_move_2 ?? ""}
-                placeholder="+ another"
-                onChange={(e) => update({ must_move_2: e.target.value })}
-                onBlur={() => saveField({ must_move_2: row.must_move_2 })}
-              />
-            </div>
-          )}
-          {(row.must_move_2 ?? "").trim() !== "" && (
-            <div className="flex items-center gap-3">
-              <span className="text-sm font-medium text-[color:var(--sage)] w-5 tabular-nums">3.</span>
-              <Input
-                value={row.must_move_3 ?? ""}
-                placeholder="+ another"
-                onChange={(e) => update({ must_move_3: e.target.value })}
-                onBlur={() => saveField({ must_move_3: row.must_move_3 })}
-              />
-            </div>
-          )}
-        </section>
-      )}
-
-      {/* Reflection */}
-      {!showReflection ? (
-        <Button
-          variant="outline"
-          className="w-full justify-start text-muted-foreground"
-          onClick={() => setShowReflection(true)}
-        >
-          <Plus className="h-4 w-4" /> Reflect on today
-        </Button>
-      ) : (
-        <section className="rounded-xl border border-border bg-card p-6 space-y-4">
-          <div className="flex items-center justify-between">
-            <Label className="text-xs uppercase tracking-wider text-muted-foreground">
-              {REFLECTION_STEPS[reflectionStep].label}
-            </Label>
-            <span className="text-xs text-muted-foreground tabular-nums">
-              {reflectionStep + 1} / {REFLECTION_STEPS.length}
-            </span>
-          </div>
-          {(() => {
-            const step = REFLECTION_STEPS[reflectionStep];
-            const key = step.key;
-            return (
-              <Textarea
-                key={key}
-                className="min-h-[100px] resize-none"
-                placeholder={step.placeholder}
-                value={(row[key] as string | null) ?? ""}
-                onChange={(e) => update({ [key]: e.target.value } as Partial<DailyRow>)}
-                onBlur={() => saveField({ [key]: row[key] } as Partial<DailyRow>)}
-                autoFocus
-              />
-            );
-          })()}
-          <div className="flex items-center justify-between gap-3">
+        <div className="space-y-4">
+          {!showMustMoves ? (
             <Button
-              variant="ghost"
-              size="sm"
-              disabled={reflectionStep === 0}
-              onClick={() => setReflectionStep((s) => Math.max(0, s - 1))}
+              variant="outline"
+              className="w-full justify-start text-muted-foreground"
+              onClick={() => setShowMustMoves(true)}
             >
-              ← Back
+              <Plus className="h-4 w-4" /> Add must-moves
             </Button>
-            {reflectionStep < REFLECTION_STEPS.length - 1 ? (
-              <Button
-                size="sm"
-                onClick={() => {
-                  saveField({
-                    [REFLECTION_STEPS[reflectionStep].key]:
-                      row[REFLECTION_STEPS[reflectionStep].key],
-                  } as Partial<DailyRow>);
-                  setReflectionStep((s) => s + 1);
-                }}
-              >
-                Next →
-              </Button>
-            ) : (
-              <span className="text-xs text-muted-foreground">All done.</span>
-            )}
-          </div>
-        </section>
+          ) : (
+            <section className="rounded-xl border border-border bg-card p-6 space-y-3">
+              <Label className="text-xs uppercase tracking-wider text-muted-foreground">
+                Must move
+              </Label>
+              <div className="flex items-center gap-3">
+                <span className="text-sm font-medium text-[color:var(--sage)] w-5 tabular-nums">1.</span>
+                <Input
+                  value={row.must_move_1 ?? ""}
+                  placeholder="e.g. send contract"
+                  onChange={(e) => update({ must_move_1: e.target.value })}
+                  onBlur={() => saveField({ must_move_1: row.must_move_1 })}
+                  autoFocus
+                />
+              </div>
+              {visibleMustMoves >= 2 && (
+                <div className="flex items-center gap-3">
+                  <span className="text-sm font-medium text-[color:var(--sage)] w-5 tabular-nums">2.</span>
+                  <Input
+                    value={row.must_move_2 ?? ""}
+                    placeholder="e.g. book follow-up"
+                    onChange={(e) => update({ must_move_2: e.target.value })}
+                    onBlur={() => saveField({ must_move_2: row.must_move_2 })}
+                  />
+                </div>
+              )}
+              {visibleMustMoves >= 3 && (
+                <div className="flex items-center gap-3">
+                  <span className="text-sm font-medium text-[color:var(--sage)] w-5 tabular-nums">3.</span>
+                  <Input
+                    value={row.must_move_3 ?? ""}
+                    placeholder="e.g. prep client brief"
+                    onChange={(e) => update({ must_move_3: e.target.value })}
+                    onBlur={() => saveField({ must_move_3: row.must_move_3 })}
+                  />
+                </div>
+              )}
+              {visibleMustMoves < 3 &&
+                (visibleMustMoves === 1 ? row.must_move_1 : row.must_move_2)?.trim() && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="px-0 text-muted-foreground hover:bg-transparent"
+                    onClick={() => setVisibleMustMoves((count) => Math.min(3, count + 1))}
+                  >
+                    <Plus className="h-4 w-4" /> another
+                  </Button>
+                )}
+            </section>
+          )}
+
+          {!showReflection ? (
+            <Button
+              variant="outline"
+              className="w-full justify-start text-muted-foreground"
+              onClick={() => setShowReflection(true)}
+            >
+              <Plus className="h-4 w-4" /> Reflect on today
+            </Button>
+          ) : (
+            <section className="rounded-xl border border-border bg-card p-6 space-y-4">
+              <div className="flex items-center justify-between">
+                <Label className="text-xs uppercase tracking-wider text-muted-foreground">
+                  {REFLECTION_STEPS[reflectionStep].label}
+                </Label>
+                <span className="text-xs text-muted-foreground tabular-nums">
+                  {reflectionStep + 1} / {REFLECTION_STEPS.length}
+                </span>
+              </div>
+              {(() => {
+                const step = REFLECTION_STEPS[reflectionStep];
+                const key = step.key;
+                return (
+                  <Textarea
+                    key={key}
+                    className="min-h-[100px] resize-none"
+                    placeholder={step.placeholder}
+                    value={(row[key] as string | null) ?? ""}
+                    onChange={(e) => update({ [key]: e.target.value } as Partial<DailyRow>)}
+                    onBlur={() => saveField({ [key]: row[key] } as Partial<DailyRow>)}
+                    autoFocus
+                  />
+                );
+              })()}
+              <div className="flex items-center justify-between gap-3">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  disabled={reflectionStep === 0}
+                  onClick={() => setReflectionStep((s) => Math.max(0, s - 1))}
+                >
+                  ← Back
+                </Button>
+                {reflectionStep < REFLECTION_STEPS.length - 1 ? (
+                  <Button
+                    size="sm"
+                    onClick={() => {
+                      saveField({
+                        [REFLECTION_STEPS[reflectionStep].key]:
+                          row[REFLECTION_STEPS[reflectionStep].key],
+                      } as Partial<DailyRow>);
+                      setReflectionStep((s) => s + 1);
+                    }}
+                  >
+                    Next →
+                  </Button>
+                ) : (
+                  <span className="text-xs text-muted-foreground">All done.</span>
+                )}
+              </div>
+            </section>
+          )}
+        </div>
       )}
     </div>
   );
