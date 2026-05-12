@@ -101,7 +101,7 @@ function TodayPage() {
       const { data } = await supabase
         .from("exec_os_daily")
         .select(
-          "top_priority,must_move_1,must_move_2,must_move_3,energy_level,mood,blockers,what_moved,what_didnt,tomorrow_seed"
+          "top_priority,must_move_1,must_move_2,must_move_3,energy_level,mood,blockers,what_moved,what_didnt,tomorrow_seed",
         )
         .eq("user_id", user.id)
         .eq("entry_date", entryDate)
@@ -134,24 +134,26 @@ function TodayPage() {
       if (!user) return;
       if (JSON.stringify(next) === lastSaved.current) return;
       const hasContent = Object.values(next).some(
-        (v) => (typeof v === "string" && v.trim() !== "") || typeof v === "number"
+        (v) => (typeof v === "string" && v.trim() !== "") || typeof v === "number",
       );
       if (!hasContent) return;
-      const { error } = await supabase.from("exec_os_daily").upsert(
-        { user_id: user.id, entry_date: entryDate, ...next },
-        { onConflict: "user_id,entry_date" }
-      );
+      const { error } = await supabase
+        .from("exec_os_daily")
+        .upsert(
+          { user_id: user.id, entry_date: entryDate, ...next },
+          { onConflict: "user_id,entry_date" },
+        );
       if (!error) {
         lastSaved.current = JSON.stringify(next);
         setSavedAt(Date.now());
       }
     },
-    [user, entryDate]
+    [user, entryDate],
   );
 
   const saveField = useCallback(
     (patch: Partial<DailyRow>) => persist({ ...row, ...patch }),
-    [row, persist]
+    [row, persist],
   );
 
   const setAndSave = (patch: Partial<DailyRow>) => {
@@ -183,7 +185,8 @@ function TodayPage() {
       <header className="flex items-start justify-between gap-4">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight text-foreground">
-            {greeting()}{firstName ? `, ${firstName}` : ""}.
+            {greeting()}
+            {firstName ? `, ${firstName}` : ""}.
           </h1>
           <p className="text-sm text-muted-foreground mt-1">{dateLabel}</p>
         </div>
@@ -208,9 +211,7 @@ function TodayPage() {
 
       {/* Energy */}
       <section className="rounded-xl border border-border bg-card p-6">
-        <Label className="text-xs uppercase tracking-wider text-muted-foreground">
-          Energy
-        </Label>
+        <Label className="text-xs uppercase tracking-wider text-muted-foreground">Energy</Label>
         <div className="mt-3 grid grid-cols-5 gap-2">
           {ENERGY_OPTIONS.map((opt) => {
             const active = row.energy_level === opt.value;
@@ -235,9 +236,7 @@ function TodayPage() {
 
       {/* Mood */}
       <section className="rounded-xl border border-border bg-card p-6">
-        <Label className="text-xs uppercase tracking-wider text-muted-foreground">
-          Mood
-        </Label>
+        <Label className="text-xs uppercase tracking-wider text-muted-foreground">Mood</Label>
         <div className="mt-3 flex flex-wrap gap-2">
           {MOOD_PRESETS.map((m) => {
             const active = row.mood === m;
@@ -307,7 +306,9 @@ function TodayPage() {
                 Must move
               </Label>
               <div className="flex items-center gap-3">
-                <span className="text-sm font-medium text-[color:var(--sage)] w-5 tabular-nums">1.</span>
+                <span className="text-sm font-medium text-[color:var(--sage)] w-5 tabular-nums">
+                  1.
+                </span>
                 <Input
                   value={row.must_move_1 ?? ""}
                   placeholder="e.g. send contract"
@@ -318,7 +319,9 @@ function TodayPage() {
               </div>
               {visibleMustMoves >= 2 && (
                 <div className="flex items-center gap-3">
-                  <span className="text-sm font-medium text-[color:var(--sage)] w-5 tabular-nums">2.</span>
+                  <span className="text-sm font-medium text-[color:var(--sage)] w-5 tabular-nums">
+                    2.
+                  </span>
                   <Input
                     value={row.must_move_2 ?? ""}
                     placeholder="e.g. book follow-up"
@@ -329,7 +332,9 @@ function TodayPage() {
               )}
               {visibleMustMoves >= 3 && (
                 <div className="flex items-center gap-3">
-                  <span className="text-sm font-medium text-[color:var(--sage)] w-5 tabular-nums">3.</span>
+                  <span className="text-sm font-medium text-[color:var(--sage)] w-5 tabular-nums">
+                    3.
+                  </span>
                   <Input
                     value={row.must_move_3 ?? ""}
                     placeholder="e.g. prep client brief"
