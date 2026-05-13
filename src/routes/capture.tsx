@@ -276,14 +276,14 @@ function CapturePage() {
         const col = `must_move_${idx + 1}`;
         await supabase
           .from("exec_os_daily")
-          .update({ [col]: null })
+          .update({ [col]: null } as never)
           .eq("user_id", user!.id)
           .eq("entry_date", entry_date);
       } else if (dailyKeyMap[key]) {
         (ex as any)[key] = undefined;
         await supabase
           .from("exec_os_daily")
-          .update({ [dailyKeyMap[key]]: null })
+          .update({ [dailyKeyMap[key]]: null } as never)
           .eq("user_id", user!.id)
           .eq("entry_date", entry_date);
       }
