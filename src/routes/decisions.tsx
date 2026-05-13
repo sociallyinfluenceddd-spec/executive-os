@@ -20,6 +20,7 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
+import { SavedChip } from "@/components/SavedChip";
 
 export const Route = createFileRoute("/decisions")({
   component: () => (
@@ -85,6 +86,7 @@ function DecisionsPage() {
   const [context, setContext] = useState("");
   const [category, setCategory] = useState<string>("");
   const [submitting, setSubmitting] = useState(false);
+  const [savedAt, setSavedAt] = useState<number | null>(null);
 
   const load = async () => {
     if (!user) return;
@@ -119,6 +121,7 @@ function DecisionsPage() {
     setText("");
     setContext("");
     setCategory("");
+    setSavedAt(Date.now());
     load();
   };
 
@@ -147,9 +150,12 @@ function DecisionsPage() {
         onSubmit={submit}
         className="rounded-xl border border-border bg-card p-6 space-y-4"
       >
-        <Label className="text-xs uppercase tracking-wider text-muted-foreground">
-          Log a decision
-        </Label>
+        <div className="flex items-center justify-between gap-2">
+          <Label className="text-xs uppercase tracking-wider text-muted-foreground">
+            Log a decision
+          </Label>
+          <SavedChip at={savedAt} />
+        </div>
         <Textarea
           required
           value={text}

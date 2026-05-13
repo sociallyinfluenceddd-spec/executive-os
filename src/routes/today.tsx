@@ -4,12 +4,15 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { AppShell } from "@/components/AppShell";
 import { EmailPanel } from "@/components/EmailPanel";
-import { SavedIndicator } from "@/components/SavedIndicator";
+import { SavedChip } from "@/components/SavedChip";
+import { DoneForToday } from "@/components/DoneForToday";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
+
+type SectionKey = "priority" | "energy" | "mood" | "must" | "reflection";
 
 export const Route = createFileRoute("/today")({
   component: () => (
@@ -78,7 +81,13 @@ function TodayPage() {
   const { user } = useAuth();
   const [row, setRow] = useState<DailyRow>(EMPTY);
   const [loaded, setLoaded] = useState(false);
-  const [savedAt, setSavedAt] = useState<number | null>(null);
+  const [savedSections, setSavedSections] = useState<Record<SectionKey, number | null>>({
+    priority: null,
+    energy: null,
+    mood: null,
+    must: null,
+    reflection: null,
+  });
   const [showMore, setShowMore] = useState(false);
   const [showMustMoves, setShowMustMoves] = useState(false);
   const [visibleMustMoves, setVisibleMustMoves] = useState(1);
@@ -131,7 +140,7 @@ function TodayPage() {
   }, [user, entryDate]);
 
   const persist = useCallback(
-    async (next: DailyRow) => {
+    async (next: DailyRow, section?: SectionKey) => {
       if (!user) return;
       if (JSON.stringify(next) === lastSaved.current) return;
       const hasContent = Object.values(next).some(
@@ -146,21 +155,24 @@ function TodayPage() {
         );
       if (!error) {
         lastSaved.current = JSON.stringify(next);
-        setSavedAt(Date.now());
+        if (section) {
+          setSavedSections((prev) => ({ ...prev, [section]: Date.now() }));
+        }
       }
     },
     [user, entryDate],
   );
 
   const saveField = useCallback(
-    (patch: Partial<DailyRow>) => persist({ ...row, ...patch }),
+    (patch: Partial<DailyRow>, section?: SectionKey) =>
+      persist({ ...row, ...patch }, section),
     [row, persist],
   );
 
-  const setAndSave = (patch: Partial<DailyRow>) => {
+  const setAndSave = (patch: Partial<DailyRow>, section?: SectionKey) => {
     const next = { ...row, ...patch };
     setRow(next);
-    persist(next);
+    persist(next, section);
   };
 
   const update = (patch: Partial<DailyRow>) => setRow((r) => ({ ...r, ...patch }));
@@ -182,37 +194,38 @@ function TodayPage() {
   });
 
   return (
-    <div className="space-y-6">
-      <header className="flex items-start justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight text-foreground">
-            {greeting()}
-            {firstName ? `, ${firstName}` : ""}.
-          </h1>
-          <p className="text-sm text-muted-foreground mt-1">{dateLabel}</p>
-        </div>
-        <div className="pt-2">
-          <SavedIndicator stamp={savedAt} />
-        </div>
+    <div className="space-y-6 pb-24">
+      <header>
+        <h1 className="text-2xl font-semibold tracking-tight text-foreground">
+          {greeting()}
+          {firstName ? `, ${firstName}` : ""}.
+        </h1>
+        <p className="text-sm text-muted-foreground mt-1">{dateLabel}</p>
       </header>
 
       {/* Top Priority */}
       <section className="rounded-xl border border-border bg-card p-6">
-        <Label className="text-xs uppercase tracking-wider text-muted-foreground">
-          Top priority
-        </Label>
+        <div className="flex items-center justify-between gap-2">
+          <Label className="text-xs uppercase tracking-wider text-muted-foreground">
+            Top priority
+          </Label>
+          <SavedChip at={savedSections.priority} />
+        </div>
         <Textarea
           className="mt-3 min-h-[110px] text-lg leading-relaxed border-0 bg-transparent focus-visible:ring-0 px-0 resize-none"
           placeholder="e.g. close the Acme proposal"
           value={row.top_priority ?? ""}
           onChange={(e) => update({ top_priority: e.target.value })}
-          onBlur={() => saveField({ top_priority: row.top_priority })}
+          onBlur={() => saveField({ top_priority: row.top_priority }, "priority")}
         />
       </section>
 
       {/* Energy */}
       <section className="rounded-xl border border-border bg-card p-6">
-        <Label className="text-xs uppercase tracking-wider text-muted-foreground">Energy</Label>
+        <div className="flex items-center justify-between gap-2">
+          <Label className="text-xs uppercase tracking-wider text-muted-foreground">Energy</Label>
+          <SavedChip at={savedSections.energy} />
+        </div>
         <div className="mt-3 grid grid-cols-5 gap-2">
           {ENERGY_OPTIONS.map((opt) => {
             const active = row.energy_level === opt.value;
@@ -220,7 +233,7 @@ function TodayPage() {
               <button
                 key={opt.value}
                 type="button"
-                onClick={() => setAndSave({ energy_level: opt.value })}
+                onClick={() => setAndSave({ energy_level: opt.value }, "energy")}
                 className={`flex flex-col items-center gap-1 rounded-lg border px-2 py-3 transition-colors ${
                   active
                     ? "border-[color:var(--navy)] bg-[color:var(--navy)]/5"
@@ -237,7 +250,10 @@ function TodayPage() {
 
       {/* Mood */}
       <section className="rounded-xl border border-border bg-card p-6">
-        <Label className="text-xs uppercase tracking-wider text-muted-foreground">Mood</Label>
+        <div className="flex items-center justify-between gap-2">
+          <Label className="text-xs uppercase tracking-wider text-muted-foreground">Mood</Label>
+          <SavedChip at={savedSections.mood} />
+        </div>
         <div className="mt-3 flex flex-wrap gap-2">
           {MOOD_PRESETS.map((m) => {
             const active = row.mood === m;
@@ -247,7 +263,7 @@ function TodayPage() {
                 type="button"
                 onClick={() => {
                   setMoodCustom(false);
-                  setAndSave({ mood: m });
+                  setAndSave({ mood: m }, "mood");
                 }}
                 className={`px-3 py-1.5 rounded-full border text-sm transition-colors ${
                   active
@@ -277,7 +293,7 @@ function TodayPage() {
             placeholder="e.g. cautiously optimistic"
             value={row.mood && !MOOD_PRESETS.includes(row.mood) ? row.mood : ""}
             onChange={(e) => update({ mood: e.target.value })}
-            onBlur={() => saveField({ mood: row.mood })}
+            onBlur={() => saveField({ mood: row.mood }, "mood")}
             autoFocus
           />
         )}
@@ -305,9 +321,12 @@ function TodayPage() {
             </Button>
           ) : (
             <section className="rounded-xl border border-border bg-card p-6 space-y-3">
-              <Label className="text-xs uppercase tracking-wider text-muted-foreground">
-                Must move
-              </Label>
+              <div className="flex items-center justify-between gap-2">
+                <Label className="text-xs uppercase tracking-wider text-muted-foreground">
+                  Must move
+                </Label>
+                <SavedChip at={savedSections.must} />
+              </div>
               <div className="flex items-center gap-3">
                 <span className="text-sm font-medium text-[color:var(--sage)] w-5 tabular-nums">
                   1.
@@ -316,7 +335,7 @@ function TodayPage() {
                   value={row.must_move_1 ?? ""}
                   placeholder="e.g. send contract"
                   onChange={(e) => update({ must_move_1: e.target.value })}
-                  onBlur={() => saveField({ must_move_1: row.must_move_1 })}
+                  onBlur={() => saveField({ must_move_1: row.must_move_1 }, "must")}
                   autoFocus
                 />
               </div>
@@ -329,7 +348,7 @@ function TodayPage() {
                     value={row.must_move_2 ?? ""}
                     placeholder="e.g. book follow-up"
                     onChange={(e) => update({ must_move_2: e.target.value })}
-                    onBlur={() => saveField({ must_move_2: row.must_move_2 })}
+                    onBlur={() => saveField({ must_move_2: row.must_move_2 }, "must")}
                   />
                 </div>
               )}
@@ -342,7 +361,7 @@ function TodayPage() {
                     value={row.must_move_3 ?? ""}
                     placeholder="e.g. prep client brief"
                     onChange={(e) => update({ must_move_3: e.target.value })}
-                    onBlur={() => saveField({ must_move_3: row.must_move_3 })}
+                    onBlur={() => saveField({ must_move_3: row.must_move_3 }, "must")}
                   />
                 </div>
               )}
@@ -374,9 +393,12 @@ function TodayPage() {
                 <Label className="text-xs uppercase tracking-wider text-muted-foreground">
                   {REFLECTION_STEPS[reflectionStep].label}
                 </Label>
-                <span className="text-xs text-muted-foreground tabular-nums">
-                  {reflectionStep + 1} / {REFLECTION_STEPS.length}
-                </span>
+                <div className="flex items-center gap-3">
+                  <SavedChip at={savedSections.reflection} />
+                  <span className="text-xs text-muted-foreground tabular-nums">
+                    {reflectionStep + 1} / {REFLECTION_STEPS.length}
+                  </span>
+                </div>
               </div>
               {(() => {
                 const step = REFLECTION_STEPS[reflectionStep];
@@ -388,7 +410,7 @@ function TodayPage() {
                     placeholder={step.placeholder}
                     value={(row[key] as string | null) ?? ""}
                     onChange={(e) => update({ [key]: e.target.value } as Partial<DailyRow>)}
-                    onBlur={() => saveField({ [key]: row[key] } as Partial<DailyRow>)}
+                    onBlur={() => saveField({ [key]: row[key] } as Partial<DailyRow>, "reflection")}
                     autoFocus
                   />
                 );
@@ -406,10 +428,13 @@ function TodayPage() {
                   <Button
                     size="sm"
                     onClick={() => {
-                      saveField({
-                        [REFLECTION_STEPS[reflectionStep].key]:
-                          row[REFLECTION_STEPS[reflectionStep].key],
-                      } as Partial<DailyRow>);
+                      saveField(
+                        {
+                          [REFLECTION_STEPS[reflectionStep].key]:
+                            row[REFLECTION_STEPS[reflectionStep].key],
+                        } as Partial<DailyRow>,
+                        "reflection",
+                      );
                       setReflectionStep((s) => s + 1);
                     }}
                   >
@@ -423,6 +448,15 @@ function TodayPage() {
           )}
         </div>
       )}
+
+      <DoneForToday
+        onPress={() => {
+          setShowMore(false);
+          setShowMustMoves(false);
+          setShowReflection(false);
+          setMoodCustom(false);
+        }}
+      />
     </div>
   );
 }
