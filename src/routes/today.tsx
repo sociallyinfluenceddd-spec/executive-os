@@ -5,6 +5,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { AppShell } from "@/components/AppShell";
 import { DoneForToday } from "@/components/DoneForToday";
 import { CaptureModal } from "@/components/CaptureModal";
+import { BenchRow } from "@/components/BenchRow";
 import { Button } from "@/components/ui/button";
 import {
   Select,
