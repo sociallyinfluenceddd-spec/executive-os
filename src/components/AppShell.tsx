@@ -3,7 +3,13 @@ import { useEffect, type ReactNode } from "react";
 import { CalendarDays, Mic, Settings as SettingsIcon } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 
-export function AppShell({ children }: { children: ReactNode }) {
+export function AppShell({
+  children,
+  wide = false,
+}: {
+  children: ReactNode;
+  wide?: boolean;
+}) {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
@@ -26,9 +32,13 @@ export function AppShell({ children }: { children: ReactNode }) {
     { to: "/settings", label: "Settings", icon: SettingsIcon },
   ] as const;
 
+  const containerClass = wide
+    ? "mx-auto max-w-[1400px] px-6 pt-6"
+    : "mx-auto max-w-2xl px-5 pt-8";
+
   return (
     <div className="min-h-screen bg-background pb-24">
-      <main className="mx-auto max-w-2xl px-5 pt-8">{children}</main>
+      <main className={containerClass}>{children}</main>
       <nav className="fixed bottom-0 inset-x-0 border-t border-border bg-card/95 backdrop-blur z-40">
         <div className="mx-auto max-w-2xl grid grid-cols-3">
           {items.map(({ to, label, icon: Icon }) => {
@@ -51,3 +61,4 @@ export function AppShell({ children }: { children: ReactNode }) {
     </div>
   );
 }
+
