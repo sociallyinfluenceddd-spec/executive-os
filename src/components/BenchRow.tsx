@@ -74,13 +74,13 @@ export const SEED_AGENTS: Omit<Agent, "id" | "enabled">[] = [
 ];
 
 export type AgentContext = {
-  date: string;
-  latestCapture?: string | null;
   energy?: number | null;
   topPriority?: string | null;
   priorityEmails?: number;
   meetings?: number;
 };
+
+type FullContext = AgentContext & { date: string; latestCapture: string | null };
 
 function buildContextBlock(ctx: AgentContext): string {
   return `Current dashboard context: today is ${ctx.date}. Donna's latest capture: ${
