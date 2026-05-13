@@ -82,7 +82,7 @@ export type AgentContext = {
 
 type FullContext = AgentContext & { date: string; latestCapture: string | null };
 
-function buildContextBlock(ctx: AgentContext): string {
+function buildContextBlock(ctx: FullContext): string {
   return `Current dashboard context: today is ${ctx.date}. Donna's latest capture: ${
     ctx.latestCapture ?? "(none)"
   }. Current energy: ${ctx.energy ?? "(unset)"}. Top priority: ${
