@@ -348,7 +348,7 @@ function TodayPage() {
                     value={row.must_move_2 ?? ""}
                     placeholder="e.g. book follow-up"
                     onChange={(e) => update({ must_move_2: e.target.value })}
-                    onBlur={() => saveField({ must_move_2: row.must_move_2 })}
+                    onBlur={() => saveField({ must_move_2: row.must_move_2 }, "must")}
                   />
                 </div>
               )}
