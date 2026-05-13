@@ -293,7 +293,7 @@ function TodayPage() {
             placeholder="e.g. cautiously optimistic"
             value={row.mood && !MOOD_PRESETS.includes(row.mood) ? row.mood : ""}
             onChange={(e) => update({ mood: e.target.value })}
-            onBlur={() => saveField({ mood: row.mood })}
+            onBlur={() => saveField({ mood: row.mood }, "mood")}
             autoFocus
           />
         )}
