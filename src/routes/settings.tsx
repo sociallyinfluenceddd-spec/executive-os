@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { SavedIndicator } from "@/components/SavedIndicator";
+import { BenchSettings } from "@/components/BenchSettings";
 
 export const Route = createFileRoute("/settings")({
   component: () => (
