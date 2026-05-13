@@ -393,9 +393,12 @@ function TodayPage() {
                 <Label className="text-xs uppercase tracking-wider text-muted-foreground">
                   {REFLECTION_STEPS[reflectionStep].label}
                 </Label>
-                <span className="text-xs text-muted-foreground tabular-nums">
-                  {reflectionStep + 1} / {REFLECTION_STEPS.length}
-                </span>
+                <div className="flex items-center gap-3">
+                  <SavedChip at={savedSections.reflection} />
+                  <span className="text-xs text-muted-foreground tabular-nums">
+                    {reflectionStep + 1} / {REFLECTION_STEPS.length}
+                  </span>
+                </div>
               </div>
               {(() => {
                 const step = REFLECTION_STEPS[reflectionStep];
