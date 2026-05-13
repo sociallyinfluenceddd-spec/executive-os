@@ -4,12 +4,15 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { AppShell } from "@/components/AppShell";
 import { EmailPanel } from "@/components/EmailPanel";
-import { SavedIndicator } from "@/components/SavedIndicator";
+import { SavedChip } from "@/components/SavedChip";
+import { DoneForToday } from "@/components/DoneForToday";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
+
+type SectionKey = "priority" | "energy" | "mood" | "must" | "reflection";
 
 export const Route = createFileRoute("/today")({
   component: () => (
