@@ -263,7 +263,7 @@ function TodayPage() {
                 type="button"
                 onClick={() => {
                   setMoodCustom(false);
-                  setAndSave({ mood: m });
+                  setAndSave({ mood: m }, "mood");
                 }}
                 className={`px-3 py-1.5 rounded-full border text-sm transition-colors ${
                   active
