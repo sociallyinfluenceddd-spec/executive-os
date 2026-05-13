@@ -14,6 +14,39 @@ export type Database = {
   }
   public: {
     Tables: {
+      exec_os_captures: {
+        Row: {
+          captured_at: string
+          created_at: string
+          extracted: Json | null
+          id: string
+          raw_text: string
+          routed_to: string[] | null
+          source: string
+          user_id: string
+        }
+        Insert: {
+          captured_at?: string
+          created_at?: string
+          extracted?: Json | null
+          id?: string
+          raw_text: string
+          routed_to?: string[] | null
+          source?: string
+          user_id: string
+        }
+        Update: {
+          captured_at?: string
+          created_at?: string
+          extracted?: Json | null
+          id?: string
+          raw_text?: string
+          routed_to?: string[] | null
+          source?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       exec_os_daily: {
         Row: {
           blockers: string | null

@@ -12,7 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as TodayRouteImport } from './routes/today'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as LoginRouteImport } from './routes/login'
-import { Route as DecisionsRouteImport } from './routes/decisions'
+import { Route as CaptureRouteImport } from './routes/capture'
 import { Route as IndexRouteImport } from './routes/index'
 
 const TodayRoute = TodayRouteImport.update({
@@ -30,9 +30,9 @@ const LoginRoute = LoginRouteImport.update({
   path: '/login',
   getParentRoute: () => rootRouteImport,
 } as any)
-const DecisionsRoute = DecisionsRouteImport.update({
-  id: '/decisions',
-  path: '/decisions',
+const CaptureRoute = CaptureRouteImport.update({
+  id: '/capture',
+  path: '/capture',
   getParentRoute: () => rootRouteImport,
 } as any)
 const IndexRoute = IndexRouteImport.update({
@@ -43,14 +43,14 @@ const IndexRoute = IndexRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/decisions': typeof DecisionsRoute
+  '/capture': typeof CaptureRoute
   '/login': typeof LoginRoute
   '/settings': typeof SettingsRoute
   '/today': typeof TodayRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/decisions': typeof DecisionsRoute
+  '/capture': typeof CaptureRoute
   '/login': typeof LoginRoute
   '/settings': typeof SettingsRoute
   '/today': typeof TodayRoute
@@ -58,22 +58,22 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
-  '/decisions': typeof DecisionsRoute
+  '/capture': typeof CaptureRoute
   '/login': typeof LoginRoute
   '/settings': typeof SettingsRoute
   '/today': typeof TodayRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/decisions' | '/login' | '/settings' | '/today'
+  fullPaths: '/' | '/capture' | '/login' | '/settings' | '/today'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/decisions' | '/login' | '/settings' | '/today'
-  id: '__root__' | '/' | '/decisions' | '/login' | '/settings' | '/today'
+  to: '/' | '/capture' | '/login' | '/settings' | '/today'
+  id: '__root__' | '/' | '/capture' | '/login' | '/settings' | '/today'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
-  DecisionsRoute: typeof DecisionsRoute
+  CaptureRoute: typeof CaptureRoute
   LoginRoute: typeof LoginRoute
   SettingsRoute: typeof SettingsRoute
   TodayRoute: typeof TodayRoute
@@ -102,11 +102,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LoginRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/decisions': {
-      id: '/decisions'
-      path: '/decisions'
-      fullPath: '/decisions'
-      preLoaderRoute: typeof DecisionsRouteImport
+    '/capture': {
+      id: '/capture'
+      path: '/capture'
+      fullPath: '/capture'
+      preLoaderRoute: typeof CaptureRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/': {
@@ -121,7 +121,7 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
-  DecisionsRoute: DecisionsRoute,
+  CaptureRoute: CaptureRoute,
   LoginRoute: LoginRoute,
   SettingsRoute: SettingsRoute,
   TodayRoute: TodayRoute,
