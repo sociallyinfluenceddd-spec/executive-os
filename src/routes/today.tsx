@@ -335,7 +335,7 @@ function TodayPage() {
                   value={row.must_move_1 ?? ""}
                   placeholder="e.g. send contract"
                   onChange={(e) => update({ must_move_1: e.target.value })}
-                  onBlur={() => saveField({ must_move_1: row.must_move_1 })}
+                  onBlur={() => saveField({ must_move_1: row.must_move_1 }, "must")}
                   autoFocus
                 />
               </div>
