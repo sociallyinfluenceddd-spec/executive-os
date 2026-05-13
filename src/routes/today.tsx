@@ -321,9 +321,12 @@ function TodayPage() {
             </Button>
           ) : (
             <section className="rounded-xl border border-border bg-card p-6 space-y-3">
-              <Label className="text-xs uppercase tracking-wider text-muted-foreground">
-                Must move
-              </Label>
+              <div className="flex items-center justify-between gap-2">
+                <Label className="text-xs uppercase tracking-wider text-muted-foreground">
+                  Must move
+                </Label>
+                <SavedChip at={savedSections.must} />
+              </div>
               <div className="flex items-center gap-3">
                 <span className="text-sm font-medium text-[color:var(--sage)] w-5 tabular-nums">
                   1.
