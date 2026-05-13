@@ -81,7 +81,13 @@ function TodayPage() {
   const { user } = useAuth();
   const [row, setRow] = useState<DailyRow>(EMPTY);
   const [loaded, setLoaded] = useState(false);
-  const [savedAt, setSavedAt] = useState<number | null>(null);
+  const [savedSections, setSavedSections] = useState<Record<SectionKey, number | null>>({
+    priority: null,
+    energy: null,
+    mood: null,
+    must: null,
+    reflection: null,
+  });
   const [showMore, setShowMore] = useState(false);
   const [showMustMoves, setShowMustMoves] = useState(false);
   const [visibleMustMoves, setVisibleMustMoves] = useState(1);
