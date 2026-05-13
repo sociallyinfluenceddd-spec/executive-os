@@ -428,10 +428,13 @@ function TodayPage() {
                   <Button
                     size="sm"
                     onClick={() => {
-                      saveField({
-                        [REFLECTION_STEPS[reflectionStep].key]:
-                          row[REFLECTION_STEPS[reflectionStep].key],
-                      } as Partial<DailyRow>);
+                      saveField(
+                        {
+                          [REFLECTION_STEPS[reflectionStep].key]:
+                            row[REFLECTION_STEPS[reflectionStep].key],
+                        } as Partial<DailyRow>,
+                        "reflection",
+                      );
                       setReflectionStep((s) => s + 1);
                     }}
                   >
