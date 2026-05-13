@@ -150,9 +150,12 @@ function DecisionsPage() {
         onSubmit={submit}
         className="rounded-xl border border-border bg-card p-6 space-y-4"
       >
-        <Label className="text-xs uppercase tracking-wider text-muted-foreground">
-          Log a decision
-        </Label>
+        <div className="flex items-center justify-between gap-2">
+          <Label className="text-xs uppercase tracking-wider text-muted-foreground">
+            Log a decision
+          </Label>
+          <SavedChip at={savedAt} />
+        </div>
         <Textarea
           required
           value={text}
