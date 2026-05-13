@@ -194,31 +194,29 @@ function TodayPage() {
   });
 
   return (
-    <div className="space-y-6">
-      <header className="flex items-start justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight text-foreground">
-            {greeting()}
-            {firstName ? `, ${firstName}` : ""}.
-          </h1>
-          <p className="text-sm text-muted-foreground mt-1">{dateLabel}</p>
-        </div>
-        <div className="pt-2">
-          <SavedIndicator stamp={savedAt} />
-        </div>
+    <div className="space-y-6 pb-24">
+      <header>
+        <h1 className="text-2xl font-semibold tracking-tight text-foreground">
+          {greeting()}
+          {firstName ? `, ${firstName}` : ""}.
+        </h1>
+        <p className="text-sm text-muted-foreground mt-1">{dateLabel}</p>
       </header>
 
       {/* Top Priority */}
       <section className="rounded-xl border border-border bg-card p-6">
-        <Label className="text-xs uppercase tracking-wider text-muted-foreground">
-          Top priority
-        </Label>
+        <div className="flex items-center justify-between gap-2">
+          <Label className="text-xs uppercase tracking-wider text-muted-foreground">
+            Top priority
+          </Label>
+          <SavedChip at={savedSections.priority} />
+        </div>
         <Textarea
           className="mt-3 min-h-[110px] text-lg leading-relaxed border-0 bg-transparent focus-visible:ring-0 px-0 resize-none"
           placeholder="e.g. close the Acme proposal"
           value={row.top_priority ?? ""}
           onChange={(e) => update({ top_priority: e.target.value })}
-          onBlur={() => saveField({ top_priority: row.top_priority })}
+          onBlur={() => saveField({ top_priority: row.top_priority }, "priority")}
         />
       </section>
 
