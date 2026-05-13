@@ -242,7 +242,7 @@ function AgentDrawer({
           },
           body: JSON.stringify({
             systemPrompt: agent.system_prompt,
-            contextBlock: buildContextBlock(context),
+            contextBlock: await buildFreshContext(user.id, context),
             messages: next.map(({ role, content }) => ({ role, content })),
           }),
         },
