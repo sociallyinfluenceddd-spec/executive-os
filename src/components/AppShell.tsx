@@ -1,6 +1,6 @@
 import { Link, useLocation, useNavigate } from "@tanstack/react-router";
 import { useEffect, type ReactNode } from "react";
-import { CalendarDays, ListChecks, Settings as SettingsIcon } from "lucide-react";
+import { CalendarDays, Mic, Settings as SettingsIcon } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 
 export function AppShell({ children }: { children: ReactNode }) {
@@ -22,7 +22,7 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   const items = [
     { to: "/today", label: "Today", icon: CalendarDays },
-    { to: "/decisions", label: "Decisions", icon: ListChecks },
+    { to: "/capture", label: "Capture", icon: Mic },
     { to: "/settings", label: "Settings", icon: SettingsIcon },
   ] as const;
 
