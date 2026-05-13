@@ -107,7 +107,7 @@ function isToday(iso: string | null): boolean {
   return (
     d.getFullYear() === now.getFullYear() &&
     d.getMonth() === now.getMonth() &&
-    d.getDate() === now.getDate();
+    d.getDate() === now.getDate()
   );
 }
 
