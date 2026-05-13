@@ -81,6 +81,8 @@ function SettingsPage() {
         </div>
       </section>
 
+      <BenchSettings />
+
       <section className="rounded-xl border border-border bg-card p-6">
         <Button variant="outline" onClick={signOut} className="w-full">
           Sign out
