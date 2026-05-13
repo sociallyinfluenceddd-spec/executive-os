@@ -86,6 +86,7 @@ function DecisionsPage() {
   const [context, setContext] = useState("");
   const [category, setCategory] = useState<string>("");
   const [submitting, setSubmitting] = useState(false);
+  const [savedAt, setSavedAt] = useState<number | null>(null);
 
   const load = async () => {
     if (!user) return;
