@@ -448,6 +448,15 @@ function TodayPage() {
           )}
         </div>
       )}
+
+      <DoneForToday
+        onPress={() => {
+          setShowMore(false);
+          setShowMustMoves(false);
+          setShowReflection(false);
+          setMoodCustom(false);
+        }}
+      />
     </div>
   );
 }
