@@ -20,6 +20,7 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
+import { SavedChip } from "@/components/SavedChip";
 
 export const Route = createFileRoute("/decisions")({
   component: () => (
