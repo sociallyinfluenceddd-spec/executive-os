@@ -1,18 +1,11 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { AppShell } from "@/components/AppShell";
-import { EmailPanel } from "@/components/EmailPanel";
-import { SavedChip } from "@/components/SavedChip";
 import { DoneForToday } from "@/components/DoneForToday";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { Plus } from "lucide-react";
-
-type SectionKey = "priority" | "energy" | "mood" | "must" | "reflection";
+import { RefreshCw, Video, ArrowRight } from "lucide-react";
 
 export const Route = createFileRoute("/today")({
   component: () => (
@@ -22,53 +15,32 @@ export const Route = createFileRoute("/today")({
   ),
 });
 
+type EmailRow = {
+  id: string;
+  account: string;
+  kind: "priority" | "needs_response" | "invite" | "meeting";
+  sender_name: string | null;
+  sender_email: string | null;
+  subject: string | null;
+  snippet: string | null;
+  received_at: string | null;
+  scheduled_at: string | null;
+  attendees: unknown;
+  video_url: string | null;
+  status: string | null;
+};
+
 type DailyRow = {
-  top_priority: string | null;
-  must_move_1: string | null;
-  must_move_2: string | null;
-  must_move_3: string | null;
   energy_level: number | null;
   mood: string | null;
-  blockers: string | null;
-  what_moved: string | null;
-  what_didnt: string | null;
-  tomorrow_seed: string | null;
+  top_priority: string | null;
 };
 
-const EMPTY: DailyRow = {
-  top_priority: "",
-  must_move_1: "",
-  must_move_2: "",
-  must_move_3: "",
-  energy_level: null,
-  mood: "",
-  blockers: "",
-  what_moved: "",
-  what_didnt: "",
-  tomorrow_seed: "",
+type CaptureRow = {
+  id: string;
+  raw_text: string;
+  captured_at: string;
 };
-
-const ENERGY_OPTIONS = [
-  { value: 2, emoji: "😴", label: "Drained" },
-  { value: 4, emoji: "😐", label: "Low" },
-  { value: 6, emoji: "🙂", label: "Okay" },
-  { value: 8, emoji: "⚡", label: "Sharp" },
-  { value: 10, emoji: "🔥", label: "On fire" },
-];
-
-const MOOD_PRESETS = ["calm", "scattered", "focused", "anxious", "tired", "energized"];
-
-const REFLECTION_STEPS = [
-  { key: "blockers", label: "Blockers", placeholder: "e.g. waiting on legal review" },
-  { key: "what_moved", label: "What moved", placeholder: "e.g. shipped Q3 plan" },
-  { key: "what_didnt", label: "What didn't", placeholder: "e.g. pricing deck stalled" },
-  { key: "tomorrow_seed", label: "Tomorrow's seed", placeholder: "e.g. start with the deck" },
-] as const;
-
-function todayDate() {
-  const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-}
 
 function greeting() {
   const h = new Date().getHours();
@@ -77,114 +49,202 @@ function greeting() {
   return "Good evening";
 }
 
+function relativeTime(iso: string | null): string {
+  if (!iso) return "";
+  const diff = Date.now() - new Date(iso).getTime();
+  const min = Math.round(diff / 60000);
+  if (min < 1) return "just now";
+  if (min < 60) return `${min}m ago`;
+  const h = Math.round(min / 60);
+  if (h < 24) return `${h}h ago`;
+  return `${Math.round(h / 24)}d ago`;
+}
+
+function whenLabel(iso: string | null): string {
+  if (!iso) return "";
+  const d = new Date(iso);
+  const now = new Date();
+  const sameDay =
+    d.getFullYear() === now.getFullYear() &&
+    d.getMonth() === now.getMonth() &&
+    d.getDate() === now.getDate();
+  const time = d.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
+  if (sameDay) return `Today ${time}`;
+  return `${d.toLocaleDateString(undefined, { month: "short", day: "numeric" })} · ${time}`;
+}
+
+function urgencyClass(iso: string | null): string {
+  if (!iso) return "bg-[color:var(--sage)]";
+  const ageH = (Date.now() - new Date(iso).getTime()) / 3_600_000;
+  if (ageH > 24) return "bg-rose-500";
+  if (ageH > 12) return "bg-amber-400";
+  return "bg-[color:var(--sage)]";
+}
+
+function accountChip(account: string): string {
+  return account.split("@")[0];
+}
+
+const ENERGY_EMOJI: Record<number, string> = {
+  2: "😴",
+  4: "😐",
+  6: "🙂",
+  8: "⚡",
+  10: "🔥",
+};
+
+function energyDisplay(level: number | null): string {
+  if (level == null) return "—";
+  const keys = [2, 4, 6, 8, 10];
+  const nearest = keys.reduce((p, c) => (Math.abs(c - level) < Math.abs(p - level) ? c : p));
+  return ENERGY_EMOJI[nearest];
+}
+
+function isToday(iso: string | null): boolean {
+  if (!iso) return false;
+  const d = new Date(iso);
+  const now = new Date();
+  return (
+    d.getFullYear() === now.getFullYear() &&
+    d.getMonth() === now.getMonth() &&
+    d.getDate() === now.getDate();
+  );
+}
+
 function TodayPage() {
   const { user } = useAuth();
-  const [row, setRow] = useState<DailyRow>(EMPTY);
+  const [emails, setEmails] = useState<EmailRow[]>([]);
+  const [daily, setDaily] = useState<DailyRow | null>(null);
+  const [latestCapture, setLatestCapture] = useState<CaptureRow | null>(null);
+  const [capturesThisWeek, setCapturesThisWeek] = useState(0);
   const [loaded, setLoaded] = useState(false);
-  const [savedSections, setSavedSections] = useState<Record<SectionKey, number | null>>({
-    priority: null,
-    energy: null,
-    mood: null,
-    must: null,
-    reflection: null,
-  });
-  const [showMore, setShowMore] = useState(false);
-  const [showMustMoves, setShowMustMoves] = useState(false);
-  const [visibleMustMoves, setVisibleMustMoves] = useState(1);
-  const [showReflection, setShowReflection] = useState(false);
-  const [reflectionStep, setReflectionStep] = useState(0);
-  const [moodCustom, setMoodCustom] = useState(false);
+  const [expandCapture, setExpandCapture] = useState(false);
+  const [refreshTick, setRefreshTick] = useState(0);
 
-  const entryDate = useMemo(() => todayDate(), []);
   const firstName = useMemo(() => {
     const display = (user?.user_metadata?.display_name as string | undefined)?.trim();
     if (display) return display.split(" ")[0];
     return user?.email?.split("@")[0] ?? "";
   }, [user]);
 
-  const lastSaved = useRef<string>(JSON.stringify(EMPTY));
+  const loadAll = useCallback(async () => {
+    if (!user) return;
+    const weekAgo = new Date(Date.now() - 7 * 86400_000).toISOString();
+    const todayStr = new Date().toISOString().slice(0, 10);
+
+    const [emailsRes, dailyRes, captureRes, weekCountRes] = await Promise.all([
+      supabase
+        .from("exec_os_emails")
+        .select(
+          "id,account,kind,sender_name,sender_email,subject,snippet,received_at,scheduled_at,attendees,video_url,status",
+        )
+        .eq("user_id", user.id),
+      supabase
+        .from("exec_os_daily")
+        .select("energy_level,mood,top_priority,entry_date")
+        .eq("user_id", user.id)
+        .order("entry_date", { ascending: false })
+        .limit(1)
+        .maybeSingle(),
+      supabase
+        .from("exec_os_captures")
+        .select("id,raw_text,captured_at")
+        .eq("user_id", user.id)
+        .order("captured_at", { ascending: false })
+        .limit(1)
+        .maybeSingle(),
+      supabase
+        .from("exec_os_captures")
+        .select("id", { count: "exact", head: true })
+        .eq("user_id", user.id)
+        .gte("captured_at", weekAgo),
+    ]);
+
+    setEmails((emailsRes.data as EmailRow[]) ?? []);
+    setDaily((dailyRes.data as DailyRow) ?? null);
+    setLatestCapture((captureRes.data as CaptureRow) ?? null);
+    setCapturesThisWeek(weekCountRes.count ?? 0);
+    setLoaded(true);
+    void todayStr;
+  }, [user]);
 
   useEffect(() => {
+    void loadAll();
+  }, [loadAll, refreshTick]);
+
+  // Realtime subscription for emails
+  useEffect(() => {
     if (!user) return;
-    let active = true;
-    (async () => {
-      const { data } = await supabase
-        .from("exec_os_daily")
-        .select(
-          "top_priority,must_move_1,must_move_2,must_move_3,energy_level,mood,blockers,what_moved,what_didnt,tomorrow_seed",
-        )
-        .eq("user_id", user.id)
-        .eq("entry_date", entryDate)
-        .maybeSingle();
-      if (!active) return;
-      if (data) {
-        const merged = { ...EMPTY, ...data };
-        setRow(merged);
-        lastSaved.current = JSON.stringify(merged);
-        if (merged.must_move_1 || merged.must_move_2 || merged.must_move_3) {
-          setShowMustMoves(true);
-          setVisibleMustMoves(merged.must_move_3 ? 3 : merged.must_move_2 ? 2 : 1);
-        }
-        if (merged.blockers || merged.what_moved || merged.what_didnt || merged.tomorrow_seed) {
-          setShowReflection(true);
-        }
-        if (merged.mood && !MOOD_PRESETS.includes(merged.mood)) {
-          setMoodCustom(true);
-        }
-      }
-      setLoaded(true);
-    })();
+    const channel = supabase
+      .channel("today_emails_changes")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "exec_os_emails" },
+        (payload) => {
+          setEmails((cur) => {
+            if (payload.eventType === "DELETE") {
+              return cur.filter((r) => r.id !== (payload.old as EmailRow).id);
+            }
+            const next = payload.new as EmailRow;
+            const idx = cur.findIndex((r) => r.id === next.id);
+            if (idx === -1) return [next, ...cur];
+            const copy = cur.slice();
+            copy[idx] = next;
+            return copy;
+          });
+        },
+      )
+      .subscribe();
     return () => {
-      active = false;
+      supabase.removeChannel(channel);
     };
-  }, [user, entryDate]);
+  }, [user]);
 
-  const persist = useCallback(
-    async (next: DailyRow, section?: SectionKey) => {
-      if (!user) return;
-      if (JSON.stringify(next) === lastSaved.current) return;
-      const hasContent = Object.values(next).some(
-        (v) => (typeof v === "string" && v.trim() !== "") || typeof v === "number",
-      );
-      if (!hasContent) return;
-      const { error } = await supabase
-        .from("exec_os_daily")
-        .upsert(
-          { user_id: user.id, entry_date: entryDate, ...next },
-          { onConflict: "user_id,entry_date" },
-        );
-      if (!error) {
-        lastSaved.current = JSON.stringify(next);
-        if (section) {
-          setSavedSections((prev) => ({ ...prev, [section]: Date.now() }));
-        }
-      }
-    },
-    [user, entryDate],
+  const triage = useMemo(() => {
+    return emails
+      .filter(
+        (e) =>
+          (e.kind === "priority" || e.kind === "needs_response") && e.status === "unread",
+      )
+      .sort(
+        (a, b) =>
+          new Date(b.received_at ?? 0).getTime() - new Date(a.received_at ?? 0).getTime(),
+      )
+      .slice(0, 10);
+  }, [emails]);
+
+  const meetingsToday = useMemo(
+    () =>
+      emails
+        .filter((e) => e.kind === "meeting" && isToday(e.scheduled_at))
+        .sort(
+          (a, b) =>
+            new Date(a.scheduled_at ?? 0).getTime() - new Date(b.scheduled_at ?? 0).getTime(),
+        ),
+    [emails],
   );
 
-  const saveField = useCallback(
-    (patch: Partial<DailyRow>, section?: SectionKey) =>
-      persist({ ...row, ...patch }, section),
-    [row, persist],
+  const invites = useMemo(
+    () =>
+      emails
+        .filter((e) => e.kind === "invite" && e.status === "unread")
+        .sort(
+          (a, b) =>
+            new Date(a.scheduled_at ?? 0).getTime() - new Date(b.scheduled_at ?? 0).getTime(),
+        ),
+    [emails],
   );
 
-  const setAndSave = (patch: Partial<DailyRow>, section?: SectionKey) => {
-    const next = { ...row, ...patch };
-    setRow(next);
-    persist(next, section);
-  };
+  const needsResponseCount = emails.filter(
+    (e) =>
+      (e.kind === "priority" || e.kind === "needs_response") && e.status === "unread",
+  ).length;
+  const meetingsTodayCount = meetingsToday.length;
+  const invitesCount = invites.length;
 
-  const update = (patch: Partial<DailyRow>) => setRow((r) => ({ ...r, ...patch }));
-
-  if (!loaded) {
-    return (
-      <div className="space-y-6">
-        <div className="h-8 w-2/3 bg-muted rounded-md animate-pulse" />
-        <div className="h-32 w-full bg-muted rounded-xl animate-pulse" />
-        <div className="h-24 w-full bg-muted rounded-xl animate-pulse" />
-      </div>
-    );
+  async function setEmailStatus(id: string, status: string) {
+    setEmails((cur) => cur.map((r) => (r.id === id ? { ...r, status } : r)));
+    await supabase.from("exec_os_emails").update({ status }).eq("id", id);
   }
 
   const dateLabel = new Date().toLocaleDateString(undefined, {
@@ -193,270 +253,309 @@ function TodayPage() {
     day: "numeric",
   });
 
+  if (!loaded) {
+    return (
+      <div className="space-y-6">
+        <div className="h-8 w-2/3 bg-muted rounded-md animate-pulse" />
+        <div className="h-32 w-full bg-muted rounded-xl animate-pulse" />
+        <div className="h-48 w-full bg-muted rounded-xl animate-pulse" />
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6 pb-24">
+      {/* Header strip */}
       <header>
         <h1 className="text-2xl font-semibold tracking-tight text-foreground">
           {greeting()}
           {firstName ? `, ${firstName}` : ""}.
         </h1>
         <p className="text-sm text-muted-foreground mt-1">{dateLabel}</p>
+        <div className="mt-4 flex flex-wrap gap-2">
+          <StatChip
+            label={`${needsResponseCount} email${needsResponseCount === 1 ? "" : "s"} need response`}
+            alert={needsResponseCount > 5}
+          />
+          <StatChip
+            label={`${meetingsTodayCount} meeting${meetingsTodayCount === 1 ? "" : "s"} today`}
+          />
+          <StatChip
+            label={`${invitesCount} invite${invitesCount === 1 ? "" : "s"} awaiting reply`}
+          />
+          <StatChip
+            label={`${capturesThisWeek} capture${capturesThisWeek === 1 ? "" : "s"} this week`}
+          />
+        </div>
       </header>
 
-      {/* Top Priority */}
-      <section className="rounded-xl border border-border bg-card p-6">
-        <div className="flex items-center justify-between gap-2">
-          <Label className="text-xs uppercase tracking-wider text-muted-foreground">
-            Top priority
-          </Label>
-          <SavedChip at={savedSections.priority} />
-        </div>
-        <Textarea
-          className="mt-3 min-h-[110px] text-lg leading-relaxed border-0 bg-transparent focus-visible:ring-0 px-0 resize-none"
-          placeholder="e.g. close the Acme proposal"
-          value={row.top_priority ?? ""}
-          onChange={(e) => update({ top_priority: e.target.value })}
-          onBlur={() => saveField({ top_priority: row.top_priority }, "priority")}
-        />
-      </section>
-
-      {/* Energy */}
-      <section className="rounded-xl border border-border bg-card p-6">
-        <div className="flex items-center justify-between gap-2">
-          <Label className="text-xs uppercase tracking-wider text-muted-foreground">Energy</Label>
-          <SavedChip at={savedSections.energy} />
-        </div>
-        <div className="mt-3 grid grid-cols-5 gap-2">
-          {ENERGY_OPTIONS.map((opt) => {
-            const active = row.energy_level === opt.value;
-            return (
-              <button
-                key={opt.value}
-                type="button"
-                onClick={() => setAndSave({ energy_level: opt.value }, "energy")}
-                className={`flex flex-col items-center gap-1 rounded-lg border px-2 py-3 transition-colors ${
-                  active
-                    ? "border-[color:var(--navy)] bg-[color:var(--navy)]/5"
-                    : "border-border hover:bg-muted"
-                }`}
-              >
-                <span className="text-2xl leading-none">{opt.emoji}</span>
-                <span className="text-[11px] text-muted-foreground">{opt.label}</span>
-              </button>
-            );
-          })}
-        </div>
-      </section>
-
-      {/* Mood */}
-      <section className="rounded-xl border border-border bg-card p-6">
-        <div className="flex items-center justify-between gap-2">
-          <Label className="text-xs uppercase tracking-wider text-muted-foreground">Mood</Label>
-          <SavedChip at={savedSections.mood} />
-        </div>
-        <div className="mt-3 flex flex-wrap gap-2">
-          {MOOD_PRESETS.map((m) => {
-            const active = row.mood === m;
-            return (
-              <button
-                key={m}
-                type="button"
-                onClick={() => {
-                  setMoodCustom(false);
-                  setAndSave({ mood: m }, "mood");
-                }}
-                className={`px-3 py-1.5 rounded-full border text-sm transition-colors ${
-                  active
-                    ? "border-[color:var(--navy)] bg-[color:var(--navy)] text-[color:var(--primary-foreground)]"
-                    : "border-border hover:bg-muted"
-                }`}
-              >
-                {m}
-              </button>
-            );
-          })}
-          <button
-            type="button"
-            onClick={() => setMoodCustom((v) => !v)}
-            className={`px-3 py-1.5 rounded-full border text-sm transition-colors ${
-              moodCustom
-                ? "border-[color:var(--navy)] bg-muted"
-                : "border-dashed border-border hover:bg-muted"
-            }`}
-          >
-            Other…
-          </button>
-        </div>
-        {moodCustom && (
-          <Textarea
-            className="mt-3 min-h-[76px] resize-none"
-            placeholder="e.g. cautiously optimistic"
-            value={row.mood && !MOOD_PRESETS.includes(row.mood) ? row.mood : ""}
-            onChange={(e) => update({ mood: e.target.value })}
-            onBlur={() => saveField({ mood: row.mood }, "mood")}
-            autoFocus
-          />
-        )}
-      </section>
-
-      <EmailPanel />
-
-      {!showMore ? (
-        <Button
-          variant="outline"
-          className="w-full justify-start text-muted-foreground"
-          onClick={() => setShowMore(true)}
-        >
-          <Plus className="h-4 w-4" /> Add more
-        </Button>
-      ) : (
-        <div className="space-y-4">
-          {!showMustMoves ? (
-            <Button
-              variant="outline"
-              className="w-full justify-start text-muted-foreground"
-              onClick={() => setShowMustMoves(true)}
+      <div className="grid gap-6 lg:grid-cols-5">
+        {/* LEFT — Triage */}
+        <section className="lg:col-span-3 rounded-xl border border-border bg-card p-6">
+          <header className="flex items-center justify-between">
+            <h2 className="text-lg font-semibold tracking-tight text-foreground">Triage</h2>
+            <button
+              type="button"
+              onClick={() => setRefreshTick((n) => n + 1)}
+              className="text-muted-foreground hover:text-foreground p-1.5 rounded-md hover:bg-muted transition"
+              aria-label="Refresh"
             >
-              <Plus className="h-4 w-4" /> Add must-moves
-            </Button>
-          ) : (
-            <section className="rounded-xl border border-border bg-card p-6 space-y-3">
-              <div className="flex items-center justify-between gap-2">
-                <Label className="text-xs uppercase tracking-wider text-muted-foreground">
-                  Must move
-                </Label>
-                <SavedChip at={savedSections.must} />
-              </div>
+              <RefreshCw className="h-4 w-4" />
+            </button>
+          </header>
+          <div className="mt-4">
+            {triage.length === 0 ? (
+              <p className="text-sm text-muted-foreground py-10 text-center">
+                Inbox clear. ✨
+              </p>
+            ) : (
+              <ul className="divide-y divide-border">
+                {triage.map((r) => (
+                  <li key={r.id} className="py-3">
+                    <TriageRow row={r} onStatus={(s) => setEmailStatus(r.id, s)} />
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        </section>
+
+        {/* RIGHT — Today */}
+        <div className="lg:col-span-2 space-y-4">
+          {/* Meetings today */}
+          <section className="rounded-xl border border-border bg-card p-5">
+            <h3 className="text-sm font-semibold tracking-tight text-foreground">
+              Meetings today
+            </h3>
+            <div className="mt-3">
+              {meetingsToday.length === 0 ? (
+                <p className="text-xs text-muted-foreground">No meetings today.</p>
+              ) : (
+                <ul className="space-y-3">
+                  {meetingsToday.map((m) => {
+                    const attendees = Array.isArray(m.attendees) ? m.attendees.length : 0;
+                    return (
+                      <li key={m.id} className="flex items-start gap-3">
+                        <div className="min-w-0 flex-1">
+                          <div className="text-sm font-medium text-foreground truncate">
+                            {m.subject || "(untitled)"}
+                          </div>
+                          <div className="text-xs text-muted-foreground">
+                            {whenLabel(m.scheduled_at)}
+                            {attendees > 0 &&
+                              ` · ${attendees} attendee${attendees === 1 ? "" : "s"}`}
+                          </div>
+                        </div>
+                        {m.video_url && (
+                          <a
+                            href={m.video_url}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="inline-flex items-center gap-1 text-xs text-[color:var(--navy)] hover:underline shrink-0"
+                          >
+                            <Video className="h-3.5 w-3.5" /> Join
+                          </a>
+                        )}
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+            </div>
+          </section>
+
+          {/* Calendar invites */}
+          <section className="rounded-xl border border-border bg-card p-5">
+            <h3 className="text-sm font-semibold tracking-tight text-foreground">
+              Calendar invites
+            </h3>
+            <div className="mt-3">
+              {invites.length === 0 ? (
+                <p className="text-xs text-muted-foreground">No invites awaiting reply.</p>
+              ) : (
+                <ul className="space-y-3">
+                  {invites.map((i) => (
+                    <li key={i.id} className="space-y-2">
+                      <div>
+                        <div className="text-sm font-medium text-foreground truncate">
+                          {i.subject || "(untitled)"}
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                          {i.sender_name || i.sender_email || "Organizer"} ·{" "}
+                          {whenLabel(i.scheduled_at)}
+                        </div>
+                      </div>
+                      <div className="flex flex-wrap gap-1.5">
+                        {(["accepted", "declined", "maybe"] as const).map((s) => (
+                          <Button
+                            key={s}
+                            size="sm"
+                            variant={i.status === s ? "default" : "outline"}
+                            className="h-7 text-xs px-2.5"
+                            onClick={() => setEmailStatus(i.id, s)}
+                          >
+                            {s === "accepted" ? "Accept" : s === "declined" ? "Decline" : "Maybe"}
+                          </Button>
+                        ))}
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          </section>
+
+          {/* Pulse */}
+          <section className="rounded-xl border border-border bg-card p-5">
+            <h3 className="text-sm font-semibold tracking-tight text-foreground">Pulse</h3>
+            <div className="mt-3 space-y-2">
               <div className="flex items-center gap-3">
-                <span className="text-sm font-medium text-[color:var(--sage)] w-5 tabular-nums">
-                  1.
+                <span className="text-2xl leading-none">
+                  {energyDisplay(daily?.energy_level ?? null)}
                 </span>
-                <Input
-                  value={row.must_move_1 ?? ""}
-                  placeholder="e.g. send contract"
-                  onChange={(e) => update({ must_move_1: e.target.value })}
-                  onBlur={() => saveField({ must_move_1: row.must_move_1 }, "must")}
-                  autoFocus
-                />
-              </div>
-              {visibleMustMoves >= 2 && (
-                <div className="flex items-center gap-3">
-                  <span className="text-sm font-medium text-[color:var(--sage)] w-5 tabular-nums">
-                    2.
+                {daily?.mood ? (
+                  <span className="px-2.5 py-1 rounded-full bg-muted text-xs text-foreground">
+                    {daily.mood}
                   </span>
-                  <Input
-                    value={row.must_move_2 ?? ""}
-                    placeholder="e.g. book follow-up"
-                    onChange={(e) => update({ must_move_2: e.target.value })}
-                    onBlur={() => saveField({ must_move_2: row.must_move_2 }, "must")}
-                  />
-                </div>
-              )}
-              {visibleMustMoves >= 3 && (
-                <div className="flex items-center gap-3">
-                  <span className="text-sm font-medium text-[color:var(--sage)] w-5 tabular-nums">
-                    3.
-                  </span>
-                  <Input
-                    value={row.must_move_3 ?? ""}
-                    placeholder="e.g. prep client brief"
-                    onChange={(e) => update({ must_move_3: e.target.value })}
-                    onBlur={() => saveField({ must_move_3: row.must_move_3 }, "must")}
-                  />
-                </div>
-              )}
-              {visibleMustMoves < 3 &&
-                (visibleMustMoves === 1 ? row.must_move_1 : row.must_move_2)?.trim() && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="px-0 text-muted-foreground hover:bg-transparent"
-                    onClick={() => setVisibleMustMoves((count) => Math.min(3, count + 1))}
-                  >
-                    <Plus className="h-4 w-4" /> another
-                  </Button>
-                )}
-            </section>
-          )}
-
-          {!showReflection ? (
-            <Button
-              variant="outline"
-              className="w-full justify-start text-muted-foreground"
-              onClick={() => setShowReflection(true)}
-            >
-              <Plus className="h-4 w-4" /> Reflect on today
-            </Button>
-          ) : (
-            <section className="rounded-xl border border-border bg-card p-6 space-y-4">
-              <div className="flex items-center justify-between">
-                <Label className="text-xs uppercase tracking-wider text-muted-foreground">
-                  {REFLECTION_STEPS[reflectionStep].label}
-                </Label>
-                <div className="flex items-center gap-3">
-                  <SavedChip at={savedSections.reflection} />
-                  <span className="text-xs text-muted-foreground tabular-nums">
-                    {reflectionStep + 1} / {REFLECTION_STEPS.length}
-                  </span>
-                </div>
-              </div>
-              {(() => {
-                const step = REFLECTION_STEPS[reflectionStep];
-                const key = step.key;
-                return (
-                  <Textarea
-                    key={key}
-                    className="min-h-[100px] resize-none"
-                    placeholder={step.placeholder}
-                    value={(row[key] as string | null) ?? ""}
-                    onChange={(e) => update({ [key]: e.target.value } as Partial<DailyRow>)}
-                    onBlur={() => saveField({ [key]: row[key] } as Partial<DailyRow>, "reflection")}
-                    autoFocus
-                  />
-                );
-              })()}
-              <div className="flex items-center justify-between gap-3">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  disabled={reflectionStep === 0}
-                  onClick={() => setReflectionStep((s) => Math.max(0, s - 1))}
-                >
-                  ← Back
-                </Button>
-                {reflectionStep < REFLECTION_STEPS.length - 1 ? (
-                  <Button
-                    size="sm"
-                    onClick={() => {
-                      saveField(
-                        {
-                          [REFLECTION_STEPS[reflectionStep].key]:
-                            row[REFLECTION_STEPS[reflectionStep].key],
-                        } as Partial<DailyRow>,
-                        "reflection",
-                      );
-                      setReflectionStep((s) => s + 1);
-                    }}
-                  >
-                    Next →
-                  </Button>
                 ) : (
-                  <span className="text-xs text-muted-foreground">All done.</span>
+                  <span className="text-xs text-muted-foreground">No mood logged</span>
                 )}
               </div>
-            </section>
+              <p className="text-sm text-foreground line-clamp-2">
+                {daily?.top_priority || (
+                  <span className="text-muted-foreground italic">No priority set yet.</span>
+                )}
+              </p>
+              <Link
+                to="/capture"
+                className="inline-flex items-center gap-1 text-xs text-[color:var(--navy)] hover:underline"
+              >
+                Update via Capture <ArrowRight className="h-3 w-3" />
+              </Link>
+            </div>
+          </section>
+
+          {/* Latest capture */}
+          <section className="rounded-xl border border-border bg-card p-5">
+            <h3 className="text-sm font-semibold tracking-tight text-foreground">
+              Latest capture
+            </h3>
+            <div className="mt-3 space-y-2">
+              {latestCapture ? (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => setExpandCapture((v) => !v)}
+                    className="text-left w-full"
+                  >
+                    <p
+                      className={`text-sm text-foreground ${
+                        expandCapture ? "" : "line-clamp-2"
+                      }`}
+                    >
+                      {expandCapture
+                        ? latestCapture.raw_text
+                        : latestCapture.raw_text.slice(0, 120) +
+                          (latestCapture.raw_text.length > 120 ? "…" : "")}
+                    </p>
+                    <p className="text-[11px] text-muted-foreground mt-1">
+                      {relativeTime(latestCapture.captured_at)}
+                    </p>
+                  </button>
+                </>
+              ) : (
+                <p className="text-xs text-muted-foreground">Nothing captured yet.</p>
+              )}
+              <Link
+                to="/capture"
+                className="inline-flex items-center gap-1 text-xs text-[color:var(--navy)] hover:underline"
+              >
+                Capture another <ArrowRight className="h-3 w-3" />
+              </Link>
+            </div>
+          </section>
+        </div>
+      </div>
+
+      <DoneForToday />
+    </div>
+  );
+}
+
+function StatChip({ label, alert }: { label: string; alert?: boolean }) {
+  return (
+    <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-muted text-xs text-foreground">
+      {alert && <span className="h-1.5 w-1.5 rounded-full bg-rose-500" />}
+      {label}
+    </span>
+  );
+}
+
+function TriageRow({
+  row,
+  onStatus,
+}: {
+  row: EmailRow;
+  onStatus: (status: string) => void;
+}) {
+  const mailto = row.sender_email
+    ? `mailto:${row.sender_email}?subject=${encodeURIComponent(
+        row.subject ? `Re: ${row.subject}` : "Re:",
+      )}`
+    : undefined;
+  return (
+    <div className="flex items-start gap-3">
+      <span
+        className={`mt-2 h-2 w-2 rounded-full shrink-0 ${urgencyClass(row.received_at)}`}
+        aria-hidden
+      />
+      <div className="min-w-0 flex-1">
+        <div className="flex items-center gap-2 text-sm">
+          <span className="font-medium text-foreground truncate">
+            {row.sender_name || row.sender_email || "Unknown"}
+          </span>
+          {row.sender_email && row.sender_name && (
+            <span className="text-xs text-muted-foreground truncate">{row.sender_email}</span>
           )}
         </div>
-      )}
-
-      <DoneForToday
-        onPress={() => {
-          setShowMore(false);
-          setShowMustMoves(false);
-          setShowReflection(false);
-          setMoodCustom(false);
-        }}
-      />
+        <div className="text-sm font-semibold text-foreground truncate">
+          {row.subject || "(no subject)"}
+        </div>
+        {row.snippet && (
+          <div className="text-xs text-muted-foreground truncate mt-0.5">{row.snippet}</div>
+        )}
+        <div className="flex flex-wrap items-center gap-2 mt-1.5">
+          <span className="text-[11px] text-muted-foreground">
+            {relativeTime(row.received_at)}
+          </span>
+          <span className="text-[11px] px-1.5 py-0.5 rounded-full bg-muted text-muted-foreground">
+            {accountChip(row.account)}
+          </span>
+        </div>
+        <div className="flex flex-wrap gap-1.5 mt-2">
+          {mailto && (
+            <Button asChild size="sm" variant="default" className="h-7 text-xs px-2.5">
+              <a href={mailto}>Reply</a>
+            </Button>
+          )}
+          <Button
+            size="sm"
+            variant="outline"
+            className="h-7 text-xs px-2.5"
+            onClick={() => onStatus("snoozed")}
+          >
+            Snooze 4h
+          </Button>
+          <Button
+            size="sm"
+            variant="ghost"
+            className="h-7 text-xs px-2.5 text-muted-foreground"
+            onClick={() => onStatus("read")}
+          >
+            Dismiss
+          </Button>
+        </div>
+      </div>
     </div>
   );
 }
