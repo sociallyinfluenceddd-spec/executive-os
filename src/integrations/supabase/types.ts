@@ -14,6 +14,83 @@ export type Database = {
   }
   public: {
     Tables: {
+      exec_os_agent_messages: {
+        Row: {
+          agent_id: string
+          content: string
+          created_at: string
+          id: string
+          role: string
+          user_id: string
+        }
+        Insert: {
+          agent_id: string
+          content: string
+          created_at?: string
+          id?: string
+          role: string
+          user_id: string
+        }
+        Update: {
+          agent_id?: string
+          content?: string
+          created_at?: string
+          id?: string
+          role?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "exec_os_agent_messages_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: false
+            referencedRelation: "exec_os_agents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      exec_os_agents: {
+        Row: {
+          avatar_letter: string
+          color: string
+          created_at: string
+          enabled: boolean
+          id: string
+          name: string
+          order_index: number
+          role: string
+          system_prompt: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          avatar_letter: string
+          color: string
+          created_at?: string
+          enabled?: boolean
+          id?: string
+          name: string
+          order_index: number
+          role: string
+          system_prompt: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          avatar_letter?: string
+          color?: string
+          created_at?: string
+          enabled?: boolean
+          id?: string
+          name?: string
+          order_index?: number
+          role?: string
+          system_prompt?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       exec_os_captures: {
         Row: {
           captured_at: string
