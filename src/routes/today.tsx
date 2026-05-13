@@ -242,9 +242,8 @@ function TodayPage() {
       )
       .subscribe();
     return () => {
-      supabase.removeChannel(channel(ch));
+      supabase.removeChannel(ch);
     };
-    function channel<T>(c: T): T { return c; }
   }, [user]);
 
   // Filtered emails
