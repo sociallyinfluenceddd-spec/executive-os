@@ -250,7 +250,10 @@ function TodayPage() {
 
       {/* Mood */}
       <section className="rounded-xl border border-border bg-card p-6">
-        <Label className="text-xs uppercase tracking-wider text-muted-foreground">Mood</Label>
+        <div className="flex items-center justify-between gap-2">
+          <Label className="text-xs uppercase tracking-wider text-muted-foreground">Mood</Label>
+          <SavedChip at={savedSections.mood} />
+        </div>
         <div className="mt-3 flex flex-wrap gap-2">
           {MOOD_PRESETS.map((m) => {
             const active = row.mood === m;
