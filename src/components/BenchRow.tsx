@@ -90,6 +90,21 @@ function buildContextBlock(ctx: FullContext): string {
   }. Inbox: ${ctx.priorityEmails ?? 0} priority emails, ${ctx.meetings ?? 0} meetings today.`;
 }
 
+async function buildFreshContext(userId: string, ctx: AgentContext): Promise<string> {
+  const { data } = await supabase
+    .from("exec_os_captures")
+    .select("raw_text")
+    .eq("user_id", userId)
+    .order("captured_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  return buildContextBlock({
+    ...ctx,
+    date: new Date().toLocaleDateString(),
+    latestCapture: data?.raw_text ?? null,
+  });
+}
+
 export function BenchRow({ context }: { context: AgentContext }) {
   const { user } = useAuth();
   const [agents, setAgents] = useState<Agent[]>([]);
