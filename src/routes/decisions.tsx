@@ -121,6 +121,7 @@ function DecisionsPage() {
     setText("");
     setContext("");
     setCategory("");
+    setSavedAt(Date.now());
     load();
   };
 
