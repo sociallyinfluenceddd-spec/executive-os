@@ -410,7 +410,7 @@ function TodayPage() {
                     placeholder={step.placeholder}
                     value={(row[key] as string | null) ?? ""}
                     onChange={(e) => update({ [key]: e.target.value } as Partial<DailyRow>)}
-                    onBlur={() => saveField({ [key]: row[key] } as Partial<DailyRow>)}
+                    onBlur={() => saveField({ [key]: row[key] } as Partial<DailyRow>, "reflection")}
                     autoFocus
                   />
                 );
