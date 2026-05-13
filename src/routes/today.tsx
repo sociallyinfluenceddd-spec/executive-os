@@ -140,7 +140,7 @@ function TodayPage() {
   }, [user, entryDate]);
 
   const persist = useCallback(
-    async (next: DailyRow) => {
+    async (next: DailyRow, section?: SectionKey) => {
       if (!user) return;
       if (JSON.stringify(next) === lastSaved.current) return;
       const hasContent = Object.values(next).some(
@@ -155,21 +155,24 @@ function TodayPage() {
         );
       if (!error) {
         lastSaved.current = JSON.stringify(next);
-        setSavedAt(Date.now());
+        if (section) {
+          setSavedSections((prev) => ({ ...prev, [section]: Date.now() }));
+        }
       }
     },
     [user, entryDate],
   );
 
   const saveField = useCallback(
-    (patch: Partial<DailyRow>) => persist({ ...row, ...patch }),
+    (patch: Partial<DailyRow>, section?: SectionKey) =>
+      persist({ ...row, ...patch }, section),
     [row, persist],
   );
 
-  const setAndSave = (patch: Partial<DailyRow>) => {
+  const setAndSave = (patch: Partial<DailyRow>, section?: SectionKey) => {
     const next = { ...row, ...patch };
     setRow(next);
-    persist(next);
+    persist(next, section);
   };
 
   const update = (patch: Partial<DailyRow>) => setRow((r) => ({ ...r, ...patch }));
