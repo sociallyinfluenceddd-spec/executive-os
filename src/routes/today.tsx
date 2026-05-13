@@ -5,6 +5,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { AppShell } from "@/components/AppShell";
 import { DoneForToday } from "@/components/DoneForToday";
 import { CaptureModal } from "@/components/CaptureModal";
+import { BenchRow } from "@/components/BenchRow";
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -679,7 +680,16 @@ function TodayPage() {
         </Card>
       </div>
 
-      {/* Floating Capture button — bottom-left */}
+      {/* ROW 5 — Bench */}
+      <BenchRow
+        context={{
+          energy: daily?.energy_level ?? null,
+          topPriority: daily?.top_priority ?? null,
+          priorityEmails: emails.filter((e) => e.kind === "priority" || e.kind === "needs_response").length,
+          meetings: meetingsToday.length,
+        }}
+      />
+
       <button
         type="button"
         onClick={() => setCaptureOpen(true)}

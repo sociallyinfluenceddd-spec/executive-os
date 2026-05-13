@@ -2,3 +2,9 @@ project_id = "yjepmihkvvqbgrqfsfzs"
 
 [functions.ingest-email]
 verify_jwt = false
+
+[functions.agent-chat]
+verify_jwt = true
+
+[functions.extract-from-capture]
+verify_jwt = true
