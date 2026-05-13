@@ -222,7 +222,10 @@ function TodayPage() {
 
       {/* Energy */}
       <section className="rounded-xl border border-border bg-card p-6">
-        <Label className="text-xs uppercase tracking-wider text-muted-foreground">Energy</Label>
+        <div className="flex items-center justify-between gap-2">
+          <Label className="text-xs uppercase tracking-wider text-muted-foreground">Energy</Label>
+          <SavedChip at={savedSections.energy} />
+        </div>
         <div className="mt-3 grid grid-cols-5 gap-2">
           {ENERGY_OPTIONS.map((opt) => {
             const active = row.energy_level === opt.value;
@@ -230,7 +233,7 @@ function TodayPage() {
               <button
                 key={opt.value}
                 type="button"
-                onClick={() => setAndSave({ energy_level: opt.value })}
+                onClick={() => setAndSave({ energy_level: opt.value }, "energy")}
                 className={`flex flex-col items-center gap-1 rounded-lg border px-2 py-3 transition-colors ${
                   active
                     ? "border-[color:var(--navy)] bg-[color:var(--navy)]/5"
