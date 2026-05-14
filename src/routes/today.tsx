@@ -165,6 +165,8 @@ function TodayPage() {
   const { user } = useAuth();
   const [emails, setEmails] = useState<EmailRow[]>([]);
   const [emailsLoadedAt, setEmailsLoadedAt] = useState<number | null>(null);
+  const [calendarEvents, setCalendarEvents] = useState<CalendarEventRow[]>([]);
+  const [calendarLoadedAt, setCalendarLoadedAt] = useState<number | null>(null);
   const [daily, setDaily] = useState<DailyRow | null>(null);
   const [dailyLoadedAt, setDailyLoadedAt] = useState<number | null>(null);
   const [energySeries, setEnergySeries] = useState<(number | null)[]>([]);
