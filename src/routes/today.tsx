@@ -508,12 +508,9 @@ function TodayPage() {
         </Card>
 
         {/* CALENDAR TODAY */}
-        <Card className="lg:col-span-4" title="Calendar today" icon={CalendarClock}>
+        <Card className="lg:col-span-4" title="Calendar today" icon={CalendarClock} info>
           {meetingsToday.length === 0 ? (
-            <Placeholder label="Connect Google Calendar">
-              <Stat row="Next meeting" value="10:30 AM" />
-              <Stat row="Total today" value="3" />
-            </Placeholder>
+            <EmptyState text="No calendar data yet. Syncing…" />
           ) : (
             <>
               {nextMeeting && nextMeetingMinutes != null && (
