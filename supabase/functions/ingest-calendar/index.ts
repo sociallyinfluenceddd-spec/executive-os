@@ -99,6 +99,10 @@ Deno.serve(async (req) => {
     video_url: emptyToNull(data.video_url),
     is_all_day: data.is_all_day ?? false,
     status: emptyToNull(data.status),
+    attendees:
+      Array.isArray(data.attendees) && data.attendees.length > 0
+        ? data.attendees
+        : null,
   };
 
   const { data: upserted, error } = await admin
