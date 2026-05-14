@@ -833,6 +833,11 @@ function TodayPage() {
         onClose={() => setCaptureOpen(false)}
         onCaptured={() => loadAll()}
       />
+
+      <EventDetailSheet
+        event={selectedEvent}
+        onClose={() => setSelectedEvent(null)}
+      />
     </div>
   );
 }
