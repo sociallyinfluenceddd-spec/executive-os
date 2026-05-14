@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { Fragment, useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { AppShell } from "@/components/AppShell";
@@ -1116,6 +1116,28 @@ function looksLikeAddress(s: string): boolean {
   return /\d/.test(s) && (/,/.test(s) || /\b(st|street|ave|avenue|rd|road|blvd|drive|dr|lane|ln|way)\b/i.test(s));
 }
 
+const URL_REGEX = /(https?:\/\/[^\s]+)/g;
+
+function linkify(text: string): ReactNode[] {
+  const parts = text.split(URL_REGEX);
+  return parts.map((part, i) => {
+    if (/^https?:\/\//i.test(part)) {
+      return (
+        <a
+          key={i}
+          href={part}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-[color:var(--navy)] hover:underline break-words"
+        >
+          {part}
+        </a>
+      );
+    }
+    return <Fragment key={i}>{part}</Fragment>;
+  });
+}
+
 function formatRange(startISO: string | null, endISO: string | null, allDay: boolean | null): string {
   if (!startISO) return "";
   const s = new Date(startISO);
@@ -1191,12 +1213,21 @@ function EventDetailSheet({
                   <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">
                     Location
                   </div>
-                  {looksLikeAddress(event.location) ? (
+                  {/^https?:\/\//i.test(event.location) ? (
+                    <a
+                      href={event.location}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center min-h-[44px] py-2 text-[color:var(--navy)] hover:underline break-all"
+                    >
+                      {event.location}
+                    </a>
+                  ) : looksLikeAddress(event.location) ? (
                     <a
                       href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(event.location)}`}
                       target="_blank"
-                      rel="noreferrer"
-                      className="text-[color:var(--navy)] hover:underline break-words"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center min-h-[44px] py-2 text-[color:var(--navy)] hover:underline break-words"
                     >
                       {event.location}
                     </a>
@@ -1214,8 +1245,8 @@ function EventDetailSheet({
                   <a
                     href={event.video_url}
                     target="_blank"
-                    rel="noreferrer"
-                    className="inline-flex items-center gap-2 text-[color:var(--navy)] hover:underline break-all"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2 min-h-[44px] px-4 py-2 rounded-md bg-[color:var(--navy)] text-[color:var(--paper)] hover:opacity-90 transition-opacity font-medium"
                   >
                     <Video className="h-4 w-4 shrink-0" />
                     Join meeting
@@ -1228,7 +1259,12 @@ function EventDetailSheet({
                   <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">
                     Organizer
                   </div>
-                  <p className="text-foreground break-words">{event.organizer_email}</p>
+                  <a
+                    href={`mailto:${event.organizer_email}`}
+                    className="inline-flex items-center min-h-[44px] py-2 text-[color:var(--navy)] hover:underline break-all"
+                  >
+                    {event.organizer_email}
+                  </a>
                 </div>
               )}
 
@@ -1238,7 +1274,7 @@ function EventDetailSheet({
                     Description
                   </div>
                   <p className="text-foreground whitespace-pre-wrap break-words">
-                    {event.description}
+                    {linkify(event.description)}
                   </p>
                 </div>
               )}
