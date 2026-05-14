@@ -224,6 +224,14 @@ function TodayPage() {
   const [selectedDate, setSelectedDate] = useState<Date>(() => startOfDay(new Date()));
   const selectedIsToday = isSameDay(selectedDate, now);
   const [selectedEvent, setSelectedEvent] = useState<CalendarEventRow | null>(null);
+  const [selectedCalendar, setSelectedCalendar] = useState<string>(() => {
+    if (typeof window === "undefined") return "all";
+    return window.localStorage.getItem("today.selectedCalendar") || "all";
+  });
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    window.localStorage.setItem("today.selectedCalendar", selectedCalendar);
+  }, [selectedCalendar]);
 
   const firstName = useMemo(() => {
     const display = (user?.user_metadata?.display_name as string | undefined)?.trim();
