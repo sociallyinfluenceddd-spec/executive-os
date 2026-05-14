@@ -1161,9 +1161,18 @@ function EventDetailSheet({
   onClose: () => void;
 }) {
   const open = event !== null;
+  const isMobile = useIsMobile();
+  const side = isMobile ? "bottom" : "right";
   return (
     <Sheet open={open} onOpenChange={(o) => { if (!o) onClose(); }}>
-      <SheetContent side="right" className="w-full sm:max-w-md overflow-y-auto">
+      <SheetContent
+        side={side}
+        className={
+          side === "bottom"
+            ? "max-h-[85vh] overflow-y-auto rounded-t-xl"
+            : "w-full sm:max-w-md overflow-y-auto"
+        }
+      >
         {event && (
           <>
             <SheetHeader className="text-left">
