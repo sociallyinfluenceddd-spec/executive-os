@@ -34,6 +34,8 @@ interface Payload {
   is_all_day?: boolean | null;
   status?: string | null;
   attendees?: Array<{ email?: string; name?: string; response_status?: string }> | null;
+  calendar_id?: string | null;
+  calendar_name?: string | null;
 }
 
 function validate(body: any): { ok: true; data: Payload } | { ok: false; error: string } {
