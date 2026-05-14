@@ -280,7 +280,7 @@ function TodayPage() {
     }
     setEnergySeries(series);
     setLoggedDays(logged);
-  }, [user]);
+  }, [user, selectedDate]);
 
   useEffect(() => {
     void loadAll();
