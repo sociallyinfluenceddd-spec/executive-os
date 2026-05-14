@@ -454,12 +454,8 @@ function TodayPage() {
       {/* ROW 1 */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
         {/* MONEY */}
-        <Card className="lg:col-span-4" title="Money" icon={Banknote}>
-          <Placeholder label="Connect Ideafetti DB">
-            <Stat row="Leads new this week" value="12" />
-            <Stat row="Qualified" value="4" />
-            <Stat row="Scheduled" value="2" />
-          </Placeholder>
+        <Card className="lg:col-span-4" title="Money" icon={Banknote} info>
+          <EmptyState text="No lead data yet. Connecting Ideafetti DB…" />
         </Card>
 
         {/* INBOX */}
