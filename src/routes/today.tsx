@@ -188,7 +188,12 @@ function TodayPage() {
     sevenAgo.setDate(sevenAgo.getDate() - 6);
     const sevenAgoStr = sevenAgo.toISOString().slice(0, 10);
 
-    const [emailsRes, dailyRes, weekRes] = await Promise.all([
+    const startOfToday = new Date();
+    startOfToday.setHours(0, 0, 0, 0);
+    const startOfTomorrow = new Date(startOfToday);
+    startOfTomorrow.setDate(startOfTomorrow.getDate() + 1);
+
+    const [emailsRes, dailyRes, weekRes, calRes] = await Promise.all([
       supabase
         .from("exec_os_emails")
         .select(
@@ -208,12 +213,23 @@ function TodayPage() {
         .eq("user_id", user.id)
         .gte("entry_date", sevenAgoStr)
         .order("entry_date", { ascending: true }),
+      supabase
+        .from("exec_os_calendar_events")
+        .select(
+          "id,account,external_id,title,description,start_at,end_at,organizer_email,location,video_url,is_all_day,status",
+        )
+        .eq("user_id", user.id)
+        .gte("start_at", startOfToday.toISOString())
+        .lt("start_at", startOfTomorrow.toISOString())
+        .order("start_at", { ascending: true }),
     ]);
 
     setEmails((emailsRes.data as EmailRow[]) ?? []);
     setEmailsLoadedAt(Date.now());
     setDaily((dailyRes.data as DailyRow) ?? null);
     setDailyLoadedAt(Date.now());
+    setCalendarEvents((calRes.data as CalendarEventRow[]) ?? []);
+    setCalendarLoadedAt(Date.now());
 
     // Build 7-day series ending today
     const rows = (weekRes.data ?? []) as { entry_date: string; energy_level: number | null }[];
@@ -265,6 +281,41 @@ function TodayPage() {
     };
   }, [user]);
 
+  // Realtime calendar events
+  useEffect(() => {
+    if (!user) return;
+    const ch = supabase
+      .channel("cockpit_calendar")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "exec_os_calendar_events" },
+        (payload) => {
+          setCalendarLoadedAt(Date.now());
+          setCalendarEvents((cur) => {
+            if (payload.eventType === "DELETE") {
+              return cur.filter((r) => r.id !== (payload.old as CalendarEventRow).id);
+            }
+            const next = payload.new as CalendarEventRow;
+            // Only keep today's events
+            if (!next.start_at || !isToday(next.start_at)) {
+              return cur.filter((r) => r.id !== next.id);
+            }
+            const idx = cur.findIndex((r) => r.id === next.id);
+            const updated =
+              idx === -1 ? [...cur, next] : cur.map((r) => (r.id === next.id ? next : r));
+            return updated.sort(
+              (a, b) =>
+                new Date(a.start_at ?? 0).getTime() - new Date(b.start_at ?? 0).getTime(),
+            );
+          });
+        },
+      )
+      .subscribe();
+    return () => {
+      supabase.removeChannel(ch);
+    };
+  }, [user]);
+
   // Filtered emails
   const filteredEmails = useMemo(
     () =>
@@ -293,21 +344,20 @@ function TodayPage() {
 
   const meetingsToday = useMemo(
     () =>
-      emails
-        .filter((e) => e.kind === "meeting" && isToday(e.scheduled_at))
+      calendarEvents
+        .filter((e) => isToday(e.start_at))
         .sort(
           (a, b) =>
-            new Date(a.scheduled_at ?? 0).getTime() -
-            new Date(b.scheduled_at ?? 0).getTime(),
+            new Date(a.start_at ?? 0).getTime() - new Date(b.start_at ?? 0).getTime(),
         ),
-    [emails],
+    [calendarEvents],
   );
   const nextMeeting = meetingsToday.find(
-    (m) => m.scheduled_at && new Date(m.scheduled_at).getTime() > now.getTime(),
+    (m) => m.start_at && new Date(m.start_at).getTime() > now.getTime(),
   );
   const nextMeetingMinutes = nextMeeting
     ? Math.round(
-        (new Date(nextMeeting.scheduled_at!).getTime() - now.getTime()) / 60000,
+        (new Date(nextMeeting.start_at!).getTime() - now.getTime()) / 60000,
       )
     : null;
 
@@ -333,7 +383,7 @@ function TodayPage() {
     { name: "Inbox (exec_os_emails)", ts: emailsLoadedAt, live: true },
     { name: "Pulse (exec_os_daily)", ts: dailyLoadedAt, live: true },
     { name: "Money (Ideafetti DB)", ts: null, live: false },
-    { name: "Calendar (Google)", ts: null, live: false },
+    { name: "Calendar (exec_os_calendar_events)", ts: calendarLoadedAt, live: true },
     { name: "Content Pulse (Ideafetti)", ts: null, live: false },
   ];
   const stale = sources.some((s) => s.live && s.ts && Date.now() - s.ts > 3600_000);
@@ -525,9 +575,9 @@ function TodayPage() {
         </Card>
 
         {/* CALENDAR TODAY */}
-        <Card className="lg:col-span-4" title="Calendar today" icon={CalendarClock} info>
+        <Card className="lg:col-span-4" title="Calendar today" icon={CalendarClock}>
           {meetingsToday.length === 0 ? (
-            <EmptyState text="No calendar data yet. Syncing…" />
+            <EmptyState text="Nothing on the calendar today." />
           ) : (
             <>
               {nextMeeting && nextMeetingMinutes != null && (
@@ -536,7 +586,7 @@ function TodayPage() {
                     Next in {nextMeetingMinutes}m
                   </div>
                   <div className="text-sm font-medium text-foreground truncate">
-                    {nextMeeting.subject || "(untitled)"}
+                    {nextMeeting.title || "(untitled)"}
                   </div>
                 </div>
               )}
@@ -544,10 +594,10 @@ function TodayPage() {
                 {meetingsToday.map((m) => (
                   <li key={m.id} className="flex items-center gap-2 text-xs">
                     <span className="tabular-nums text-muted-foreground w-14 shrink-0">
-                      {whenLabel(m.scheduled_at)}
+                      {whenLabel(m.start_at)}
                     </span>
                     <span className="truncate text-foreground flex-1">
-                      {m.subject || "(untitled)"}
+                      {m.title || "(untitled)"}
                     </span>
                     {m.video_url && (
                       <a
@@ -568,7 +618,7 @@ function TodayPage() {
       </div>
 
       {/* ROW 2 — TIMELINE */}
-      <Card title="Timeline" icon={Activity} info>
+      <Card title="Timeline" icon={Activity}>
         <Timeline now={now} meetings={meetingsToday} />
       </Card>
 
@@ -779,16 +829,16 @@ function Timeline({
   meetings,
 }: {
   now: Date;
-  meetings: EmailRow[];
+  meetings: CalendarEventRow[];
 }) {
-  const startH = 6;
-  const endH = 22;
+  const startH = 0;
+  const endH = 24;
   const totalMin = (endH - startH) * 60;
   const nowMin = (now.getHours() - startH) * 60 + now.getMinutes();
   const nowPct = Math.max(0, Math.min(100, (nowMin / totalMin) * 100));
 
   const hours = [];
-  for (let h = startH; h <= endH; h += 2) hours.push(h);
+  for (let h = startH; h <= endH; h += 3) hours.push(h);
 
   return (
     <div className="relative">
@@ -797,6 +847,7 @@ function Timeline({
         {/* Hour ticks */}
         {hours.map((h) => {
           const pct = ((h - startH) / (endH - startH)) * 100;
+          const display = h === 24 ? 12 : h % 12 === 0 ? 12 : h % 12;
           return (
             <div
               key={h}
@@ -804,8 +855,8 @@ function Timeline({
               style={{ left: `${pct}%` }}
             >
               <span className="absolute -top-5 -translate-x-1/2 text-[10px] text-muted-foreground tabular-nums">
-                {h % 12 === 0 ? 12 : h % 12}
-                {h < 12 ? "a" : "p"}
+                {display}
+                {h < 12 || h === 24 ? "a" : "p"}
               </span>
             </div>
           );
@@ -813,21 +864,26 @@ function Timeline({
 
         {/* Meeting blocks */}
         {meetings.map((m) => {
-          if (!m.scheduled_at) return null;
-          const d = new Date(m.scheduled_at);
-          const min = (d.getHours() - startH) * 60 + d.getMinutes();
-          if (min < 0 || min > totalMin) return null;
-          const left = (min / totalMin) * 100;
-          const width = Math.max(2, (60 / totalMin) * 100);
+          if (!m.start_at) return null;
+          const start = new Date(m.start_at);
+          const startMin = (start.getHours() - startH) * 60 + start.getMinutes();
+          let durMin = 60;
+          if (m.end_at) {
+            const end = new Date(m.end_at);
+            durMin = Math.max(15, (end.getTime() - start.getTime()) / 60000);
+          }
+          if (startMin < 0 || startMin > totalMin) return null;
+          const left = (startMin / totalMin) * 100;
+          const width = Math.max(1, (durMin / totalMin) * 100);
           return (
             <div
               key={m.id}
               className="absolute top-3 bottom-3 rounded-md bg-[color:var(--sage)]/40 border border-[color:var(--sage)] px-1.5 py-0.5 overflow-hidden"
               style={{ left: `${left}%`, width: `${width}%` }}
-              title={m.subject ?? ""}
+              title={m.title ?? ""}
             >
               <span className="text-[10px] text-[color:var(--forest)] truncate block">
-                {m.subject || "Mtg"}
+                {m.title || "Mtg"}
               </span>
             </div>
           );
@@ -843,7 +899,7 @@ function Timeline({
       </div>
       {meetings.length === 0 && (
         <p className="text-xs text-muted-foreground/70 italic text-center mt-3">
-          Syncing calendar…
+          Nothing on the calendar today.
         </p>
       )}
     </div>
