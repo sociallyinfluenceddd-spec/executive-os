@@ -3,6 +3,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { AppShell } from "@/components/AppShell";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { DoneForToday } from "@/components/DoneForToday";
 import { CaptureModal } from "@/components/CaptureModal";
 import { BenchRow } from "@/components/BenchRow";
