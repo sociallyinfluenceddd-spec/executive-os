@@ -311,6 +311,9 @@ function TodayPage() {
         },
       )
       .subscribe();
+    return () => {
+      supabase.removeChannel(ch);
+    };
   }, [user]);
 
   // Filtered emails
