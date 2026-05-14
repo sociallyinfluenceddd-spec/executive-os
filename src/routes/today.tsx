@@ -330,8 +330,11 @@ function TodayPage() {
               return cur.filter((r) => r.id !== (payload.old as CalendarEventRow).id);
             }
             const next = payload.new as CalendarEventRow;
-            // Only keep today's events
-            if (!next.start_at || !isToday(next.start_at)) {
+            // Only keep events for the selected day
+            const dayStart = startOfDay(selectedDate);
+            const dayEnd = addDays(dayStart, 1);
+            const t = next.start_at ? new Date(next.start_at).getTime() : NaN;
+            if (!t || t < dayStart.getTime() || t >= dayEnd.getTime()) {
               return cur.filter((r) => r.id !== next.id);
             }
             const idx = cur.findIndex((r) => r.id === next.id);
