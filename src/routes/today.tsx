@@ -3,6 +3,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { AppShell } from "@/components/AppShell";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { DoneForToday } from "@/components/DoneForToday";
 import { CaptureModal } from "@/components/CaptureModal";
 import { BenchRow } from "@/components/BenchRow";
@@ -465,23 +466,39 @@ function TodayPage() {
   }
 
   return (
-    <div className="space-y-4 pb-32">
+    <div className="space-y-3 sm:space-y-4 pb-32">
       {/* HEADER STRIP — sticky */}
-      <header className="sticky top-0 z-30 -mx-6 px-6 py-4 bg-background/85 backdrop-blur border-b border-border">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-center">
-          {/* Clock */}
-          <div className="lg:col-span-3">
-            <div className="text-3xl lg:text-4xl font-semibold tracking-tight tabular-nums text-foreground">
-              {clockLabel}
+      <header className="sticky top-0 z-30 -mx-3 sm:-mx-5 lg:-mx-6 px-3 sm:px-5 lg:px-6 py-3 sm:py-4 bg-background/85 backdrop-blur border-b border-border">
+        {/* Mobile: stacked. Desktop: 12-col grid */}
+        <div className="flex flex-col gap-3 lg:grid lg:grid-cols-12 lg:gap-4 lg:items-center">
+          {/* Top row on mobile: clock + data-fresh pill */}
+          <div className="flex items-start justify-between gap-3 lg:col-span-3 lg:block">
+            <div className="min-w-0">
+              <div className="text-3xl lg:text-4xl font-semibold tracking-tight tabular-nums text-foreground">
+                {clockLabel}
+              </div>
+              <div className="text-xs text-muted-foreground mt-0.5 truncate">
+                {greeting()}
+                {firstName ? `, ${firstName}` : ""} · {dateLabel}
+              </div>
             </div>
-            <div className="text-xs text-muted-foreground mt-0.5">
-              {greeting()}
-              {firstName ? `, ${firstName}` : ""} · {dateLabel}
-            </div>
+            {/* Data fresh pill — visible at top right on mobile only */}
+            <button
+              type="button"
+              onClick={() => setStatusOpen((v) => !v)}
+              className="lg:hidden shrink-0 inline-flex items-center gap-2 px-3 min-h-[44px] rounded-full border border-border hover:bg-muted text-xs"
+            >
+              <span
+                className={`h-2 w-2 rounded-full ${
+                  stale ? "bg-[color:var(--rose)]" : "bg-[color:var(--sage)]"
+                }`}
+              />
+              {stale ? "Stale" : "Fresh"}
+            </button>
           </div>
 
           {/* Energy + mood */}
-          <div className="lg:col-span-3 flex items-center gap-2">
+          <div className="lg:col-span-3 flex items-center gap-2 flex-wrap">
             <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-[color:var(--yellow)]/15 border border-[color:var(--yellow)]/30 text-xs">
               <span className="text-base leading-none">{energy.emoji}</span>
               <span className="text-foreground font-medium">{energy.label}</span>
@@ -514,8 +531,8 @@ function TodayPage() {
             )}
           </div>
 
-          {/* Status dots */}
-          <div className="lg:col-span-2 flex justify-start lg:justify-end">
+          {/* Status pill (desktop) */}
+          <div className="hidden lg:flex lg:col-span-2 lg:justify-end">
             <button
               type="button"
               onClick={() => setStatusOpen((v) => !v)}
@@ -531,7 +548,7 @@ function TodayPage() {
           </div>
         </div>
         {statusOpen && (
-          <div className="absolute right-6 top-full mt-2 z-40 w-[280px] rounded-xl border border-border bg-card shadow-lg p-3 space-y-2">
+          <div className="absolute right-3 sm:right-5 lg:right-6 top-full mt-2 z-40 w-[280px] max-w-[calc(100vw-1.5rem)] rounded-xl border border-border bg-card shadow-lg p-3 space-y-2">
             {sources.map((s) => (
               <div
                 key={s.name}
@@ -567,244 +584,259 @@ function TodayPage() {
         )}
       </header>
 
-      {/* ROW 1 */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
+      {/* Main responsive grid: mobile single col, tablet 6-col, desktop 12-col.
+          Mobile order: Inbox, Calendar, Timeline, Money, Content, Projects, Follow-ups, Wellness.
+          Tablet order: Calendar, Inbox, Money (row 1) | Timeline | Content, Projects | Wellness, Follow-ups. */}
+      <div className="grid grid-cols-1 md:grid-cols-6 lg:grid-cols-12 gap-3 sm:gap-4">
         {/* MONEY */}
-        <Card className="lg:col-span-4" title="Money" icon={Banknote} info>
-          <EmptyState text="No lead data yet. Connecting Ideafetti DB…" />
-        </Card>
+        <div className="order-4 md:order-3 lg:order-none md:col-span-2 lg:col-span-4">
+          <Card title="Money" icon={Banknote} info>
+            <EmptyState text="No lead data yet. Connecting Ideafetti DB…" />
+          </Card>
+        </div>
 
         {/* INBOX */}
-        <Card
-          className="lg:col-span-4"
-          title="Inbox"
-          icon={Inbox}
-          right={
-            <Select value={accountFilter} onValueChange={setAccountFilter}>
-              <SelectTrigger className="h-7 text-xs w-[150px]">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All accounts</SelectItem>
-                {ACCOUNTS.map((a) => (
-                  <SelectItem key={a} value={a}>
-                    {a.split("@")[0]}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          }
-        >
-          <div className="grid grid-cols-2 gap-2 mb-3">
-            <BigStat value={priorityCount} label="Priority" />
-            <BigStat value={needsRespCount} label="Need response" />
-          </div>
-          {topSenders.length === 0 ? (
-            <p className="text-xs text-muted-foreground py-2">Inbox clear. ✨</p>
-          ) : (
-            <ul className="space-y-1.5">
-              {topSenders.map((e) => (
-                <li
-                  key={e.id}
-                  className="flex items-center gap-2 text-xs text-foreground"
-                >
-                  <span
-                    className={`h-1.5 w-1.5 rounded-full shrink-0 ${urgencyDot(e.received_at)}`}
-                  />
-                  <span className="font-medium truncate">
-                    {e.sender_name || e.sender_email || "Unknown"}
-                  </span>
-                  <span className="text-muted-foreground ml-auto shrink-0">
-                    {relTime(e.received_at)}
-                  </span>
-                </li>
-              ))}
-            </ul>
-          )}
-        </Card>
-
-        {/* CALENDAR TODAY */}
-        <Card className="lg:col-span-4" title="Calendar" icon={CalendarClock}>
-          <DateNav
-            selectedDate={selectedDate}
-            setSelectedDate={setSelectedDate}
-            isToday={selectedIsToday}
-          />
-          {meetingsToday.length === 0 ? (
-            <EmptyState
-              text={
-                selectedIsToday
-                  ? "Nothing on the calendar today."
-                  : "Nothing on the calendar."
-              }
-            />
-          ) : (
-            <>
-              {nextMeeting && nextMeetingMinutes != null && (
-                <div className="mb-3 p-3 rounded-lg bg-[color:var(--navy)]/5 border border-[color:var(--navy)]/15">
-                  <div className="text-[10px] uppercase tracking-wider text-muted-foreground">
-                    Next in {nextMeetingMinutes}m
-                  </div>
-                  <div className="text-sm font-medium text-foreground truncate">
-                    {nextMeeting.title || "(untitled)"}
-                  </div>
-                </div>
-              )}
+        <div className="order-1 md:order-2 lg:order-none md:col-span-2 lg:col-span-4">
+          <Card
+            title="Inbox"
+            icon={Inbox}
+            right={
+              <Select value={accountFilter} onValueChange={setAccountFilter}>
+                <SelectTrigger className="h-7 text-xs w-[130px] sm:w-[150px]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All accounts</SelectItem>
+                  {ACCOUNTS.map((a) => (
+                    <SelectItem key={a} value={a}>
+                      {a.split("@")[0]}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            }
+          >
+            <div className="grid grid-cols-2 gap-2 mb-3">
+              <BigStat value={priorityCount} label="Priority" />
+              <BigStat value={needsRespCount} label="Need response" />
+            </div>
+            {topSenders.length === 0 ? (
+              <p className="text-xs text-muted-foreground py-2">Inbox clear. ✨</p>
+            ) : (
               <ul className="space-y-1.5">
-                {meetingsToday.map((m) => (
-                  <li key={m.id}>
-                    <button
-                      type="button"
-                      onClick={() => setSelectedEvent(m)}
-                      className="w-full flex items-center gap-2 text-xs text-left rounded-md px-1 py-1 hover:bg-muted transition-colors"
-                    >
-                      <span className="tabular-nums text-muted-foreground w-14 shrink-0">
-                        {whenLabel(m.start_at)}
-                      </span>
-                      <span className="truncate text-foreground flex-1">
-                        {m.title || "(untitled)"}
-                      </span>
-                      {m.video_url && (
-                        <a
-                          href={m.video_url}
-                          target="_blank"
-                          rel="noreferrer"
-                          onClick={(e) => e.stopPropagation()}
-                          className="text-[color:var(--navy)] shrink-0"
-                        >
-                          <Video className="h-3.5 w-3.5" />
-                        </a>
-                      )}
-                    </button>
+                {topSenders.map((e) => (
+                  <li
+                    key={e.id}
+                    className="flex items-center gap-2 text-xs text-foreground"
+                  >
+                    <span
+                      className={`h-1.5 w-1.5 rounded-full shrink-0 ${urgencyDot(e.received_at)}`}
+                    />
+                    <span className="font-medium truncate">
+                      {e.sender_name || e.sender_email || "Unknown"}
+                    </span>
+                    <span className="text-muted-foreground ml-auto shrink-0">
+                      {relTime(e.received_at)}
+                    </span>
                   </li>
                 ))}
               </ul>
-            </>
-          )}
-        </Card>
-      </div>
+            )}
+          </Card>
+        </div>
 
-      {/* ROW 2 — TIMELINE */}
-      <Card title="Timeline" icon={Activity}>
-        <DateNav
-          selectedDate={selectedDate}
-          setSelectedDate={setSelectedDate}
-          isToday={selectedIsToday}
-        />
-        <Timeline
-          now={now}
-          meetings={meetingsToday}
-          showNow={selectedIsToday}
-          onSelect={setSelectedEvent}
-        />
-      </Card>
-
-      {/* ROW 3 */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
-        <Card className="lg:col-span-6" title="Content pulse" icon={Sparkles} info>
-          <EmptyState text="Syncing Ideafetti content data…" />
-        </Card>
-
-        <Card className="lg:col-span-6" title="Projects" icon={FolderKanban}>
-          <ul className="space-y-3">
-            {DEFAULT_PROJECTS.map((p) => {
-              const stalled = p.last_touched_h > 168;
-              return (
-                <li key={p.name}>
-                  <div className="flex items-center justify-between text-xs mb-1">
-                    <span className="font-medium text-foreground flex items-center gap-2">
-                      {p.name}
-                      {stalled && (
-                        <span className="px-1.5 py-0.5 text-[10px] rounded-full bg-[color:var(--rose)]/20 text-[color:var(--rose)]">
-                          Stalled
-                        </span>
-                      )}
-                    </span>
-                    <span className="text-muted-foreground">
-                      {p.last_touched_h < 24
-                        ? `${p.last_touched_h}h ago`
-                        : `${Math.round(p.last_touched_h / 24)}d ago`}
-                    </span>
-                  </div>
-                  <div className="h-2 rounded-full bg-muted overflow-hidden">
-                    <div
-                      className="h-full rounded-full"
-                      style={{
-                        width: `${p.progress}%`,
-                        background:
-                          "linear-gradient(90deg, var(--sage), var(--navy))",
-                      }}
-                    />
-                  </div>
-                </li>
-              );
-            })}
-          </ul>
-        </Card>
-      </div>
-
-      {/* ROW 4 */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
-        <Card className="lg:col-span-6" title="Follow-ups" icon={MessageCircle}>
-          {followUps.length === 0 ? (
-            <p className="text-xs text-muted-foreground py-3">All caught up. ✨</p>
-          ) : (
-            <ul className="divide-y divide-border">
-              {followUps.slice(0, 6).map((f) => {
-                const days = Math.floor(
-                  (Date.now() - new Date(f.received_at!).getTime()) / 86400_000,
-                );
-                return (
-                  <li key={f.id} className="py-2 flex items-start gap-3">
-                    <div className="min-w-0 flex-1">
-                      <div className="text-sm font-medium text-foreground truncate">
-                        {f.sender_name || f.sender_email || "Unknown"}
-                      </div>
-                      <div className="text-xs text-muted-foreground truncate">
-                        {f.subject || f.snippet || "(no subject)"}
-                      </div>
-                      <div className="text-[11px] text-[color:var(--rose)] mt-0.5">
-                        {days}d waiting
-                      </div>
+        {/* CALENDAR TODAY */}
+        <div className="order-2 md:order-1 lg:order-none md:col-span-2 lg:col-span-4">
+          <Card title="Calendar" icon={CalendarClock}>
+            <DateNav
+              selectedDate={selectedDate}
+              setSelectedDate={setSelectedDate}
+              isToday={selectedIsToday}
+            />
+            {meetingsToday.length === 0 ? (
+              <EmptyState
+                text={
+                  selectedIsToday
+                    ? "Nothing on the calendar today."
+                    : "Nothing on the calendar."
+                }
+              />
+            ) : (
+              <>
+                {nextMeeting && nextMeetingMinutes != null && (
+                  <div className="mb-3 p-3 rounded-lg bg-[color:var(--navy)]/5 border border-[color:var(--navy)]/15">
+                    <div className="text-[10px] uppercase tracking-wider text-muted-foreground">
+                      Next in {nextMeetingMinutes}m
                     </div>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="h-7 text-xs"
-                      onClick={() => setEmailStatus(f.id, "read")}
-                    >
-                      Replied
-                    </Button>
+                    <div className="text-sm font-medium text-foreground truncate">
+                      {nextMeeting.title || "(untitled)"}
+                    </div>
+                  </div>
+                )}
+                <ul className="space-y-1">
+                  {meetingsToday.map((m) => (
+                    <li key={m.id}>
+                      <button
+                        type="button"
+                        onClick={() => setSelectedEvent(m)}
+                        className="w-full flex items-center gap-2 text-xs text-left rounded-md px-2 min-h-[44px] sm:min-h-0 sm:py-1 hover:bg-muted transition-colors"
+                      >
+                        <span className="tabular-nums text-muted-foreground w-14 shrink-0">
+                          {whenLabel(m.start_at)}
+                        </span>
+                        <span className="truncate text-foreground flex-1">
+                          {m.title || "(untitled)"}
+                        </span>
+                        {m.video_url && (
+                          <a
+                            href={m.video_url}
+                            target="_blank"
+                            rel="noreferrer"
+                            onClick={(e) => e.stopPropagation()}
+                            className="text-[color:var(--navy)] shrink-0 p-2 -m-2"
+                          >
+                            <Video className="h-4 w-4" />
+                          </a>
+                        )}
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              </>
+            )}
+          </Card>
+        </div>
+
+        {/* TIMELINE — full width */}
+        <div className="order-3 md:order-4 lg:order-none md:col-span-6 lg:col-span-12">
+          <Card title="Timeline" icon={Activity}>
+            <DateNav
+              selectedDate={selectedDate}
+              setSelectedDate={setSelectedDate}
+              isToday={selectedIsToday}
+            />
+            <Timeline
+              now={now}
+              meetings={meetingsToday}
+              showNow={selectedIsToday}
+              onSelect={setSelectedEvent}
+            />
+          </Card>
+        </div>
+
+        {/* CONTENT PULSE */}
+        <div className="order-5 md:order-5 lg:order-none md:col-span-3 lg:col-span-6">
+          <Card title="Content pulse" icon={Sparkles} info>
+            <EmptyState text="Syncing Ideafetti content data…" />
+          </Card>
+        </div>
+
+        {/* PROJECTS */}
+        <div className="order-6 md:order-6 lg:order-none md:col-span-3 lg:col-span-6">
+          <Card title="Projects" icon={FolderKanban}>
+            <ul className="space-y-3">
+              {DEFAULT_PROJECTS.map((p) => {
+                const stalled = p.last_touched_h > 168;
+                return (
+                  <li key={p.name}>
+                    <div className="flex items-center justify-between text-xs mb-1">
+                      <span className="font-medium text-foreground flex items-center gap-2">
+                        {p.name}
+                        {stalled && (
+                          <span className="px-1.5 py-0.5 text-[10px] rounded-full bg-[color:var(--rose)]/20 text-[color:var(--rose)]">
+                            Stalled
+                          </span>
+                        )}
+                      </span>
+                      <span className="text-muted-foreground">
+                        {p.last_touched_h < 24
+                          ? `${p.last_touched_h}h ago`
+                          : `${Math.round(p.last_touched_h / 24)}d ago`}
+                      </span>
+                    </div>
+                    <div className="h-2 rounded-full bg-muted overflow-hidden">
+                      <div
+                        className="h-full rounded-full"
+                        style={{
+                          width: `${p.progress}%`,
+                          background:
+                            "linear-gradient(90deg, var(--sage), var(--navy))",
+                        }}
+                      />
+                    </div>
                   </li>
                 );
               })}
             </ul>
-          )}
-        </Card>
+          </Card>
+        </div>
 
-        <Card className="lg:col-span-6" title="Wellness" icon={TrendingUp}>
-          <div className="flex items-center gap-4 mb-3">
-            <Sparkline values={energySeries} />
-            <div className="flex flex-col">
-              <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
-                {trend === "up" && (
-                  <ArrowUpRight className="h-3.5 w-3.5 text-[color:var(--sage)]" />
-                )}
-                {trend === "down" && (
-                  <ArrowDownRight className="h-3.5 w-3.5 text-[color:var(--rose)]" />
-                )}
-                {trend === "flat" && <Minus className="h-3.5 w-3.5" />}
-                {trend === "none" ? "Not enough data" : `Energy ${trend}`}
-              </span>
-              <span className="text-xs text-muted-foreground mt-1">
-                Mood: {daily?.mood ?? "—"}
-              </span>
-              <span className="text-xs text-muted-foreground">
-                Logged {loggedDays}/7 days
-              </span>
+        {/* FOLLOW-UPS — mobile order 7, tablet order 8 (after Wellness), desktop col-span-6 */}
+        <div className="order-7 md:order-8 lg:order-none md:col-span-3 lg:col-span-6">
+          <Card title="Follow-ups" icon={MessageCircle}>
+            {followUps.length === 0 ? (
+              <p className="text-xs text-muted-foreground py-3">All caught up. ✨</p>
+            ) : (
+              <ul className="divide-y divide-border">
+                {followUps.slice(0, 6).map((f) => {
+                  const days = Math.floor(
+                    (Date.now() - new Date(f.received_at!).getTime()) / 86400_000,
+                  );
+                  return (
+                    <li key={f.id} className="py-2 flex items-start gap-3">
+                      <div className="min-w-0 flex-1">
+                        <div className="text-sm font-medium text-foreground truncate">
+                          {f.sender_name || f.sender_email || "Unknown"}
+                        </div>
+                        <div className="text-xs text-muted-foreground truncate">
+                          {f.subject || f.snippet || "(no subject)"}
+                        </div>
+                        <div className="text-[11px] text-[color:var(--rose)] mt-0.5">
+                          {days}d waiting
+                        </div>
+                      </div>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-9 sm:h-7 text-xs"
+                        onClick={() => setEmailStatus(f.id, "read")}
+                      >
+                        Replied
+                      </Button>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+          </Card>
+        </div>
+
+        {/* WELLNESS — mobile order 8, tablet order 7 (before Follow-ups) */}
+        <div className="order-8 md:order-7 lg:order-none md:col-span-3 lg:col-span-6">
+          <Card title="Wellness" icon={TrendingUp}>
+            <div className="flex items-center gap-4 mb-3">
+              <Sparkline values={energySeries} />
+              <div className="flex flex-col">
+                <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
+                  {trend === "up" && (
+                    <ArrowUpRight className="h-3.5 w-3.5 text-[color:var(--sage)]" />
+                  )}
+                  {trend === "down" && (
+                    <ArrowDownRight className="h-3.5 w-3.5 text-[color:var(--rose)]" />
+                  )}
+                  {trend === "flat" && <Minus className="h-3.5 w-3.5" />}
+                  {trend === "none" ? "Not enough data" : `Energy ${trend}`}
+                </span>
+                <span className="text-xs text-muted-foreground mt-1">
+                  Mood: {daily?.mood ?? "—"}
+                </span>
+                <span className="text-xs text-muted-foreground">
+                  Logged {loggedDays}/7 days
+                </span>
+              </div>
             </div>
-          </div>
-        </Card>
+          </Card>
+        </div>
       </div>
 
       {/* ROW 5 — Bench */}
@@ -820,7 +852,7 @@ function TodayPage() {
       <button
         type="button"
         onClick={() => setCaptureOpen(true)}
-        className="fixed bottom-24 sm:bottom-6 left-6 z-50 h-14 w-14 rounded-full bg-[color:var(--navy)] text-white shadow-lg flex items-center justify-center hover:opacity-90 transition"
+        className="fixed bottom-20 sm:bottom-6 right-4 sm:left-6 sm:right-auto z-50 h-14 w-14 rounded-full bg-[color:var(--navy)] text-white shadow-lg flex items-center justify-center hover:opacity-90 transition"
         aria-label="Capture"
       >
         <Mic className="h-6 w-6" />
@@ -859,7 +891,7 @@ function Card({
 }) {
   return (
     <section
-      className={`rounded-xl border border-border bg-card p-6 ${className}`}
+      className={`rounded-xl border border-border bg-card p-4 sm:p-5 lg:p-6 ${className}`}
     >
       <header className="flex items-center justify-between gap-3 mb-4">
         <h2 className="inline-flex items-center gap-2 text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">
@@ -925,7 +957,7 @@ function DateNav({
           <button
             type="button"
             onClick={() => setSelectedDate(startOfDay(new Date()))}
-            className="px-2 h-6 rounded-md border border-border text-[10px] uppercase tracking-wider text-muted-foreground hover:bg-muted"
+            className="px-3 min-h-[44px] sm:min-h-0 sm:h-6 sm:px-2 rounded-md border border-border text-[10px] uppercase tracking-wider text-muted-foreground hover:bg-muted"
           >
             Today
           </button>
@@ -934,17 +966,17 @@ function DateNav({
           type="button"
           aria-label="Previous day"
           onClick={() => setSelectedDate(addDays(selectedDate, -1))}
-          className="h-6 w-6 inline-flex items-center justify-center rounded-md border border-border hover:bg-muted text-muted-foreground"
+          className="min-h-[44px] min-w-[44px] sm:h-6 sm:w-6 sm:min-h-0 sm:min-w-0 inline-flex items-center justify-center rounded-md border border-border hover:bg-muted text-muted-foreground"
         >
-          <ChevronLeft className="h-3.5 w-3.5" />
+          <ChevronLeft className="h-4 w-4 sm:h-3.5 sm:w-3.5" />
         </button>
         <button
           type="button"
           aria-label="Next day"
           onClick={() => setSelectedDate(addDays(selectedDate, 1))}
-          className="h-6 w-6 inline-flex items-center justify-center rounded-md border border-border hover:bg-muted text-muted-foreground"
+          className="min-h-[44px] min-w-[44px] sm:h-6 sm:w-6 sm:min-h-0 sm:min-w-0 inline-flex items-center justify-center rounded-md border border-border hover:bg-muted text-muted-foreground"
         >
-          <ChevronRight className="h-3.5 w-3.5" />
+          <ChevronRight className="h-4 w-4 sm:h-3.5 sm:w-3.5" />
         </button>
       </div>
     </div>
@@ -973,64 +1005,69 @@ function Timeline({
 
   return (
     <div className="relative">
-      {/* Hour grid */}
-      <div className="relative h-20 rounded-lg bg-muted/40 border border-border overflow-hidden">
-        {/* Hour ticks */}
-        {hours.map((h) => {
-          const pct = ((h - startH) / (endH - startH)) * 100;
-          const display = h === 24 ? 12 : h % 12 === 0 ? 12 : h % 12;
-          return (
-            <div
-              key={h}
-              className="absolute top-0 bottom-0 border-l border-border/60"
-              style={{ left: `${pct}%` }}
-            >
-              <span className="absolute -top-5 -translate-x-1/2 text-[10px] text-muted-foreground tabular-nums">
-                {display}
-                {h < 12 || h === 24 ? "a" : "p"}
-              </span>
-            </div>
-          );
-        })}
+      {/* Horizontal scroll wrapper for mobile */}
+      <div className="overflow-x-auto -mx-1 px-1 pt-5 pb-1">
+        <div className="relative min-w-[640px] sm:min-w-0">
+          {/* Hour grid */}
+          <div className="relative h-20 rounded-lg bg-muted/40 border border-border overflow-hidden">
+            {/* Hour ticks */}
+            {hours.map((h) => {
+              const pct = ((h - startH) / (endH - startH)) * 100;
+              const display = h === 24 ? 12 : h % 12 === 0 ? 12 : h % 12;
+              return (
+                <div
+                  key={h}
+                  className="absolute top-0 bottom-0 border-l border-border/60"
+                  style={{ left: `${pct}%` }}
+                >
+                  <span className="absolute -top-5 -translate-x-1/2 text-[10px] text-muted-foreground tabular-nums">
+                    {display}
+                    {h < 12 || h === 24 ? "a" : "p"}
+                  </span>
+                </div>
+              );
+            })}
 
-        {/* Meeting blocks */}
-        {meetings.map((m) => {
-          if (!m.start_at) return null;
-          const start = new Date(m.start_at);
-          const startMin = (start.getHours() - startH) * 60 + start.getMinutes();
-          let durMin = 60;
-          if (m.end_at) {
-            const end = new Date(m.end_at);
-            durMin = Math.max(15, (end.getTime() - start.getTime()) / 60000);
-          }
-          if (startMin < 0 || startMin > totalMin) return null;
-          const left = (startMin / totalMin) * 100;
-          const width = Math.max(1, (durMin / totalMin) * 100);
-          return (
-            <button
-              type="button"
-              key={m.id}
-              onClick={() => onSelect?.(m)}
-              className="absolute top-3 bottom-3 rounded-md bg-[color:var(--sage)]/40 border border-[color:var(--sage)] px-1.5 py-0.5 overflow-hidden text-left hover:bg-[color:var(--sage)]/60 transition-colors cursor-pointer"
-              style={{ left: `${left}%`, width: `${width}%` }}
-              title={m.title ?? ""}
-            >
-              <span className="text-[10px] text-[color:var(--forest)] truncate block">
-                {m.title || "Mtg"}
-              </span>
-            </button>
-          );
-        })}
+            {/* Meeting blocks */}
+            {meetings.map((m) => {
+              if (!m.start_at) return null;
+              const start = new Date(m.start_at);
+              const startMin = (start.getHours() - startH) * 60 + start.getMinutes();
+              let durMin = 60;
+              if (m.end_at) {
+                const end = new Date(m.end_at);
+                durMin = Math.max(15, (end.getTime() - start.getTime()) / 60000);
+              }
+              if (startMin < 0 || startMin > totalMin) return null;
+              const left = (startMin / totalMin) * 100;
+              const width = Math.max(1, (durMin / totalMin) * 100);
+              return (
+                <button
+                  type="button"
+                  key={m.id}
+                  onClick={() => onSelect?.(m)}
+                  className="absolute top-3 bottom-3 rounded-md bg-[color:var(--sage)]/40 border border-[color:var(--sage)] px-1.5 py-0.5 overflow-hidden text-left hover:bg-[color:var(--sage)]/60 transition-colors cursor-pointer"
+                  style={{ left: `${left}%`, width: `${width}%` }}
+                  title={m.title ?? ""}
+                >
+                  <span className="text-[10px] text-[color:var(--forest)] truncate block">
+                    {m.title || "Mtg"}
+                  </span>
+                </button>
+              );
+            })}
 
-        {/* Now line */}
-        {showNow && (
-          <div
-            className="absolute top-0 bottom-0 w-px bg-[color:var(--rose)] z-10"
-            style={{ left: `${nowPct}%` }}
-          >
-            <div className="absolute -top-1 -translate-x-1/2 h-2 w-2 rounded-full bg-[color:var(--rose)]" />
+            {/* Now line — anchored to the 24h grid, scrolls with it */}
+            {showNow && (
+              <div
+                className="absolute top-0 bottom-0 w-px bg-[color:var(--rose)] z-10"
+                style={{ left: `${nowPct}%` }}
+              >
+                <div className="absolute -top-1 -translate-x-1/2 h-2 w-2 rounded-full bg-[color:var(--rose)]" />
+              </div>
+            )}
           </div>
-        )}
+        </div>
       </div>
       {meetings.length === 0 && (
         <p className="text-xs text-muted-foreground/70 italic text-center mt-3">
@@ -1125,9 +1162,18 @@ function EventDetailSheet({
   onClose: () => void;
 }) {
   const open = event !== null;
+  const isMobile = useIsMobile();
+  const side = isMobile ? "bottom" : "right";
   return (
     <Sheet open={open} onOpenChange={(o) => { if (!o) onClose(); }}>
-      <SheetContent side="right" className="w-full sm:max-w-md overflow-y-auto">
+      <SheetContent
+        side={side}
+        className={
+          side === "bottom"
+            ? "max-h-[85vh] overflow-y-auto rounded-t-xl"
+            : "w-full sm:max-w-md overflow-y-auto"
+        }
+      >
         {event && (
           <>
             <SheetHeader className="text-left">
