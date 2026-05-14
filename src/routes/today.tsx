@@ -120,6 +120,8 @@ type CalendarEventRow = {
   is_all_day: boolean | null;
   status: string | null;
   attendees: Array<{ email?: string; name?: string; response_status?: string }> | null;
+  calendar_id: string | null;
+  calendar_name: string | null;
 };
 
 type DailyRow = {
@@ -222,6 +224,14 @@ function TodayPage() {
   const [selectedDate, setSelectedDate] = useState<Date>(() => startOfDay(new Date()));
   const selectedIsToday = isSameDay(selectedDate, now);
   const [selectedEvent, setSelectedEvent] = useState<CalendarEventRow | null>(null);
+  const [selectedCalendar, setSelectedCalendar] = useState<string>(() => {
+    if (typeof window === "undefined") return "all";
+    return window.localStorage.getItem("today.selectedCalendar") || "all";
+  });
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    window.localStorage.setItem("today.selectedCalendar", selectedCalendar);
+  }, [selectedCalendar]);
 
   const firstName = useMemo(() => {
     const display = (user?.user_metadata?.display_name as string | undefined)?.trim();
@@ -261,7 +271,7 @@ function TodayPage() {
       supabase
         .from("exec_os_calendar_events")
         .select(
-          "id,account,external_id,title,description,start_at,end_at,organizer_email,location,video_url,is_all_day,status,attendees",
+          "id,account,external_id,title,description,start_at,end_at,organizer_email,location,video_url,is_all_day,status,attendees,calendar_id,calendar_name",
         )
         .eq("user_id", user.id)
         .gte("start_at", dayStart.toISOString())
@@ -390,15 +400,26 @@ function TodayPage() {
     return list;
   }, [filteredEmails]);
 
+  const availableCalendars = useMemo(() => {
+    const set = new Set<string>();
+    for (const e of calendarEvents) {
+      if (e.calendar_name) set.add(e.calendar_name);
+    }
+    return Array.from(set).sort();
+  }, [calendarEvents]);
+
   const meetingsToday = useMemo(
     () =>
       calendarEvents
+        .filter((e) =>
+          selectedCalendar === "all" ? true : e.calendar_name === selectedCalendar,
+        )
         .slice()
         .sort(
           (a, b) =>
             new Date(a.start_at ?? 0).getTime() - new Date(b.start_at ?? 0).getTime(),
         ),
-    [calendarEvents],
+    [calendarEvents, selectedCalendar],
   );
   const nextMeeting = selectedIsToday
     ? meetingsToday.find(
@@ -647,7 +668,27 @@ function TodayPage() {
 
         {/* CALENDAR TODAY */}
         <div className="order-2 md:order-1 lg:order-none md:col-span-2 lg:col-span-4">
-          <Card title="Calendar" icon={CalendarClock}>
+          <Card
+            title="Calendar"
+            icon={CalendarClock}
+            right={
+              availableCalendars.length > 1 ? (
+                <Select value={selectedCalendar} onValueChange={setSelectedCalendar}>
+                  <SelectTrigger className="h-7 text-xs w-[140px] sm:w-[160px]">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All calendars</SelectItem>
+                    {availableCalendars.map((c) => (
+                      <SelectItem key={c} value={c}>
+                        {c}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              ) : null
+            }
+          >
             <DateNav
               selectedDate={selectedDate}
               setSelectedDate={setSelectedDate}

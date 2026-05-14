@@ -34,6 +34,8 @@ interface Payload {
   is_all_day?: boolean | null;
   status?: string | null;
   attendees?: Array<{ email?: string; name?: string; response_status?: string }> | null;
+  calendar_id?: string | null;
+  calendar_name?: string | null;
 }
 
 function validate(body: any): { ok: true; data: Payload } | { ok: false; error: string } {
@@ -103,6 +105,8 @@ Deno.serve(async (req) => {
       Array.isArray(data.attendees) && data.attendees.length > 0
         ? data.attendees
         : null,
+    calendar_id: emptyToNull(data.calendar_id),
+    calendar_name: emptyToNull(data.calendar_name),
   };
 
   const { data: upserted, error } = await admin

@@ -95,6 +95,8 @@ export type Database = {
         Row: {
           account: string
           attendees: Json | null
+          calendar_id: string | null
+          calendar_name: string | null
           created_at: string
           description: string | null
           end_at: string | null
@@ -113,6 +115,8 @@ export type Database = {
         Insert: {
           account: string
           attendees?: Json | null
+          calendar_id?: string | null
+          calendar_name?: string | null
           created_at?: string
           description?: string | null
           end_at?: string | null
@@ -131,6 +135,8 @@ export type Database = {
         Update: {
           account?: string
           attendees?: Json | null
+          calendar_id?: string | null
+          calendar_name?: string | null
           created_at?: string
           description?: string | null
           end_at?: string | null
