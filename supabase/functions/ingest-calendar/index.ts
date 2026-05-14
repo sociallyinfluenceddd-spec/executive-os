@@ -82,19 +82,22 @@ Deno.serve(async (req) => {
   );
   if (!user) return text("User not found", 404);
 
+  const emptyToNull = (v: unknown) =>
+    v === "" || v === undefined ? null : v;
+
   const row = {
     user_id: user.id,
     account: data.account,
     external_id: data.external_id,
-    title: data.title ?? null,
-    description: data.description ?? null,
-    start_at: data.start_at ?? null,
-    end_at: data.end_at ?? null,
-    organizer_email: data.organizer_email ?? null,
-    location: data.location ?? null,
-    video_url: data.video_url ?? null,
+    title: emptyToNull(data.title),
+    description: emptyToNull(data.description),
+    start_at: emptyToNull(data.start_at),
+    end_at: emptyToNull(data.end_at),
+    organizer_email: emptyToNull(data.organizer_email),
+    location: emptyToNull(data.location),
+    video_url: emptyToNull(data.video_url),
     is_all_day: data.is_all_day ?? false,
-    status: data.status ?? null,
+    status: emptyToNull(data.status),
   };
 
   const { data: upserted, error } = await admin
