@@ -110,6 +110,7 @@ type CalendarEventRow = {
   video_url: string | null;
   is_all_day: boolean | null;
   status: string | null;
+  attendees: Array<{ email?: string; name?: string; response_status?: string }> | null;
 };
 
 type DailyRow = {
