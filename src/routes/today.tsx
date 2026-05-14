@@ -253,8 +253,8 @@ function TodayPage() {
           "id,account,external_id,title,description,start_at,end_at,organizer_email,location,video_url,is_all_day,status",
         )
         .eq("user_id", user.id)
-        .gte("start_at", startOfToday.toISOString())
-        .lt("start_at", startOfTomorrow.toISOString())
+        .gte("start_at", dayStart.toISOString())
+        .lt("start_at", dayEnd.toISOString())
         .order("start_at", { ascending: true }),
     ]);
 
