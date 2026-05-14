@@ -383,7 +383,7 @@ function TodayPage() {
     { name: "Inbox (exec_os_emails)", ts: emailsLoadedAt, live: true },
     { name: "Pulse (exec_os_daily)", ts: dailyLoadedAt, live: true },
     { name: "Money (Ideafetti DB)", ts: null, live: false },
-    { name: "Calendar (Google)", ts: null, live: false },
+    { name: "Calendar (exec_os_calendar_events)", ts: calendarLoadedAt, live: true },
     { name: "Content Pulse (Ideafetti)", ts: null, live: false },
   ];
   const stale = sources.some((s) => s.live && s.ts && Date.now() - s.ts > 3600_000);
