@@ -105,6 +105,8 @@ Deno.serve(async (req) => {
       Array.isArray(data.attendees) && data.attendees.length > 0
         ? data.attendees
         : null,
+    calendar_id: emptyToNull(data.calendar_id),
+    calendar_name: emptyToNull(data.calendar_name),
   };
 
   const { data: upserted, error } = await admin
