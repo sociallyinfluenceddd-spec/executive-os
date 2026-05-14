@@ -112,22 +112,23 @@ export function BenchRow({ context }: { context: AgentContext }) {
 
   const load = useCallback(async () => {
     if (!user) return;
+    // Idempotent seed: only insert if user has zero agents.
+    const { count } = await supabase
+      .from("exec_os_agents")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", user.id);
+    if ((count ?? 0) === 0) {
+      const rows = SEED_AGENTS.map((a) => ({ ...a, user_id: user.id }));
+      await supabase
+        .from("exec_os_agents")
+        .insert(rows);
+    }
     const { data } = await supabase
       .from("exec_os_agents")
       .select("*")
       .eq("user_id", user.id)
       .order("order_index");
-    if (!data || data.length === 0) {
-      // seed
-      const rows = SEED_AGENTS.map((a) => ({ ...a, user_id: user.id }));
-      const { data: inserted } = await supabase
-        .from("exec_os_agents")
-        .insert(rows)
-        .select("*");
-      setAgents((inserted ?? []) as Agent[]);
-    } else {
-      setAgents(data.filter((a: Agent) => a.enabled) as Agent[]);
-    }
+    setAgents(((data ?? []) as Agent[]).filter((a) => a.enabled));
   }, [user]);
 
   useEffect(() => {

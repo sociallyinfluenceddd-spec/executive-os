@@ -29,6 +29,7 @@ import {
   FolderKanban,
   MessageCircle,
   Activity,
+  Info,
 } from "lucide-react";
 
 export const Route = createFileRoute("/today")({
@@ -453,12 +454,8 @@ function TodayPage() {
       {/* ROW 1 */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
         {/* MONEY */}
-        <Card className="lg:col-span-4" title="Money" icon={Banknote}>
-          <Placeholder label="Connect Ideafetti DB">
-            <Stat row="Leads new this week" value="12" />
-            <Stat row="Qualified" value="4" />
-            <Stat row="Scheduled" value="2" />
-          </Placeholder>
+        <Card className="lg:col-span-4" title="Money" icon={Banknote} info>
+          <EmptyState text="No lead data yet. Connecting Ideafetti DB…" />
         </Card>
 
         {/* INBOX */}
@@ -511,12 +508,9 @@ function TodayPage() {
         </Card>
 
         {/* CALENDAR TODAY */}
-        <Card className="lg:col-span-4" title="Calendar today" icon={CalendarClock}>
+        <Card className="lg:col-span-4" title="Calendar today" icon={CalendarClock} info>
           {meetingsToday.length === 0 ? (
-            <Placeholder label="Connect Google Calendar">
-              <Stat row="Next meeting" value="10:30 AM" />
-              <Stat row="Total today" value="3" />
-            </Placeholder>
+            <EmptyState text="No calendar data yet. Syncing…" />
           ) : (
             <>
               {nextMeeting && nextMeetingMinutes != null && (
@@ -557,25 +551,14 @@ function TodayPage() {
       </div>
 
       {/* ROW 2 — TIMELINE */}
-      <Card title="Timeline" icon={Activity}>
+      <Card title="Timeline" icon={Activity} info>
         <Timeline now={now} meetings={meetingsToday} />
       </Card>
 
       {/* ROW 3 */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
-        <Card className="lg:col-span-6" title="Content pulse" icon={Sparkles}>
-          <Placeholder label="Connect Ideafetti DB">
-            <div className="grid grid-cols-3 gap-2 mb-3">
-              <BigStat value={7} label="Ideas pending" />
-              <BigStat value={3} label="In draft" />
-              <BigStat value={5} label="Scheduled" />
-            </div>
-            <ul className="space-y-1.5 text-xs text-foreground">
-              <li className="truncate">· "5 mistakes new founders make"</li>
-              <li className="truncate">· "What investors don't tell you"</li>
-              <li className="truncate">· "My morning routine, debunked"</li>
-            </ul>
-          </Placeholder>
+        <Card className="lg:col-span-6" title="Content pulse" icon={Sparkles} info>
+          <EmptyState text="Syncing Ideafetti content data…" />
         </Card>
 
         <Card className="lg:col-span-6" title="Projects" icon={FolderKanban}>
@@ -716,12 +699,14 @@ function Card({
   children,
   className = "",
   right,
+  info = false,
 }: {
   title: string;
   icon?: React.ComponentType<{ className?: string }>;
   children: React.ReactNode;
   className?: string;
   right?: React.ReactNode;
+  info?: boolean;
 }) {
   return (
     <section
@@ -731,20 +716,23 @@ function Card({
         <h2 className="inline-flex items-center gap-2 text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">
           {Icon && <Icon className="h-3.5 w-3.5" />}
           {title}
+          {info && (
+            <span
+              className="relative group inline-flex"
+              tabIndex={0}
+              aria-label="What is this?"
+            >
+              <Info className="h-3 w-3 text-muted-foreground/60 cursor-help" />
+              <span className="pointer-events-none absolute left-1/2 -translate-x-1/2 top-full mt-1 z-30 w-56 rounded-md bg-foreground text-background text-[11px] font-normal normal-case tracking-normal px-2 py-1.5 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition shadow-lg">
+                This panel populates when data starts flowing from Make.com. Setup is automated.
+              </span>
+            </span>
+          )}
         </h2>
         {right}
       </header>
       {children}
     </section>
-  );
-}
-
-function Stat({ row, value }: { row: string; value: string }) {
-  return (
-    <div className="flex items-center justify-between text-sm py-1">
-      <span className="text-muted-foreground">{row}</span>
-      <span className="font-medium text-foreground tabular-nums">{value}</span>
-    </div>
   );
 }
 
@@ -761,23 +749,11 @@ function BigStat({ value, label }: { value: number | string; label: string }) {
   );
 }
 
-function Placeholder({
-  label,
-  children,
-}: {
-  label: string;
-  children: React.ReactNode;
-}) {
+function EmptyState({ text }: { text: string }) {
   return (
-    <div className="relative">
-      <div className="opacity-40 pointer-events-none select-none">{children}</div>
-      <button
-        type="button"
-        className="absolute inset-0 m-auto h-fit w-fit px-3 py-1.5 rounded-full bg-[color:var(--navy)] text-white text-xs hover:opacity-90 inline-flex items-center gap-1"
-      >
-        {label} <ArrowRight className="h-3 w-3" />
-      </button>
-    </div>
+    <p className="text-xs text-muted-foreground/70 italic py-6 text-center">
+      {text}
+    </p>
   );
 }
 
@@ -849,8 +825,8 @@ function Timeline({
         </div>
       </div>
       {meetings.length === 0 && (
-        <p className="text-xs text-muted-foreground text-center mt-3">
-          Connect calendar to populate.
+        <p className="text-xs text-muted-foreground/70 italic text-center mt-3">
+          Syncing calendar…
         </p>
       )}
     </div>
