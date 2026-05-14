@@ -1072,3 +1072,160 @@ function Sparkline({ values }: { values: (number | null)[] }) {
     </svg>
   );
 }
+
+function looksLikeAddress(s: string): boolean {
+  // Heuristic: contains a digit and a comma or street keyword, not a URL
+  if (/^https?:\/\//i.test(s)) return false;
+  return /\d/.test(s) && (/,/.test(s) || /\b(st|street|ave|avenue|rd|road|blvd|drive|dr|lane|ln|way)\b/i.test(s));
+}
+
+function formatRange(startISO: string | null, endISO: string | null, allDay: boolean | null): string {
+  if (!startISO) return "";
+  const s = new Date(startISO);
+  const dateLabel = s.toLocaleDateString(undefined, {
+    weekday: "long",
+    month: "long",
+    day: "numeric",
+    year: "numeric",
+  });
+  if (allDay) return `${dateLabel} · All day`;
+  const sT = s.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
+  if (!endISO) return `${dateLabel} · ${sT}`;
+  const e = new Date(endISO);
+  const eT = e.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
+  return `${dateLabel} · ${sT} – ${eT}`;
+}
+
+function responseBadgeClass(status: string | undefined): string {
+  switch ((status ?? "").toLowerCase()) {
+    case "accepted":
+      return "bg-[color:var(--sage)]/25 text-[color:var(--forest)] border-[color:var(--sage)]/50";
+    case "tentative":
+      return "bg-[color:var(--yellow)]/25 text-foreground border-[color:var(--yellow)]/50";
+    case "declined":
+      return "bg-[color:var(--rose)]/20 text-[color:var(--rose)] border-[color:var(--rose)]/40";
+    default:
+      return "bg-muted text-muted-foreground border-border";
+  }
+}
+
+function responseLabel(status: string | undefined): string {
+  const s = (status ?? "").toLowerCase();
+  if (s === "accepted") return "Accepted";
+  if (s === "tentative") return "Tentative";
+  if (s === "declined") return "Declined";
+  return "No response";
+}
+
+function EventDetailSheet({
+  event,
+  onClose,
+}: {
+  event: CalendarEventRow | null;
+  onClose: () => void;
+}) {
+  const open = event !== null;
+  return (
+    <Sheet open={open} onOpenChange={(o) => { if (!o) onClose(); }}>
+      <SheetContent side="right" className="w-full sm:max-w-md overflow-y-auto">
+        {event && (
+          <>
+            <SheetHeader className="text-left">
+              <SheetTitle className="text-xl">
+                {event.title || "(untitled)"}
+              </SheetTitle>
+              <SheetDescription className="text-sm">
+                {formatRange(event.start_at, event.end_at, event.is_all_day)}
+              </SheetDescription>
+            </SheetHeader>
+
+            <div className="mt-6 space-y-5 text-sm">
+              {event.location && (
+                <div>
+                  <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">
+                    Location
+                  </div>
+                  {looksLikeAddress(event.location) ? (
+                    <a
+                      href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(event.location)}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-[color:var(--navy)] hover:underline break-words"
+                    >
+                      {event.location}
+                    </a>
+                  ) : (
+                    <p className="text-foreground break-words">{event.location}</p>
+                  )}
+                </div>
+              )}
+
+              {event.video_url && (
+                <div>
+                  <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">
+                    Video
+                  </div>
+                  <a
+                    href={event.video_url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-2 text-[color:var(--navy)] hover:underline break-all"
+                  >
+                    <Video className="h-4 w-4 shrink-0" />
+                    Join meeting
+                  </a>
+                </div>
+              )}
+
+              {event.organizer_email && (
+                <div>
+                  <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">
+                    Organizer
+                  </div>
+                  <p className="text-foreground break-words">{event.organizer_email}</p>
+                </div>
+              )}
+
+              {event.description && (
+                <div>
+                  <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">
+                    Description
+                  </div>
+                  <p className="text-foreground whitespace-pre-wrap break-words">
+                    {event.description}
+                  </p>
+                </div>
+              )}
+
+              {event.attendees && event.attendees.length > 0 && (
+                <div>
+                  <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-2">
+                    Attendees ({event.attendees.length})
+                  </div>
+                  <ul className="space-y-1.5">
+                    {event.attendees.map((a, i) => (
+                      <li
+                        key={`${a.email ?? a.name ?? "x"}-${i}`}
+                        className="flex items-center gap-2 justify-between"
+                      >
+                        <span className="text-foreground truncate">
+                          {a.name || a.email || "Unknown"}
+                        </span>
+                        <Badge
+                          variant="outline"
+                          className={`text-[10px] shrink-0 ${responseBadgeClass(a.response_status)}`}
+                        >
+                          {responseLabel(a.response_status)}
+                        </Badge>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
+          </>
+        )}
+      </SheetContent>
+    </Sheet>
+  );
+}
