@@ -271,7 +271,7 @@ function TodayPage() {
       supabase
         .from("exec_os_calendar_events")
         .select(
-          "id,account,external_id,title,description,start_at,end_at,organizer_email,location,video_url,is_all_day,status,attendees",
+          "id,account,external_id,title,description,start_at,end_at,organizer_email,location,video_url,is_all_day,status,attendees,calendar_id,calendar_name",
         )
         .eq("user_id", user.id)
         .gte("start_at", dayStart.toISOString())
