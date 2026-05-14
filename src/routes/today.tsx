@@ -699,12 +699,14 @@ function Card({
   children,
   className = "",
   right,
+  info = false,
 }: {
   title: string;
   icon?: React.ComponentType<{ className?: string }>;
   children: React.ReactNode;
   className?: string;
   right?: React.ReactNode;
+  info?: boolean;
 }) {
   return (
     <section
@@ -714,6 +716,18 @@ function Card({
         <h2 className="inline-flex items-center gap-2 text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">
           {Icon && <Icon className="h-3.5 w-3.5" />}
           {title}
+          {info && (
+            <span
+              className="relative group inline-flex"
+              tabIndex={0}
+              aria-label="What is this?"
+            >
+              <Info className="h-3 w-3 text-muted-foreground/60 cursor-help" />
+              <span className="pointer-events-none absolute left-1/2 -translate-x-1/2 top-full mt-1 z-30 w-56 rounded-md bg-foreground text-background text-[11px] font-normal normal-case tracking-normal px-2 py-1.5 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition shadow-lg">
+                This panel populates when data starts flowing from Make.com. Setup is automated.
+              </span>
+            </span>
+          )}
         </h2>
         {right}
       </header>
@@ -744,23 +758,11 @@ function BigStat({ value, label }: { value: number | string; label: string }) {
   );
 }
 
-function Placeholder({
-  label,
-  children,
-}: {
-  label: string;
-  children: React.ReactNode;
-}) {
+function EmptyState({ text }: { text: string }) {
   return (
-    <div className="relative">
-      <div className="opacity-40 pointer-events-none select-none">{children}</div>
-      <button
-        type="button"
-        className="absolute inset-0 m-auto h-fit w-fit px-3 py-1.5 rounded-full bg-[color:var(--navy)] text-white text-xs hover:opacity-90 inline-flex items-center gap-1"
-      >
-        {label} <ArrowRight className="h-3 w-3" />
-      </button>
-    </div>
+    <p className="text-xs text-muted-foreground/70 italic py-6 text-center">
+      {text}
+    </p>
   );
 }
 
