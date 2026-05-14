@@ -33,8 +33,8 @@ export function AppShell({
   ] as const;
 
   const containerClass = wide
-    ? "mx-auto max-w-[1400px] px-6 pt-6"
-    : "mx-auto max-w-2xl px-5 pt-8";
+    ? "mx-auto max-w-[1400px] px-3 sm:px-5 lg:px-6 pt-4 sm:pt-6"
+    : "mx-auto max-w-2xl px-4 sm:px-5 pt-6 sm:pt-8";
 
   return (
     <div className="min-h-screen bg-background pb-24">
