@@ -1118,11 +1118,10 @@ function looksLikeAddress(s: string): boolean {
 
 const URL_REGEX = /(https?:\/\/[^\s]+)/g;
 
-function linkify(text: string): React.ReactNode[] {
+function linkify(text: string): ReactNode[] {
   const parts = text.split(URL_REGEX);
   return parts.map((part, i) => {
-    if (URL_REGEX.test(part)) {
-      URL_REGEX.lastIndex = 0;
+    if (/^https?:\/\//i.test(part)) {
       return (
         <a
           key={i}
@@ -1135,7 +1134,7 @@ function linkify(text: string): React.ReactNode[] {
         </a>
       );
     }
-    return <React.Fragment key={i}>{part}</React.Fragment>;
+    return <Fragment key={i}>{part}</Fragment>;
   });
 }
 
