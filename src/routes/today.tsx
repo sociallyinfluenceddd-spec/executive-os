@@ -30,7 +30,41 @@ import {
   MessageCircle,
   Activity,
   Info,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
+
+function startOfDay(d: Date): Date {
+  const x = new Date(d);
+  x.setHours(0, 0, 0, 0);
+  return x;
+}
+function addDays(d: Date, n: number): Date {
+  const x = new Date(d);
+  x.setDate(x.getDate() + n);
+  return x;
+}
+function isSameDay(a: Date, b: Date): boolean {
+  return (
+    a.getFullYear() === b.getFullYear() &&
+    a.getMonth() === b.getMonth() &&
+    a.getDate() === b.getDate()
+  );
+}
+function dayLabel(d: Date): string {
+  const today = startOfDay(new Date());
+  const sel = startOfDay(d);
+  const diff = Math.round((sel.getTime() - today.getTime()) / 86400_000);
+  const fmt = d.toLocaleDateString(undefined, {
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+  });
+  if (diff === 0) return `Today · ${fmt}`;
+  if (diff === 1) return `Tomorrow · ${fmt}`;
+  if (diff === -1) return `Yesterday · ${fmt}`;
+  return fmt;
+}
 
 export const Route = createFileRoute("/today")({
   component: () => (
