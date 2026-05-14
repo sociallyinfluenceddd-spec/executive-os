@@ -956,7 +956,7 @@ function DateNav({
           <button
             type="button"
             onClick={() => setSelectedDate(startOfDay(new Date()))}
-            className="px-2 h-6 rounded-md border border-border text-[10px] uppercase tracking-wider text-muted-foreground hover:bg-muted"
+            className="px-3 min-h-[44px] sm:min-h-0 sm:h-6 sm:px-2 rounded-md border border-border text-[10px] uppercase tracking-wider text-muted-foreground hover:bg-muted"
           >
             Today
           </button>
@@ -965,17 +965,17 @@ function DateNav({
           type="button"
           aria-label="Previous day"
           onClick={() => setSelectedDate(addDays(selectedDate, -1))}
-          className="h-6 w-6 inline-flex items-center justify-center rounded-md border border-border hover:bg-muted text-muted-foreground"
+          className="min-h-[44px] min-w-[44px] sm:h-6 sm:w-6 sm:min-h-0 sm:min-w-0 inline-flex items-center justify-center rounded-md border border-border hover:bg-muted text-muted-foreground"
         >
-          <ChevronLeft className="h-3.5 w-3.5" />
+          <ChevronLeft className="h-4 w-4 sm:h-3.5 sm:w-3.5" />
         </button>
         <button
           type="button"
           aria-label="Next day"
           onClick={() => setSelectedDate(addDays(selectedDate, 1))}
-          className="h-6 w-6 inline-flex items-center justify-center rounded-md border border-border hover:bg-muted text-muted-foreground"
+          className="min-h-[44px] min-w-[44px] sm:h-6 sm:w-6 sm:min-h-0 sm:min-w-0 inline-flex items-center justify-center rounded-md border border-border hover:bg-muted text-muted-foreground"
         >
-          <ChevronRight className="h-3.5 w-3.5" />
+          <ChevronRight className="h-4 w-4 sm:h-3.5 sm:w-3.5" />
         </button>
       </div>
     </div>
