@@ -120,6 +120,8 @@ type CalendarEventRow = {
   is_all_day: boolean | null;
   status: string | null;
   attendees: Array<{ email?: string; name?: string; response_status?: string }> | null;
+  calendar_id: string | null;
+  calendar_name: string | null;
 };
 
 type DailyRow = {
