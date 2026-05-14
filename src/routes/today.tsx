@@ -551,25 +551,14 @@ function TodayPage() {
       </div>
 
       {/* ROW 2 — TIMELINE */}
-      <Card title="Timeline" icon={Activity}>
+      <Card title="Timeline" icon={Activity} info>
         <Timeline now={now} meetings={meetingsToday} />
       </Card>
 
       {/* ROW 3 */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
-        <Card className="lg:col-span-6" title="Content pulse" icon={Sparkles}>
-          <Placeholder label="Connect Ideafetti DB">
-            <div className="grid grid-cols-3 gap-2 mb-3">
-              <BigStat value={7} label="Ideas pending" />
-              <BigStat value={3} label="In draft" />
-              <BigStat value={5} label="Scheduled" />
-            </div>
-            <ul className="space-y-1.5 text-xs text-foreground">
-              <li className="truncate">· "5 mistakes new founders make"</li>
-              <li className="truncate">· "What investors don't tell you"</li>
-              <li className="truncate">· "My morning routine, debunked"</li>
-            </ul>
-          </Placeholder>
+        <Card className="lg:col-span-6" title="Content pulse" icon={Sparkles} info>
+          <EmptyState text="Syncing Ideafetti content data…" />
         </Card>
 
         <Card className="lg:col-span-6" title="Projects" icon={FolderKanban}>
