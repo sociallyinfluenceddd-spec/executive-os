@@ -586,7 +586,7 @@ function TodayPage() {
                     Next in {nextMeetingMinutes}m
                   </div>
                   <div className="text-sm font-medium text-foreground truncate">
-                    {nextMeeting.subject || "(untitled)"}
+                    {nextMeeting.title || "(untitled)"}
                   </div>
                 </div>
               )}
@@ -594,10 +594,10 @@ function TodayPage() {
                 {meetingsToday.map((m) => (
                   <li key={m.id} className="flex items-center gap-2 text-xs">
                     <span className="tabular-nums text-muted-foreground w-14 shrink-0">
-                      {whenLabel(m.scheduled_at)}
+                      {whenLabel(m.start_at)}
                     </span>
                     <span className="truncate text-foreground flex-1">
-                      {m.subject || "(untitled)"}
+                      {m.title || "(untitled)"}
                     </span>
                     {m.video_url && (
                       <a
