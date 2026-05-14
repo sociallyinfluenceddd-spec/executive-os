@@ -879,12 +879,59 @@ function EmptyState({ text }: { text: string }) {
   );
 }
 
+function DateNav({
+  selectedDate,
+  setSelectedDate,
+  isToday,
+}: {
+  selectedDate: Date;
+  setSelectedDate: (d: Date) => void;
+  isToday: boolean;
+}) {
+  return (
+    <div className="flex items-center justify-between gap-2 mb-3">
+      <span className="text-xs font-medium text-foreground tabular-nums">
+        {dayLabel(selectedDate)}
+      </span>
+      <div className="flex items-center gap-1">
+        {!isToday && (
+          <button
+            type="button"
+            onClick={() => setSelectedDate(startOfDay(new Date()))}
+            className="px-2 h-6 rounded-md border border-border text-[10px] uppercase tracking-wider text-muted-foreground hover:bg-muted"
+          >
+            Today
+          </button>
+        )}
+        <button
+          type="button"
+          aria-label="Previous day"
+          onClick={() => setSelectedDate(addDays(selectedDate, -1))}
+          className="h-6 w-6 inline-flex items-center justify-center rounded-md border border-border hover:bg-muted text-muted-foreground"
+        >
+          <ChevronLeft className="h-3.5 w-3.5" />
+        </button>
+        <button
+          type="button"
+          aria-label="Next day"
+          onClick={() => setSelectedDate(addDays(selectedDate, 1))}
+          className="h-6 w-6 inline-flex items-center justify-center rounded-md border border-border hover:bg-muted text-muted-foreground"
+        >
+          <ChevronRight className="h-3.5 w-3.5" />
+        </button>
+      </div>
+    </div>
+  );
+}
+
 function Timeline({
   now,
   meetings,
+  showNow,
 }: {
   now: Date;
   meetings: CalendarEventRow[];
+  showNow: boolean;
 }) {
   const startH = 0;
   const endH = 24;
