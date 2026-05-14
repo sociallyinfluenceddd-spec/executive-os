@@ -400,15 +400,26 @@ function TodayPage() {
     return list;
   }, [filteredEmails]);
 
+  const availableCalendars = useMemo(() => {
+    const set = new Set<string>();
+    for (const e of calendarEvents) {
+      if (e.calendar_name) set.add(e.calendar_name);
+    }
+    return Array.from(set).sort();
+  }, [calendarEvents]);
+
   const meetingsToday = useMemo(
     () =>
       calendarEvents
+        .filter((e) =>
+          selectedCalendar === "all" ? true : e.calendar_name === selectedCalendar,
+        )
         .slice()
         .sort(
           (a, b) =>
             new Date(a.start_at ?? 0).getTime() - new Date(b.start_at ?? 0).getTime(),
         ),
-    [calendarEvents],
+    [calendarEvents, selectedCalendar],
   );
   const nextMeeting = selectedIsToday
     ? meetingsToday.find(
