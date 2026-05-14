@@ -834,8 +834,8 @@ function Timeline({
         </div>
       </div>
       {meetings.length === 0 && (
-        <p className="text-xs text-muted-foreground text-center mt-3">
-          Connect calendar to populate.
+        <p className="text-xs text-muted-foreground/70 italic text-center mt-3">
+          Syncing calendar…
         </p>
       )}
     </div>
