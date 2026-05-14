@@ -736,15 +736,6 @@ function Card({
   );
 }
 
-function Stat({ row, value }: { row: string; value: string }) {
-  return (
-    <div className="flex items-center justify-between text-sm py-1">
-      <span className="text-muted-foreground">{row}</span>
-      <span className="font-medium text-foreground tabular-nums">{value}</span>
-    </div>
-  );
-}
-
 function BigStat({ value, label }: { value: number | string; label: string }) {
   return (
     <div className="rounded-lg bg-muted/50 p-3">
