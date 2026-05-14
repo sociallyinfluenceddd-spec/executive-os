@@ -1116,6 +1116,29 @@ function looksLikeAddress(s: string): boolean {
   return /\d/.test(s) && (/,/.test(s) || /\b(st|street|ave|avenue|rd|road|blvd|drive|dr|lane|ln|way)\b/i.test(s));
 }
 
+const URL_REGEX = /(https?:\/\/[^\s]+)/g;
+
+function linkify(text: string): React.ReactNode[] {
+  const parts = text.split(URL_REGEX);
+  return parts.map((part, i) => {
+    if (URL_REGEX.test(part)) {
+      URL_REGEX.lastIndex = 0;
+      return (
+        <a
+          key={i}
+          href={part}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-[color:var(--navy)] hover:underline break-words"
+        >
+          {part}
+        </a>
+      );
+    }
+    return <React.Fragment key={i}>{part}</React.Fragment>;
+  });
+}
+
 function formatRange(startISO: string | null, endISO: string | null, allDay: boolean | null): string {
   if (!startISO) return "";
   const s = new Date(startISO);
