@@ -691,7 +691,12 @@ function TodayPage() {
           setSelectedDate={setSelectedDate}
           isToday={selectedIsToday}
         />
-        <Timeline now={now} meetings={meetingsToday} showNow={selectedIsToday} />
+        <Timeline
+          now={now}
+          meetings={meetingsToday}
+          showNow={selectedIsToday}
+          onSelect={setSelectedEvent}
+        />
       </Card>
 
       {/* ROW 3 */}
