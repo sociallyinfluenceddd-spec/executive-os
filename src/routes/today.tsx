@@ -577,7 +577,7 @@ function TodayPage() {
         {/* CALENDAR TODAY */}
         <Card className="lg:col-span-4" title="Calendar today" icon={CalendarClock} info>
           {meetingsToday.length === 0 ? (
-            <EmptyState text="No calendar data yet. Syncing…" />
+            <EmptyState text="Nothing on the calendar today." />
           ) : (
             <>
               {nextMeeting && nextMeetingMinutes != null && (
