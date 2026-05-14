@@ -29,6 +29,7 @@ import {
   FolderKanban,
   MessageCircle,
   Activity,
+  Info,
 } from "lucide-react";
 
 export const Route = createFileRoute("/today")({
