@@ -614,9 +614,20 @@ function TodayPage() {
         </Card>
 
         {/* CALENDAR TODAY */}
-        <Card className="lg:col-span-4" title="Calendar today" icon={CalendarClock}>
+        <Card className="lg:col-span-4" title="Calendar" icon={CalendarClock}>
+          <DateNav
+            selectedDate={selectedDate}
+            setSelectedDate={setSelectedDate}
+            isToday={selectedIsToday}
+          />
           {meetingsToday.length === 0 ? (
-            <EmptyState text="Nothing on the calendar today." />
+            <EmptyState
+              text={
+                selectedIsToday
+                  ? "Nothing on the calendar today."
+                  : "Nothing on the calendar."
+              }
+            />
           ) : (
             <>
               {nextMeeting && nextMeetingMinutes != null && (
@@ -658,7 +669,12 @@ function TodayPage() {
 
       {/* ROW 2 — TIMELINE */}
       <Card title="Timeline" icon={Activity}>
-        <Timeline now={now} meetings={meetingsToday} />
+        <DateNav
+          selectedDate={selectedDate}
+          setSelectedDate={setSelectedDate}
+          isToday={selectedIsToday}
+        />
+        <Timeline now={now} meetings={meetingsToday} showNow={selectedIsToday} />
       </Card>
 
       {/* ROW 3 */}
