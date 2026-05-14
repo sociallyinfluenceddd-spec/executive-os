@@ -992,16 +992,18 @@ function Timeline({
         })}
 
         {/* Now line */}
-        <div
-          className="absolute top-0 bottom-0 w-px bg-[color:var(--rose)] z-10"
-          style={{ left: `${nowPct}%` }}
-        >
-          <div className="absolute -top-1 -translate-x-1/2 h-2 w-2 rounded-full bg-[color:var(--rose)]" />
-        </div>
+        {showNow && (
+          <div
+            className="absolute top-0 bottom-0 w-px bg-[color:var(--rose)] z-10"
+            style={{ left: `${nowPct}%` }}
+          >
+            <div className="absolute -top-1 -translate-x-1/2 h-2 w-2 rounded-full bg-[color:var(--rose)]" />
+          </div>
+        )}
       </div>
       {meetings.length === 0 && (
         <p className="text-xs text-muted-foreground/70 italic text-center mt-3">
-          Nothing on the calendar today.
+          Nothing on the calendar.
         </p>
       )}
     </div>
