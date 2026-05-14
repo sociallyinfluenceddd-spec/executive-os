@@ -281,6 +281,38 @@ function TodayPage() {
     };
   }, [user]);
 
+  // Realtime calendar events
+  useEffect(() => {
+    if (!user) return;
+    const ch = supabase
+      .channel("cockpit_calendar")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "exec_os_calendar_events" },
+        (payload) => {
+          setCalendarLoadedAt(Date.now());
+          setCalendarEvents((cur) => {
+            if (payload.eventType === "DELETE") {
+              return cur.filter((r) => r.id !== (payload.old as CalendarEventRow).id);
+            }
+            const next = payload.new as CalendarEventRow;
+            // Only keep today's events
+            if (!next.start_at || !isToday(next.start_at)) {
+              return cur.filter((r) => r.id !== next.id);
+            }
+            const idx = cur.findIndex((r) => r.id === next.id);
+            const updated =
+              idx === -1 ? [...cur, next] : cur.map((r) => (r.id === next.id ? next : r));
+            return updated.sort(
+              (a, b) =>
+                new Date(a.start_at ?? 0).getTime() - new Date(b.start_at ?? 0).getTime(),
+            );
+          });
+        },
+      )
+      .subscribe();
+  }, [user]);
+
   // Filtered emails
   const filteredEmails = useMemo(
     () =>
