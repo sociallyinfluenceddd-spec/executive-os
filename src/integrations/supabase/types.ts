@@ -91,6 +91,60 @@ export type Database = {
         }
         Relationships: []
       }
+      exec_os_calendar_events: {
+        Row: {
+          account: string
+          created_at: string
+          description: string | null
+          end_at: string | null
+          external_id: string
+          id: string
+          is_all_day: boolean | null
+          location: string | null
+          organizer_email: string | null
+          start_at: string | null
+          status: string | null
+          title: string | null
+          updated_at: string
+          user_id: string
+          video_url: string | null
+        }
+        Insert: {
+          account: string
+          created_at?: string
+          description?: string | null
+          end_at?: string | null
+          external_id: string
+          id?: string
+          is_all_day?: boolean | null
+          location?: string | null
+          organizer_email?: string | null
+          start_at?: string | null
+          status?: string | null
+          title?: string | null
+          updated_at?: string
+          user_id: string
+          video_url?: string | null
+        }
+        Update: {
+          account?: string
+          created_at?: string
+          description?: string | null
+          end_at?: string | null
+          external_id?: string
+          id?: string
+          is_all_day?: boolean | null
+          location?: string | null
+          organizer_email?: string | null
+          start_at?: string | null
+          status?: string | null
+          title?: string | null
+          updated_at?: string
+          user_id?: string
+          video_url?: string | null
+        }
+        Relationships: []
+      }
       exec_os_captures: {
         Row: {
           captured_at: string
