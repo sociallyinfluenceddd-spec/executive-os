@@ -575,7 +575,7 @@ function TodayPage() {
         </Card>
 
         {/* CALENDAR TODAY */}
-        <Card className="lg:col-span-4" title="Calendar today" icon={CalendarClock} info>
+        <Card className="lg:col-span-4" title="Calendar today" icon={CalendarClock}>
           {meetingsToday.length === 0 ? (
             <EmptyState text="Nothing on the calendar today." />
           ) : (
