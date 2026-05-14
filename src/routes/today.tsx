@@ -63,6 +63,21 @@ type EmailRow = {
   status: string | null;
 };
 
+type CalendarEventRow = {
+  id: string;
+  account: string;
+  external_id: string;
+  title: string | null;
+  description: string | null;
+  start_at: string | null;
+  end_at: string | null;
+  organizer_email: string | null;
+  location: string | null;
+  video_url: string | null;
+  is_all_day: boolean | null;
+  status: string | null;
+};
+
 type DailyRow = {
   energy_level: number | null;
   mood: string | null;
