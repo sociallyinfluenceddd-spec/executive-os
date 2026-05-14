@@ -188,7 +188,12 @@ function TodayPage() {
     sevenAgo.setDate(sevenAgo.getDate() - 6);
     const sevenAgoStr = sevenAgo.toISOString().slice(0, 10);
 
-    const [emailsRes, dailyRes, weekRes] = await Promise.all([
+    const startOfToday = new Date();
+    startOfToday.setHours(0, 0, 0, 0);
+    const startOfTomorrow = new Date(startOfToday);
+    startOfTomorrow.setDate(startOfTomorrow.getDate() + 1);
+
+    const [emailsRes, dailyRes, weekRes, calRes] = await Promise.all([
       supabase
         .from("exec_os_emails")
         .select(
@@ -208,12 +213,23 @@ function TodayPage() {
         .eq("user_id", user.id)
         .gte("entry_date", sevenAgoStr)
         .order("entry_date", { ascending: true }),
+      supabase
+        .from("exec_os_calendar_events")
+        .select(
+          "id,account,external_id,title,description,start_at,end_at,organizer_email,location,video_url,is_all_day,status",
+        )
+        .eq("user_id", user.id)
+        .gte("start_at", startOfToday.toISOString())
+        .lt("start_at", startOfTomorrow.toISOString())
+        .order("start_at", { ascending: true }),
     ]);
 
     setEmails((emailsRes.data as EmailRow[]) ?? []);
     setEmailsLoadedAt(Date.now());
     setDaily((dailyRes.data as DailyRow) ?? null);
     setDailyLoadedAt(Date.now());
+    setCalendarEvents((calRes.data as CalendarEventRow[]) ?? []);
+    setCalendarLoadedAt(Date.now());
 
     // Build 7-day series ending today
     const rows = (weekRes.data ?? []) as { entry_date: string; energy_level: number | null }[];
