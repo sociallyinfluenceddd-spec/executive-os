@@ -344,21 +344,20 @@ function TodayPage() {
 
   const meetingsToday = useMemo(
     () =>
-      emails
-        .filter((e) => e.kind === "meeting" && isToday(e.scheduled_at))
+      calendarEvents
+        .filter((e) => isToday(e.start_at))
         .sort(
           (a, b) =>
-            new Date(a.scheduled_at ?? 0).getTime() -
-            new Date(b.scheduled_at ?? 0).getTime(),
+            new Date(a.start_at ?? 0).getTime() - new Date(b.start_at ?? 0).getTime(),
         ),
-    [emails],
+    [calendarEvents],
   );
   const nextMeeting = meetingsToday.find(
-    (m) => m.scheduled_at && new Date(m.scheduled_at).getTime() > now.getTime(),
+    (m) => m.start_at && new Date(m.start_at).getTime() > now.getTime(),
   );
   const nextMeetingMinutes = nextMeeting
     ? Math.round(
-        (new Date(nextMeeting.scheduled_at!).getTime() - now.getTime()) / 60000,
+        (new Date(nextMeeting.start_at!).getTime() - now.getTime()) / 60000,
       )
     : null;
 
