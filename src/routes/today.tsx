@@ -351,7 +351,7 @@ function TodayPage() {
     return () => {
       supabase.removeChannel(ch);
     };
-  }, [user]);
+  }, [user, selectedDate]);
 
   // Filtered emails
   const filteredEmails = useMemo(
