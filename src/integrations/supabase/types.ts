@@ -94,6 +94,7 @@ export type Database = {
       exec_os_calendar_events: {
         Row: {
           account: string
+          attendees: Json | null
           created_at: string
           description: string | null
           end_at: string | null
@@ -111,6 +112,7 @@ export type Database = {
         }
         Insert: {
           account: string
+          attendees?: Json | null
           created_at?: string
           description?: string | null
           end_at?: string | null
@@ -128,6 +130,7 @@ export type Database = {
         }
         Update: {
           account?: string
+          attendees?: Json | null
           created_at?: string
           description?: string | null
           end_at?: string | null
