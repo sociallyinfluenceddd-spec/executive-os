@@ -890,7 +890,7 @@ function Card({
 }) {
   return (
     <section
-      className={`rounded-xl border border-border bg-card p-6 ${className}`}
+      className={`rounded-xl border border-border bg-card p-4 sm:p-5 lg:p-6 ${className}`}
     >
       <header className="flex items-center justify-between gap-3 mb-4">
         <h2 className="inline-flex items-center gap-2 text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">
