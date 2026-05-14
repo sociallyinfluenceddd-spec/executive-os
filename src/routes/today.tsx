@@ -30,7 +30,41 @@ import {
   MessageCircle,
   Activity,
   Info,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
+
+function startOfDay(d: Date): Date {
+  const x = new Date(d);
+  x.setHours(0, 0, 0, 0);
+  return x;
+}
+function addDays(d: Date, n: number): Date {
+  const x = new Date(d);
+  x.setDate(x.getDate() + n);
+  return x;
+}
+function isSameDay(a: Date, b: Date): boolean {
+  return (
+    a.getFullYear() === b.getFullYear() &&
+    a.getMonth() === b.getMonth() &&
+    a.getDate() === b.getDate()
+  );
+}
+function dayLabel(d: Date): string {
+  const today = startOfDay(new Date());
+  const sel = startOfDay(d);
+  const diff = Math.round((sel.getTime() - today.getTime()) / 86400_000);
+  const fmt = d.toLocaleDateString(undefined, {
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+  });
+  if (diff === 0) return `Today · ${fmt}`;
+  if (diff === 1) return `Tomorrow · ${fmt}`;
+  if (diff === -1) return `Yesterday · ${fmt}`;
+  return fmt;
+}
 
 export const Route = createFileRoute("/today")({
   component: () => (
@@ -175,6 +209,8 @@ function TodayPage() {
   const [captureOpen, setCaptureOpen] = useState(false);
   const [statusOpen, setStatusOpen] = useState(false);
   const [refreshTick, setRefreshTick] = useState(0);
+  const [selectedDate, setSelectedDate] = useState<Date>(() => startOfDay(new Date()));
+  const selectedIsToday = isSameDay(selectedDate, now);
 
   const firstName = useMemo(() => {
     const display = (user?.user_metadata?.display_name as string | undefined)?.trim();
@@ -188,10 +224,8 @@ function TodayPage() {
     sevenAgo.setDate(sevenAgo.getDate() - 6);
     const sevenAgoStr = sevenAgo.toISOString().slice(0, 10);
 
-    const startOfToday = new Date();
-    startOfToday.setHours(0, 0, 0, 0);
-    const startOfTomorrow = new Date(startOfToday);
-    startOfTomorrow.setDate(startOfTomorrow.getDate() + 1);
+    const dayStart = startOfDay(selectedDate);
+    const dayEnd = addDays(dayStart, 1);
 
     const [emailsRes, dailyRes, weekRes, calRes] = await Promise.all([
       supabase
@@ -219,8 +253,8 @@ function TodayPage() {
           "id,account,external_id,title,description,start_at,end_at,organizer_email,location,video_url,is_all_day,status",
         )
         .eq("user_id", user.id)
-        .gte("start_at", startOfToday.toISOString())
-        .lt("start_at", startOfTomorrow.toISOString())
+        .gte("start_at", dayStart.toISOString())
+        .lt("start_at", dayEnd.toISOString())
         .order("start_at", { ascending: true }),
     ]);
 
@@ -246,7 +280,7 @@ function TodayPage() {
     }
     setEnergySeries(series);
     setLoggedDays(logged);
-  }, [user]);
+  }, [user, selectedDate]);
 
   useEffect(() => {
     void loadAll();
@@ -296,8 +330,11 @@ function TodayPage() {
               return cur.filter((r) => r.id !== (payload.old as CalendarEventRow).id);
             }
             const next = payload.new as CalendarEventRow;
-            // Only keep today's events
-            if (!next.start_at || !isToday(next.start_at)) {
+            // Only keep events for the selected day
+            const dayStart = startOfDay(selectedDate);
+            const dayEnd = addDays(dayStart, 1);
+            const t = next.start_at ? new Date(next.start_at).getTime() : NaN;
+            if (!t || t < dayStart.getTime() || t >= dayEnd.getTime()) {
               return cur.filter((r) => r.id !== next.id);
             }
             const idx = cur.findIndex((r) => r.id === next.id);
@@ -314,7 +351,7 @@ function TodayPage() {
     return () => {
       supabase.removeChannel(ch);
     };
-  }, [user]);
+  }, [user, selectedDate]);
 
   // Filtered emails
   const filteredEmails = useMemo(
@@ -345,16 +382,18 @@ function TodayPage() {
   const meetingsToday = useMemo(
     () =>
       calendarEvents
-        .filter((e) => isToday(e.start_at))
+        .slice()
         .sort(
           (a, b) =>
             new Date(a.start_at ?? 0).getTime() - new Date(b.start_at ?? 0).getTime(),
         ),
     [calendarEvents],
   );
-  const nextMeeting = meetingsToday.find(
-    (m) => m.start_at && new Date(m.start_at).getTime() > now.getTime(),
-  );
+  const nextMeeting = selectedIsToday
+    ? meetingsToday.find(
+        (m) => m.start_at && new Date(m.start_at).getTime() > now.getTime(),
+      )
+    : undefined;
   const nextMeetingMinutes = nextMeeting
     ? Math.round(
         (new Date(nextMeeting.start_at!).getTime() - now.getTime()) / 60000,
@@ -575,9 +614,20 @@ function TodayPage() {
         </Card>
 
         {/* CALENDAR TODAY */}
-        <Card className="lg:col-span-4" title="Calendar today" icon={CalendarClock}>
+        <Card className="lg:col-span-4" title="Calendar" icon={CalendarClock}>
+          <DateNav
+            selectedDate={selectedDate}
+            setSelectedDate={setSelectedDate}
+            isToday={selectedIsToday}
+          />
           {meetingsToday.length === 0 ? (
-            <EmptyState text="Nothing on the calendar today." />
+            <EmptyState
+              text={
+                selectedIsToday
+                  ? "Nothing on the calendar today."
+                  : "Nothing on the calendar."
+              }
+            />
           ) : (
             <>
               {nextMeeting && nextMeetingMinutes != null && (
@@ -619,7 +669,12 @@ function TodayPage() {
 
       {/* ROW 2 — TIMELINE */}
       <Card title="Timeline" icon={Activity}>
-        <Timeline now={now} meetings={meetingsToday} />
+        <DateNav
+          selectedDate={selectedDate}
+          setSelectedDate={setSelectedDate}
+          isToday={selectedIsToday}
+        />
+        <Timeline now={now} meetings={meetingsToday} showNow={selectedIsToday} />
       </Card>
 
       {/* ROW 3 */}
@@ -824,12 +879,59 @@ function EmptyState({ text }: { text: string }) {
   );
 }
 
+function DateNav({
+  selectedDate,
+  setSelectedDate,
+  isToday,
+}: {
+  selectedDate: Date;
+  setSelectedDate: (d: Date) => void;
+  isToday: boolean;
+}) {
+  return (
+    <div className="flex items-center justify-between gap-2 mb-3">
+      <span className="text-xs font-medium text-foreground tabular-nums">
+        {dayLabel(selectedDate)}
+      </span>
+      <div className="flex items-center gap-1">
+        {!isToday && (
+          <button
+            type="button"
+            onClick={() => setSelectedDate(startOfDay(new Date()))}
+            className="px-2 h-6 rounded-md border border-border text-[10px] uppercase tracking-wider text-muted-foreground hover:bg-muted"
+          >
+            Today
+          </button>
+        )}
+        <button
+          type="button"
+          aria-label="Previous day"
+          onClick={() => setSelectedDate(addDays(selectedDate, -1))}
+          className="h-6 w-6 inline-flex items-center justify-center rounded-md border border-border hover:bg-muted text-muted-foreground"
+        >
+          <ChevronLeft className="h-3.5 w-3.5" />
+        </button>
+        <button
+          type="button"
+          aria-label="Next day"
+          onClick={() => setSelectedDate(addDays(selectedDate, 1))}
+          className="h-6 w-6 inline-flex items-center justify-center rounded-md border border-border hover:bg-muted text-muted-foreground"
+        >
+          <ChevronRight className="h-3.5 w-3.5" />
+        </button>
+      </div>
+    </div>
+  );
+}
+
 function Timeline({
   now,
   meetings,
+  showNow,
 }: {
   now: Date;
   meetings: CalendarEventRow[];
+  showNow: boolean;
 }) {
   const startH = 0;
   const endH = 24;
@@ -890,16 +992,18 @@ function Timeline({
         })}
 
         {/* Now line */}
-        <div
-          className="absolute top-0 bottom-0 w-px bg-[color:var(--rose)] z-10"
-          style={{ left: `${nowPct}%` }}
-        >
-          <div className="absolute -top-1 -translate-x-1/2 h-2 w-2 rounded-full bg-[color:var(--rose)]" />
-        </div>
+        {showNow && (
+          <div
+            className="absolute top-0 bottom-0 w-px bg-[color:var(--rose)] z-10"
+            style={{ left: `${nowPct}%` }}
+          >
+            <div className="absolute -top-1 -translate-x-1/2 h-2 w-2 rounded-full bg-[color:var(--rose)]" />
+          </div>
+        )}
       </div>
       {meetings.length === 0 && (
         <p className="text-xs text-muted-foreground/70 italic text-center mt-3">
-          Nothing on the calendar today.
+          Nothing on the calendar.
         </p>
       )}
     </div>
