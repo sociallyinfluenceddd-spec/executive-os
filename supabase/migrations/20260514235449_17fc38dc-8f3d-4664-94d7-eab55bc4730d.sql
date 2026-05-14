@@ -1,0 +1,1 @@
+ALTER TABLE public.exec_os_calendar_events ADD COLUMN IF NOT EXISTS calendar_id text, ADD COLUMN IF NOT EXISTS calendar_name text;
