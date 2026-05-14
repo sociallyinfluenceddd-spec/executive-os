@@ -829,16 +829,16 @@ function Timeline({
   meetings,
 }: {
   now: Date;
-  meetings: EmailRow[];
+  meetings: CalendarEventRow[];
 }) {
-  const startH = 6;
-  const endH = 22;
+  const startH = 0;
+  const endH = 24;
   const totalMin = (endH - startH) * 60;
   const nowMin = (now.getHours() - startH) * 60 + now.getMinutes();
   const nowPct = Math.max(0, Math.min(100, (nowMin / totalMin) * 100));
 
   const hours = [];
-  for (let h = startH; h <= endH; h += 2) hours.push(h);
+  for (let h = startH; h <= endH; h += 3) hours.push(h);
 
   return (
     <div className="relative">
@@ -847,6 +847,7 @@ function Timeline({
         {/* Hour ticks */}
         {hours.map((h) => {
           const pct = ((h - startH) / (endH - startH)) * 100;
+          const display = h === 24 ? 12 : h % 12 === 0 ? 12 : h % 12;
           return (
             <div
               key={h}
@@ -854,8 +855,8 @@ function Timeline({
               style={{ left: `${pct}%` }}
             >
               <span className="absolute -top-5 -translate-x-1/2 text-[10px] text-muted-foreground tabular-nums">
-                {h % 12 === 0 ? 12 : h % 12}
-                {h < 12 ? "a" : "p"}
+                {display}
+                {h < 12 || h === 24 ? "a" : "p"}
               </span>
             </div>
           );
@@ -863,21 +864,26 @@ function Timeline({
 
         {/* Meeting blocks */}
         {meetings.map((m) => {
-          if (!m.scheduled_at) return null;
-          const d = new Date(m.scheduled_at);
-          const min = (d.getHours() - startH) * 60 + d.getMinutes();
-          if (min < 0 || min > totalMin) return null;
-          const left = (min / totalMin) * 100;
-          const width = Math.max(2, (60 / totalMin) * 100);
+          if (!m.start_at) return null;
+          const start = new Date(m.start_at);
+          const startMin = (start.getHours() - startH) * 60 + start.getMinutes();
+          let durMin = 60;
+          if (m.end_at) {
+            const end = new Date(m.end_at);
+            durMin = Math.max(15, (end.getTime() - start.getTime()) / 60000);
+          }
+          if (startMin < 0 || startMin > totalMin) return null;
+          const left = (startMin / totalMin) * 100;
+          const width = Math.max(1, (durMin / totalMin) * 100);
           return (
             <div
               key={m.id}
               className="absolute top-3 bottom-3 rounded-md bg-[color:var(--sage)]/40 border border-[color:var(--sage)] px-1.5 py-0.5 overflow-hidden"
               style={{ left: `${left}%`, width: `${width}%` }}
-              title={m.subject ?? ""}
+              title={m.title ?? ""}
             >
               <span className="text-[10px] text-[color:var(--forest)] truncate block">
-                {m.subject || "Mtg"}
+                {m.title || "Mtg"}
               </span>
             </div>
           );
@@ -893,7 +899,7 @@ function Timeline({
       </div>
       {meetings.length === 0 && (
         <p className="text-xs text-muted-foreground/70 italic text-center mt-3">
-          Syncing calendar…
+          Nothing on the calendar today.
         </p>
       )}
     </div>
