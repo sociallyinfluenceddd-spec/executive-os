@@ -15,6 +15,14 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetDescription,
+} from "@/components/ui/sheet";
+import { Badge } from "@/components/ui/badge";
+import {
   Mic,
   Video,
   ArrowRight,
@@ -110,6 +118,7 @@ type CalendarEventRow = {
   video_url: string | null;
   is_all_day: boolean | null;
   status: string | null;
+  attendees: Array<{ email?: string; name?: string; response_status?: string }> | null;
 };
 
 type DailyRow = {
@@ -211,6 +220,7 @@ function TodayPage() {
   const [refreshTick, setRefreshTick] = useState(0);
   const [selectedDate, setSelectedDate] = useState<Date>(() => startOfDay(new Date()));
   const selectedIsToday = isSameDay(selectedDate, now);
+  const [selectedEvent, setSelectedEvent] = useState<CalendarEventRow | null>(null);
 
   const firstName = useMemo(() => {
     const display = (user?.user_metadata?.display_name as string | undefined)?.trim();
@@ -250,7 +260,7 @@ function TodayPage() {
       supabase
         .from("exec_os_calendar_events")
         .select(
-          "id,account,external_id,title,description,start_at,end_at,organizer_email,location,video_url,is_all_day,status",
+          "id,account,external_id,title,description,start_at,end_at,organizer_email,location,video_url,is_all_day,status,attendees",
         )
         .eq("user_id", user.id)
         .gte("start_at", dayStart.toISOString())
@@ -642,23 +652,30 @@ function TodayPage() {
               )}
               <ul className="space-y-1.5">
                 {meetingsToday.map((m) => (
-                  <li key={m.id} className="flex items-center gap-2 text-xs">
-                    <span className="tabular-nums text-muted-foreground w-14 shrink-0">
-                      {whenLabel(m.start_at)}
-                    </span>
-                    <span className="truncate text-foreground flex-1">
-                      {m.title || "(untitled)"}
-                    </span>
-                    {m.video_url && (
-                      <a
-                        href={m.video_url}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="text-[color:var(--navy)] shrink-0"
-                      >
-                        <Video className="h-3.5 w-3.5" />
-                      </a>
-                    )}
+                  <li key={m.id}>
+                    <button
+                      type="button"
+                      onClick={() => setSelectedEvent(m)}
+                      className="w-full flex items-center gap-2 text-xs text-left rounded-md px-1 py-1 hover:bg-muted transition-colors"
+                    >
+                      <span className="tabular-nums text-muted-foreground w-14 shrink-0">
+                        {whenLabel(m.start_at)}
+                      </span>
+                      <span className="truncate text-foreground flex-1">
+                        {m.title || "(untitled)"}
+                      </span>
+                      {m.video_url && (
+                        <a
+                          href={m.video_url}
+                          target="_blank"
+                          rel="noreferrer"
+                          onClick={(e) => e.stopPropagation()}
+                          className="text-[color:var(--navy)] shrink-0"
+                        >
+                          <Video className="h-3.5 w-3.5" />
+                        </a>
+                      )}
+                    </button>
                   </li>
                 ))}
               </ul>
@@ -674,7 +691,12 @@ function TodayPage() {
           setSelectedDate={setSelectedDate}
           isToday={selectedIsToday}
         />
-        <Timeline now={now} meetings={meetingsToday} showNow={selectedIsToday} />
+        <Timeline
+          now={now}
+          meetings={meetingsToday}
+          showNow={selectedIsToday}
+          onSelect={setSelectedEvent}
+        />
       </Card>
 
       {/* ROW 3 */}
@@ -811,6 +833,11 @@ function TodayPage() {
         onClose={() => setCaptureOpen(false)}
         onCaptured={() => loadAll()}
       />
+
+      <EventDetailSheet
+        event={selectedEvent}
+        onClose={() => setSelectedEvent(null)}
+      />
     </div>
   );
 }
@@ -928,10 +955,12 @@ function Timeline({
   now,
   meetings,
   showNow,
+  onSelect,
 }: {
   now: Date;
   meetings: CalendarEventRow[];
   showNow: boolean;
+  onSelect?: (e: CalendarEventRow) => void;
 }) {
   const startH = 0;
   const endH = 24;
@@ -978,16 +1007,18 @@ function Timeline({
           const left = (startMin / totalMin) * 100;
           const width = Math.max(1, (durMin / totalMin) * 100);
           return (
-            <div
+            <button
+              type="button"
               key={m.id}
-              className="absolute top-3 bottom-3 rounded-md bg-[color:var(--sage)]/40 border border-[color:var(--sage)] px-1.5 py-0.5 overflow-hidden"
+              onClick={() => onSelect?.(m)}
+              className="absolute top-3 bottom-3 rounded-md bg-[color:var(--sage)]/40 border border-[color:var(--sage)] px-1.5 py-0.5 overflow-hidden text-left hover:bg-[color:var(--sage)]/60 transition-colors cursor-pointer"
               style={{ left: `${left}%`, width: `${width}%` }}
               title={m.title ?? ""}
             >
               <span className="text-[10px] text-[color:var(--forest)] truncate block">
                 {m.title || "Mtg"}
               </span>
-            </div>
+            </button>
           );
         })}
 
@@ -1039,5 +1070,162 @@ function Sparkline({ values }: { values: (number | null)[] }) {
         ) : null,
       )}
     </svg>
+  );
+}
+
+function looksLikeAddress(s: string): boolean {
+  // Heuristic: contains a digit and a comma or street keyword, not a URL
+  if (/^https?:\/\//i.test(s)) return false;
+  return /\d/.test(s) && (/,/.test(s) || /\b(st|street|ave|avenue|rd|road|blvd|drive|dr|lane|ln|way)\b/i.test(s));
+}
+
+function formatRange(startISO: string | null, endISO: string | null, allDay: boolean | null): string {
+  if (!startISO) return "";
+  const s = new Date(startISO);
+  const dateLabel = s.toLocaleDateString(undefined, {
+    weekday: "long",
+    month: "long",
+    day: "numeric",
+    year: "numeric",
+  });
+  if (allDay) return `${dateLabel} · All day`;
+  const sT = s.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
+  if (!endISO) return `${dateLabel} · ${sT}`;
+  const e = new Date(endISO);
+  const eT = e.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
+  return `${dateLabel} · ${sT} – ${eT}`;
+}
+
+function responseBadgeClass(status: string | undefined): string {
+  switch ((status ?? "").toLowerCase()) {
+    case "accepted":
+      return "bg-[color:var(--sage)]/25 text-[color:var(--forest)] border-[color:var(--sage)]/50";
+    case "tentative":
+      return "bg-[color:var(--yellow)]/25 text-foreground border-[color:var(--yellow)]/50";
+    case "declined":
+      return "bg-[color:var(--rose)]/20 text-[color:var(--rose)] border-[color:var(--rose)]/40";
+    default:
+      return "bg-muted text-muted-foreground border-border";
+  }
+}
+
+function responseLabel(status: string | undefined): string {
+  const s = (status ?? "").toLowerCase();
+  if (s === "accepted") return "Accepted";
+  if (s === "tentative") return "Tentative";
+  if (s === "declined") return "Declined";
+  return "No response";
+}
+
+function EventDetailSheet({
+  event,
+  onClose,
+}: {
+  event: CalendarEventRow | null;
+  onClose: () => void;
+}) {
+  const open = event !== null;
+  return (
+    <Sheet open={open} onOpenChange={(o) => { if (!o) onClose(); }}>
+      <SheetContent side="right" className="w-full sm:max-w-md overflow-y-auto">
+        {event && (
+          <>
+            <SheetHeader className="text-left">
+              <SheetTitle className="text-xl">
+                {event.title || "(untitled)"}
+              </SheetTitle>
+              <SheetDescription className="text-sm">
+                {formatRange(event.start_at, event.end_at, event.is_all_day)}
+              </SheetDescription>
+            </SheetHeader>
+
+            <div className="mt-6 space-y-5 text-sm">
+              {event.location && (
+                <div>
+                  <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">
+                    Location
+                  </div>
+                  {looksLikeAddress(event.location) ? (
+                    <a
+                      href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(event.location)}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-[color:var(--navy)] hover:underline break-words"
+                    >
+                      {event.location}
+                    </a>
+                  ) : (
+                    <p className="text-foreground break-words">{event.location}</p>
+                  )}
+                </div>
+              )}
+
+              {event.video_url && (
+                <div>
+                  <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">
+                    Video
+                  </div>
+                  <a
+                    href={event.video_url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-2 text-[color:var(--navy)] hover:underline break-all"
+                  >
+                    <Video className="h-4 w-4 shrink-0" />
+                    Join meeting
+                  </a>
+                </div>
+              )}
+
+              {event.organizer_email && (
+                <div>
+                  <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">
+                    Organizer
+                  </div>
+                  <p className="text-foreground break-words">{event.organizer_email}</p>
+                </div>
+              )}
+
+              {event.description && (
+                <div>
+                  <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">
+                    Description
+                  </div>
+                  <p className="text-foreground whitespace-pre-wrap break-words">
+                    {event.description}
+                  </p>
+                </div>
+              )}
+
+              {event.attendees && event.attendees.length > 0 && (
+                <div>
+                  <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-2">
+                    Attendees ({event.attendees.length})
+                  </div>
+                  <ul className="space-y-1.5">
+                    {event.attendees.map((a, i) => (
+                      <li
+                        key={`${a.email ?? a.name ?? "x"}-${i}`}
+                        className="flex items-center gap-2 justify-between"
+                      >
+                        <span className="text-foreground truncate">
+                          {a.name || a.email || "Unknown"}
+                        </span>
+                        <Badge
+                          variant="outline"
+                          className={`text-[10px] shrink-0 ${responseBadgeClass(a.response_status)}`}
+                        >
+                          {responseLabel(a.response_status)}
+                        </Badge>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
+          </>
+        )}
+      </SheetContent>
+    </Sheet>
   );
 }

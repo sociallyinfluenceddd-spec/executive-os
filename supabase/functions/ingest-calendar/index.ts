@@ -33,6 +33,7 @@ interface Payload {
   video_url?: string | null;
   is_all_day?: boolean | null;
   status?: string | null;
+  attendees?: Array<{ email?: string; name?: string; response_status?: string }> | null;
 }
 
 function validate(body: any): { ok: true; data: Payload } | { ok: false; error: string } {
@@ -98,6 +99,10 @@ Deno.serve(async (req) => {
     video_url: emptyToNull(data.video_url),
     is_all_day: data.is_all_day ?? false,
     status: emptyToNull(data.status),
+    attendees:
+      Array.isArray(data.attendees) && data.attendees.length > 0
+        ? data.attendees
+        : null,
   };
 
   const { data: upserted, error } = await admin
