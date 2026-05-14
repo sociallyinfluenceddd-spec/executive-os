@@ -209,6 +209,8 @@ function TodayPage() {
   const [captureOpen, setCaptureOpen] = useState(false);
   const [statusOpen, setStatusOpen] = useState(false);
   const [refreshTick, setRefreshTick] = useState(0);
+  const [selectedDate, setSelectedDate] = useState<Date>(() => startOfDay(new Date()));
+  const selectedIsToday = isSameDay(selectedDate, now);
 
   const firstName = useMemo(() => {
     const display = (user?.user_metadata?.display_name as string | undefined)?.trim();
