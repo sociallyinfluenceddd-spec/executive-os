@@ -33,6 +33,7 @@ interface Payload {
   video_url?: string | null;
   is_all_day?: boolean | null;
   status?: string | null;
+  attendees?: Array<{ email?: string; name?: string; response_status?: string }> | null;
 }
 
 function validate(body: any): { ok: true; data: Payload } | { ok: false; error: string } {
