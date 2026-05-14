@@ -224,10 +224,8 @@ function TodayPage() {
     sevenAgo.setDate(sevenAgo.getDate() - 6);
     const sevenAgoStr = sevenAgo.toISOString().slice(0, 10);
 
-    const startOfToday = new Date();
-    startOfToday.setHours(0, 0, 0, 0);
-    const startOfTomorrow = new Date(startOfToday);
-    startOfTomorrow.setDate(startOfTomorrow.getDate() + 1);
+    const dayStart = startOfDay(selectedDate);
+    const dayEnd = addDays(dayStart, 1);
 
     const [emailsRes, dailyRes, weekRes, calRes] = await Promise.all([
       supabase
