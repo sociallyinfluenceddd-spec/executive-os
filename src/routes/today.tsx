@@ -668,7 +668,27 @@ function TodayPage() {
 
         {/* CALENDAR TODAY */}
         <div className="order-2 md:order-1 lg:order-none md:col-span-2 lg:col-span-4">
-          <Card title="Calendar" icon={CalendarClock}>
+          <Card
+            title="Calendar"
+            icon={CalendarClock}
+            right={
+              availableCalendars.length > 1 ? (
+                <Select value={selectedCalendar} onValueChange={setSelectedCalendar}>
+                  <SelectTrigger className="h-7 text-xs w-[140px] sm:w-[160px]">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All calendars</SelectItem>
+                    {availableCalendars.map((c) => (
+                      <SelectItem key={c} value={c}>
+                        {c}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              ) : null
+            }
+          >
             <DateNav
               selectedDate={selectedDate}
               setSelectedDate={setSelectedDate}
