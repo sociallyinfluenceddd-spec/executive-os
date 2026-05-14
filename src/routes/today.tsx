@@ -950,10 +950,12 @@ function Timeline({
   now,
   meetings,
   showNow,
+  onSelect,
 }: {
   now: Date;
   meetings: CalendarEventRow[];
   showNow: boolean;
+  onSelect?: (e: CalendarEventRow) => void;
 }) {
   const startH = 0;
   const endH = 24;
