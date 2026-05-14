@@ -3,6 +3,9 @@ project_id = "yjepmihkvvqbgrqfsfzs"
 [functions.ingest-email]
 verify_jwt = false
 
+[functions.ingest-calendar]
+verify_jwt = false
+
 [functions.agent-chat]
 verify_jwt = true
 
