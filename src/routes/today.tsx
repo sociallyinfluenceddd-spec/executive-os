@@ -652,23 +652,30 @@ function TodayPage() {
               )}
               <ul className="space-y-1.5">
                 {meetingsToday.map((m) => (
-                  <li key={m.id} className="flex items-center gap-2 text-xs">
-                    <span className="tabular-nums text-muted-foreground w-14 shrink-0">
-                      {whenLabel(m.start_at)}
-                    </span>
-                    <span className="truncate text-foreground flex-1">
-                      {m.title || "(untitled)"}
-                    </span>
-                    {m.video_url && (
-                      <a
-                        href={m.video_url}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="text-[color:var(--navy)] shrink-0"
-                      >
-                        <Video className="h-3.5 w-3.5" />
-                      </a>
-                    )}
+                  <li key={m.id}>
+                    <button
+                      type="button"
+                      onClick={() => setSelectedEvent(m)}
+                      className="w-full flex items-center gap-2 text-xs text-left rounded-md px-1 py-1 hover:bg-muted transition-colors"
+                    >
+                      <span className="tabular-nums text-muted-foreground w-14 shrink-0">
+                        {whenLabel(m.start_at)}
+                      </span>
+                      <span className="truncate text-foreground flex-1">
+                        {m.title || "(untitled)"}
+                      </span>
+                      {m.video_url && (
+                        <a
+                          href={m.video_url}
+                          target="_blank"
+                          rel="noreferrer"
+                          onClick={(e) => e.stopPropagation()}
+                          className="text-[color:var(--navy)] shrink-0"
+                        >
+                          <Video className="h-3.5 w-3.5" />
+                        </a>
+                      )}
+                    </button>
                   </li>
                 ))}
               </ul>
