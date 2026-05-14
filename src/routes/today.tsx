@@ -1002,16 +1002,18 @@ function Timeline({
           const left = (startMin / totalMin) * 100;
           const width = Math.max(1, (durMin / totalMin) * 100);
           return (
-            <div
+            <button
+              type="button"
               key={m.id}
-              className="absolute top-3 bottom-3 rounded-md bg-[color:var(--sage)]/40 border border-[color:var(--sage)] px-1.5 py-0.5 overflow-hidden"
+              onClick={() => onSelect?.(m)}
+              className="absolute top-3 bottom-3 rounded-md bg-[color:var(--sage)]/40 border border-[color:var(--sage)] px-1.5 py-0.5 overflow-hidden text-left hover:bg-[color:var(--sage)]/60 transition-colors cursor-pointer"
               style={{ left: `${left}%`, width: `${width}%` }}
               title={m.title ?? ""}
             >
               <span className="text-[10px] text-[color:var(--forest)] truncate block">
                 {m.title || "Mtg"}
               </span>
-            </div>
+            </button>
           );
         })}
 
