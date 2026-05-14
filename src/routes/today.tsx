@@ -618,7 +618,7 @@ function TodayPage() {
       </div>
 
       {/* ROW 2 — TIMELINE */}
-      <Card title="Timeline" icon={Activity} info>
+      <Card title="Timeline" icon={Activity}>
         <Timeline now={now} meetings={meetingsToday} />
       </Card>
 
