@@ -382,16 +382,18 @@ function TodayPage() {
   const meetingsToday = useMemo(
     () =>
       calendarEvents
-        .filter((e) => isToday(e.start_at))
+        .slice()
         .sort(
           (a, b) =>
             new Date(a.start_at ?? 0).getTime() - new Date(b.start_at ?? 0).getTime(),
         ),
     [calendarEvents],
   );
-  const nextMeeting = meetingsToday.find(
-    (m) => m.start_at && new Date(m.start_at).getTime() > now.getTime(),
-  );
+  const nextMeeting = selectedIsToday
+    ? meetingsToday.find(
+        (m) => m.start_at && new Date(m.start_at).getTime() > now.getTime(),
+      )
+    : undefined;
   const nextMeetingMinutes = nextMeeting
     ? Math.round(
         (new Date(nextMeeting.start_at!).getTime() - now.getTime()) / 60000,
