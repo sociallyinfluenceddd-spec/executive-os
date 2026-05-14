@@ -1213,12 +1213,21 @@ function EventDetailSheet({
                   <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">
                     Location
                   </div>
-                  {looksLikeAddress(event.location) ? (
+                  {/^https?:\/\//i.test(event.location) ? (
+                    <a
+                      href={event.location}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center min-h-[44px] py-2 text-[color:var(--navy)] hover:underline break-all"
+                    >
+                      {event.location}
+                    </a>
+                  ) : looksLikeAddress(event.location) ? (
                     <a
                       href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(event.location)}`}
                       target="_blank"
-                      rel="noreferrer"
-                      className="text-[color:var(--navy)] hover:underline break-words"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center min-h-[44px] py-2 text-[color:var(--navy)] hover:underline break-words"
                     >
                       {event.location}
                     </a>
@@ -1236,8 +1245,8 @@ function EventDetailSheet({
                   <a
                     href={event.video_url}
                     target="_blank"
-                    rel="noreferrer"
-                    className="inline-flex items-center gap-2 text-[color:var(--navy)] hover:underline break-all"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2 min-h-[44px] px-4 py-2 rounded-md bg-[color:var(--navy)] text-[color:var(--paper)] hover:opacity-90 transition-opacity font-medium"
                   >
                     <Video className="h-4 w-4 shrink-0" />
                     Join meeting
@@ -1250,7 +1259,12 @@ function EventDetailSheet({
                   <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">
                     Organizer
                   </div>
-                  <p className="text-foreground break-words">{event.organizer_email}</p>
+                  <a
+                    href={`mailto:${event.organizer_email}`}
+                    className="inline-flex items-center min-h-[44px] py-2 text-[color:var(--navy)] hover:underline break-all"
+                  >
+                    {event.organizer_email}
+                  </a>
                 </div>
               )}
 
@@ -1260,7 +1274,7 @@ function EventDetailSheet({
                     Description
                   </div>
                   <p className="text-foreground whitespace-pre-wrap break-words">
-                    {event.description}
+                    {linkify(event.description)}
                   </p>
                 </div>
               )}
