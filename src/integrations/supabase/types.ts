@@ -17,26 +17,53 @@ export type Database = {
       exec_os_agent_messages: {
         Row: {
           agent_id: string
+          attachments: Json
           content: string
+          cost_usd: number | null
           created_at: string
           id: string
+          input_tokens: number | null
+          model: string | null
+          output_tokens: number | null
+          reasoning: string | null
           role: string
+          thread_id: string | null
+          tool_calls: Json | null
+          tool_results: Json | null
           user_id: string
         }
         Insert: {
           agent_id: string
+          attachments?: Json
           content: string
+          cost_usd?: number | null
           created_at?: string
           id?: string
+          input_tokens?: number | null
+          model?: string | null
+          output_tokens?: number | null
+          reasoning?: string | null
           role: string
+          thread_id?: string | null
+          tool_calls?: Json | null
+          tool_results?: Json | null
           user_id: string
         }
         Update: {
           agent_id?: string
+          attachments?: Json
           content?: string
+          cost_usd?: number | null
           created_at?: string
           id?: string
+          input_tokens?: number | null
+          model?: string | null
+          output_tokens?: number | null
+          reasoning?: string | null
           role?: string
+          thread_id?: string | null
+          tool_calls?: Json | null
+          tool_results?: Json | null
           user_id?: string
         }
         Relationships: [
@@ -49,13 +76,48 @@ export type Database = {
           },
         ]
       }
+      exec_os_agent_threads: {
+        Row: {
+          agent_id: string
+          archived: boolean
+          created_at: string
+          id: string
+          last_message_at: string | null
+          title: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          agent_id: string
+          archived?: boolean
+          created_at?: string
+          id?: string
+          last_message_at?: string | null
+          title?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          agent_id?: string
+          archived?: boolean
+          created_at?: string
+          id?: string
+          last_message_at?: string | null
+          title?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       exec_os_agents: {
         Row: {
           avatar_letter: string
           color: string
           created_at: string
           enabled: boolean
+          focus_data: Json
           id: string
+          model_tier: string
           name: string
           order_index: number
           role: string
@@ -68,7 +130,9 @@ export type Database = {
           color: string
           created_at?: string
           enabled?: boolean
+          focus_data?: Json
           id?: string
+          model_tier?: string
           name: string
           order_index: number
           role: string
@@ -81,7 +145,9 @@ export type Database = {
           color?: string
           created_at?: string
           enabled?: boolean
+          focus_data?: Json
           id?: string
+          model_tier?: string
           name?: string
           order_index?: number
           role?: string
@@ -367,6 +433,135 @@ export type Database = {
           updated_at?: string
           user_id?: string
           video_url?: string | null
+        }
+        Relationships: []
+      }
+      exec_os_notes: {
+        Row: {
+          agent_id: string | null
+          body: string
+          created_at: string
+          id: string
+          tags: string[]
+          title: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          agent_id?: string | null
+          body: string
+          created_at?: string
+          id?: string
+          tags?: string[]
+          title?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          agent_id?: string | null
+          body?: string
+          created_at?: string
+          id?: string
+          tags?: string[]
+          title?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      exec_os_suggestions: {
+        Row: {
+          agent_id: string | null
+          created_at: string
+          id: string
+          kind: string
+          payload: Json
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          agent_id?: string | null
+          created_at?: string
+          id?: string
+          kind: string
+          payload?: Json
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          agent_id?: string | null
+          created_at?: string
+          id?: string
+          kind?: string
+          payload?: Json
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      exec_os_tasks: {
+        Row: {
+          agent_id: string | null
+          created_at: string
+          due_at: string | null
+          id: string
+          source_message_id: string | null
+          status: string
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          agent_id?: string | null
+          created_at?: string
+          due_at?: string | null
+          id?: string
+          source_message_id?: string | null
+          status?: string
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          agent_id?: string | null
+          created_at?: string
+          due_at?: string | null
+          id?: string
+          source_message_id?: string | null
+          status?: string
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      exec_os_weekly_summaries: {
+        Row: {
+          created_at: string
+          id: string
+          metrics: Json
+          summary: string | null
+          user_id: string
+          week_start: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          metrics?: Json
+          summary?: string | null
+          user_id: string
+          week_start: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          metrics?: Json
+          summary?: string | null
+          user_id?: string
+          week_start?: string
         }
         Relationships: []
       }
