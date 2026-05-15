@@ -58,6 +58,10 @@ import {
   LockOpen,
   GripVertical,
   RotateCcw,
+  Plus,
+  Pencil,
+  X,
+  LayoutGrid,
 } from "lucide-react";
 
 const ResponsiveGridLayout = WidthProvider(Responsive);
