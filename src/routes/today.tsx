@@ -944,6 +944,8 @@ function TodayPage() {
             lockId="calendar"
             locked={!!locks.calendar}
             onToggleLock={toggleLock}
+            editMode={editMode}
+            onRemove={removeWidget}
             right={
               availableCalendars.length > 1 ? (
                 <Select value={selectedCalendar} onValueChange={setSelectedCalendar}>
@@ -1031,6 +1033,8 @@ function TodayPage() {
             lockId="inbox"
             locked={!!locks.inbox}
             onToggleLock={toggleLock}
+            editMode={editMode}
+            onRemove={removeWidget}
             right={
               <Select value={accountFilter} onValueChange={setAccountFilter}>
                 <SelectTrigger className="no-drag h-7 text-xs w-[130px] sm:w-[150px]">
@@ -1087,6 +1091,8 @@ function TodayPage() {
             lockId="money"
             locked={!!locks.money}
             onToggleLock={toggleLock}
+            editMode={editMode}
+            onRemove={removeWidget}
           >
             <EmptyState text="No lead data yet. Connecting Ideafetti DB…" />
           </Card>
@@ -1102,6 +1108,8 @@ function TodayPage() {
             lockId="timeline"
             locked={!!locks.timeline}
             onToggleLock={toggleLock}
+            editMode={editMode}
+            onRemove={removeWidget}
           >
             <DateNav
               selectedDate={selectedDate}
@@ -1128,6 +1136,8 @@ function TodayPage() {
             lockId="content_pulse"
             locked={!!locks.content_pulse}
             onToggleLock={toggleLock}
+            editMode={editMode}
+            onRemove={removeWidget}
           >
             <EmptyState text="Syncing Ideafetti content data…" />
           </Card>
@@ -1143,6 +1153,8 @@ function TodayPage() {
             lockId="projects"
             locked={!!locks.projects}
             onToggleLock={toggleLock}
+            editMode={editMode}
+            onRemove={removeWidget}
           >
             <ul className="space-y-3">
               {DEFAULT_PROJECTS.map((p) => {
@@ -1191,6 +1203,8 @@ function TodayPage() {
             lockId="wellness"
             locked={!!locks.wellness}
             onToggleLock={toggleLock}
+            editMode={editMode}
+            onRemove={removeWidget}
           >
             <div className="flex items-center gap-4 mb-3">
               <Sparkline values={energySeries} />
@@ -1226,6 +1240,8 @@ function TodayPage() {
             lockId="follow_ups"
             locked={!!locks.follow_ups}
             onToggleLock={toggleLock}
+            editMode={editMode}
+            onRemove={removeWidget}
           >
             {followUps.length === 0 ? (
               <p className="text-xs text-muted-foreground py-3">All caught up. ✨</p>
