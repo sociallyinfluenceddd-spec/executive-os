@@ -1271,7 +1271,11 @@ function WidgetChrome({
     <button
       type="button"
       onClick={() => onToggle(id)}
-      className="no-drag inline-flex items-center justify-center p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition"
+      className={`no-drag inline-flex items-center justify-center p-1.5 rounded hover:bg-muted transition ${
+        locked
+          ? "text-[color:var(--navy)]"
+          : "text-muted-foreground hover:text-foreground"
+      }`}
       aria-label={locked ? "Unlock widget" : "Lock widget"}
       title={locked ? "Unlock widget" : "Lock widget"}
     >
