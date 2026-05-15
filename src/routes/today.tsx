@@ -399,10 +399,10 @@ function TodayPage() {
     setLocks((cur) => ({ ...cur, [id]: !cur[id] }));
   }, []);
   const resetLayout = useCallback(() => {
-    const fresh = buildLayouts(locks);
-    setLayouts(fresh);
-    saveDashboard(fresh, locks);
-  }, [locks]);
+    try { localStorage.removeItem(DASHBOARD_KEY); } catch {}
+    setLocks({});
+    setLayouts(buildLayouts({}));
+  }, []);
 
   const firstName = useMemo(() => {
     const display = (user?.user_metadata?.display_name as string | undefined)?.trim();
@@ -777,15 +777,6 @@ function TodayPage() {
       </header>
 
       {/* Draggable / resizable dashboard grid */}
-      <div className="flex items-center justify-end gap-2 -mb-1">
-        <button
-          type="button"
-          onClick={resetLayout}
-          className="inline-flex items-center gap-1 text-[10px] uppercase tracking-wider text-muted-foreground hover:text-foreground"
-        >
-          <RotateCcw className="h-3 w-3" /> Reset layout
-        </button>
-      </div>
       <ResponsiveGridLayout
         className="layout"
         layouts={layouts}
@@ -1178,6 +1169,16 @@ function TodayPage() {
       </button>
 
       <DoneForToday />
+
+      <footer className="mt-8 pt-4 border-t border-border flex justify-center">
+        <button
+          type="button"
+          onClick={resetLayout}
+          className="inline-flex items-center gap-1 text-[10px] uppercase tracking-wider text-muted-foreground hover:text-foreground"
+        >
+          <RotateCcw className="h-3 w-3" /> Reset layout
+        </button>
+      </footer>
 
       <CaptureModal
         open={captureOpen}
