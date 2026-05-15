@@ -164,20 +164,7 @@ function buildLayouts(locks: Record<string, boolean>): ResponsiveLayouts {
   };
 }
 
-// Migrate legacy widget IDs in saved layouts.
-const ID_MIGRATIONS: Record<string, string> = {
-  followups: "follow_ups",
-  content: "content_pulse",
-};
-function migrateLayoutItems(arr: LayoutItem[] | undefined): LayoutItem[] | undefined {
-  if (!arr) return arr;
-  return arr.map((l) => (ID_MIGRATIONS[l.i] ? { ...l, i: ID_MIGRATIONS[l.i] } : l));
-}
-
 const DASHBOARD_KEY = "execOs.dashboardLayout.v1";
-// Legacy keys (migrated on first load)
-const LEGACY_LAYOUTS_KEY = "today_layouts_v1";
-const LEGACY_LOCKS_KEY = "today_locks_v1";
 
 type DashboardPersisted = {
   lg?: LayoutItem[];
@@ -191,48 +178,17 @@ function loadDashboard(): DashboardPersisted | null {
   try {
     const raw = localStorage.getItem(DASHBOARD_KEY);
     if (raw) return JSON.parse(raw) as DashboardPersisted;
-    // Migrate from legacy keys
-    const legacyLayouts = localStorage.getItem(LEGACY_LAYOUTS_KEY);
-    const legacyLocks = localStorage.getItem(LEGACY_LOCKS_KEY);
-    if (legacyLayouts || legacyLocks) {
-      const layouts = legacyLayouts ? (JSON.parse(legacyLayouts) as ResponsiveLayouts) : {};
-      const locked = legacyLocks ? (JSON.parse(legacyLocks) as Record<string, boolean>) : {};
-      const migrated: DashboardPersisted = { ...layouts, locked };
-      try { localStorage.setItem(DASHBOARD_KEY, JSON.stringify(migrated)); } catch {}
-      return migrated;
-    }
     return null;
   } catch {
     return null;
   }
 }
 
-const FOLLOWUPS_BUMP_KEY = "execOs.followups.heightBump.v1";
-function bumpFollowUpsHeight(arr: LayoutItem[] | undefined): LayoutItem[] | undefined {
-  if (!arr) return arr;
-  return arr.map((l) => (l.i === "follow_ups" && (l.h ?? 0) < 6 ? { ...l, h: 8 } : l));
-}
-
 function loadLayouts(): ResponsiveLayouts | null {
   const d = loadDashboard();
   if (!d) return null;
-  let lg = migrateLayoutItems(d.lg);
-  let md = migrateLayoutItems(d.md);
-  let sm = migrateLayoutItems(d.sm);
-  if (!lg && !md && !sm) return null;
-
-  if (typeof window !== "undefined" && !localStorage.getItem(FOLLOWUPS_BUMP_KEY)) {
-    lg = bumpFollowUpsHeight(lg);
-    md = bumpFollowUpsHeight(md);
-    sm = bumpFollowUpsHeight(sm);
-    try {
-      const payload: DashboardPersisted = { lg, md, sm, locked: d.locked };
-      localStorage.setItem(DASHBOARD_KEY, JSON.stringify(payload));
-      localStorage.setItem(FOLLOWUPS_BUMP_KEY, "1");
-    } catch {}
-  }
-
-  return { lg, md, sm } as ResponsiveLayouts;
+  if (!d.lg && !d.md && !d.sm) return null;
+  return { lg: d.lg, md: d.md, sm: d.sm } as ResponsiveLayouts;
 }
 
 function loadActiveWidgets(): string[] {
@@ -242,17 +198,19 @@ function loadActiveWidgets(): string[] {
     if (!raw) return DEFAULT_ACTIVE_WIDGETS;
     const parsed = JSON.parse(raw) as string[];
     if (!Array.isArray(parsed)) return DEFAULT_ACTIVE_WIDGETS;
-    let migrated = parsed.map((id) => ID_MIGRATIONS[id] ?? id);
-    // One-time auto-append for new widgets (e.g. bench, bench_whispers).
+    let active = parsed;
+    // One-time auto-append for widgets added in later releases. AUTO_APPEND_KEY
+    // is bumped in src/config/widgets.ts whenever AUTO_APPEND_WIDGETS gains an
+    // entry, which re-runs this block once for users past the previous key.
     if (!localStorage.getItem(AUTO_APPEND_KEY)) {
-      const missing = AUTO_APPEND_WIDGETS.filter((id) => !migrated.includes(id));
+      const missing = AUTO_APPEND_WIDGETS.filter((id) => !active.includes(id));
       if (missing.length > 0) {
-        migrated = [...migrated, ...missing];
-        try { localStorage.setItem(ACTIVE_WIDGETS_KEY, JSON.stringify(migrated)); } catch {}
+        active = [...active, ...missing];
+        try { localStorage.setItem(ACTIVE_WIDGETS_KEY, JSON.stringify(active)); } catch {}
       }
       try { localStorage.setItem(AUTO_APPEND_KEY, "1"); } catch {}
     }
-    return migrated;
+    return active;
   } catch {
     return DEFAULT_ACTIVE_WIDGETS;
   }
@@ -435,7 +393,10 @@ function TodayPage() {
   // Live clock
   const [now, setNow] = useState(() => new Date());
   useEffect(() => {
-    const id = setInterval(() => setNow(new Date()), 1000);
+    // 30s tick — the clock label and "next meeting in Nm" memos only need
+    // minute-level precision. 1s was re-rendering every memo on every widget
+    // every second.
+    const id = setInterval(() => setNow(new Date()), 30000);
     return () => clearInterval(id);
   }, []);
 

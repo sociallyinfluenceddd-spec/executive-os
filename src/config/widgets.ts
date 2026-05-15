@@ -27,12 +27,16 @@ export const WIDGET_CATALOG: WidgetCatalogItem[] = [
 
 export const ACTIVE_WIDGETS_KEY = "execOs.activeWidgets.v1";
 
-// New-user defaults. The three "Ideafetti-fed" widgets (money, content_pulse,
-// projects) are intentionally OFF here — they have no live data source yet
-// and used to show fake/placeholder content as if real. Users can add them
-// from the widget library once their backend is wired up.
+// New-user defaults. Intentionally excluded:
+//   - top_priority   — duplicates the sticky header value
+//   - money          — needs setup (Ideafetti not wired)
+//   - content_pulse  — needs setup (Ideafetti not wired)
+//   - projects       — needs setup (no backing source)
+//   - voice_capture  — stub; floating mic button already covers this
+//   - done_today     — stub; floating "Done for today" button already covers
+//   - wellness       — stub; absent from the catalog, can't be re-added
+// All of the above are still in the widget library and can be added.
 export const DEFAULT_ACTIVE_WIDGETS: string[] = [
-  "top_priority",
   "bench",
   "inbox",
   "calendar",
