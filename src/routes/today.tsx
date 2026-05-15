@@ -1183,7 +1183,12 @@ function Card({
             </span>
           )}
         </h2>
-        {right && <div className="no-drag">{right}</div>}
+        <div className="no-drag flex items-center gap-1">
+          {right}
+          {lockId && onToggleLock && (
+            <WidgetChrome id={lockId} locked={!!locked} onToggle={onToggleLock} />
+          )}
+        </div>
       </header>
       {children}
     </section>
