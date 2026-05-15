@@ -142,12 +142,17 @@ const MOBILE_ORDER: WidgetId[] = [
 
 function stackedLayout(cols: number): LayoutItem[] {
   let y = 0;
-  return MOBILE_ORDER.map((id) => {
-    const base = LG_BASE.find((l) => l.i === id)!;
-    const item: LayoutItem = { i: id, x: 0, y, w: cols, h: base.h, minW: 1, minH: base.minH };
-    y += base.h;
-    return item;
-  });
+  const out: LayoutItem[] = [];
+  for (const id of MOBILE_ORDER) {
+    const base = LG_BASE.find((l) => l.i === id);
+    // If a widget id is in MOBILE_ORDER but missing from LG_BASE (config
+    // drift), skip it instead of crashing the mobile render path.
+    if (!base) continue;
+    const h = base.h ?? 4;
+    out.push({ i: id, x: 0, y, w: cols, h, minW: 1, minH: base.minH });
+    y += h;
+  }
+  return out;
 }
 
 function buildLayouts(locks: Record<string, boolean>): ResponsiveLayouts {
@@ -414,11 +419,11 @@ function TodayPage() {
   const [selectedEvent, setSelectedEvent] = useState<CalendarEventRow | null>(null);
   const [selectedCalendar, setSelectedCalendar] = useState<string>(() => {
     if (typeof window === "undefined") return "all";
-    return window.localStorage.getItem("today.selectedCalendar") || "all";
+    return window.localStorage.getItem("execOs.today.selectedCalendar.v1") || "all";
   });
   useEffect(() => {
     if (typeof window === "undefined") return;
-    window.localStorage.setItem("today.selectedCalendar", selectedCalendar);
+    window.localStorage.setItem("execOs.today.selectedCalendar.v1", selectedCalendar);
   }, [selectedCalendar]);
 
   // Dashboard grid layout state
@@ -816,7 +821,7 @@ function TodayPage() {
       {/* HEADER STRIP — sticky */}
       <header
         style={{ ...headerStyle, ...(headerStyle && isImage ? textShadowStyle : {}) }}
-        className={`relative z-10 sticky top-0 z-30 -mx-3 sm:-mx-5 lg:-mx-6 px-3 sm:px-5 lg:px-6 py-3 sm:py-4 ${headerBgClass} border-b border-border ${headerStyle && isDarkBg ? "today-personalized-text" : ""}`}
+        className={`relative sticky top-0 z-30 -mx-3 sm:-mx-5 lg:-mx-6 px-3 sm:px-5 lg:px-6 py-3 sm:py-4 ${headerBgClass} border-b border-border ${headerStyle && isDarkBg ? "today-personalized-text" : ""}`}
       >
         {/* Mobile: stacked. Desktop: 12-col grid */}
         <div className="flex flex-col gap-3 lg:grid lg:grid-cols-12 lg:gap-4 lg:items-center">

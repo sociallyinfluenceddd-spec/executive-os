@@ -125,7 +125,19 @@ function CapturePage() {
       setText(base + (interim ? (base ? " " : "") + interim : ""));
       setSource("voice");
     };
-    r.onerror = () => setRecording(false);
+    r.onerror = (e: { error?: string; message?: string }) => {
+      const code = e?.error;
+      const msg =
+        code === "not-allowed" || code === "service-not-allowed"
+          ? "Mic permission denied. Allow microphone access in your browser settings."
+          : code === "no-speech"
+            ? "No speech detected — try again."
+            : code === "audio-capture"
+              ? "No microphone detected."
+              : `Voice input error: ${code ?? e?.message ?? "unknown"}`;
+      toast.error(msg);
+      setRecording(false);
+    };
     r.onend = () => setRecording(false);
     recRef.current = r;
     r.start();

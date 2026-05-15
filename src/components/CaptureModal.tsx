@@ -59,9 +59,20 @@ export function CaptureModal({
       setText("");
       setExtracted(null);
       setSource("text");
-      if (recording) recRef.current?.stop();
+      // Always try to stop — recognizer may have a non-null ref even if our
+      // `recording` state already flipped to false (race during onend).
+      try { recRef.current?.stop(); } catch { /* already stopped */ }
     }
-  }, [open, recording]);
+  }, [open]);
+
+  // Hard-cleanup if the modal unmounts mid-recording so SpeechRecognition
+  // doesn't keep the mic open until GC.
+  useEffect(() => {
+    return () => {
+      try { recRef.current?.stop(); } catch { /* already stopped */ }
+      recRef.current = null;
+    };
+  }, []);
 
   const SR = useMemo(() => {
     if (typeof window === "undefined") return null;
@@ -92,7 +103,19 @@ export function CaptureModal({
       setText(base + (interim ? (base ? " " : "") + interim : ""));
       setSource("voice");
     };
-    r.onerror = () => setRecording(false);
+    r.onerror = (e: { error?: string; message?: string }) => {
+      const code = e?.error;
+      const msg =
+        code === "not-allowed" || code === "service-not-allowed"
+          ? "Mic permission denied. Allow microphone access in your browser settings."
+          : code === "no-speech"
+            ? "No speech detected — try again."
+            : code === "audio-capture"
+              ? "No microphone detected."
+              : `Voice input error: ${code ?? e?.message ?? "unknown"}`;
+      toast.error(msg);
+      setRecording(false);
+    };
     r.onend = () => setRecording(false);
     recRef.current = r;
     r.start();
