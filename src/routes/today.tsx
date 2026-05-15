@@ -7,13 +7,17 @@ import { AppShell } from "@/components/AppShell";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { DoneForToday } from "@/components/DoneForToday";
 import { CaptureModal } from "@/components/CaptureModal";
-import { BenchRow } from "@/components/BenchRow";
+
+import { BenchWidget } from "@/components/widgets/bench";
+import { BenchWhispersWidget } from "@/components/widgets/bench_whispers";
 import { usePersonalization, isDarkColor } from "@/lib/personalization";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import {
   ACTIVE_WIDGETS_KEY,
   DEFAULT_ACTIVE_WIDGETS,
+  AUTO_APPEND_WIDGETS,
+  AUTO_APPEND_KEY,
   defaultSizeFor,
 } from "@/config/widgets";
 import { WidgetLibrarySheet } from "@/components/WidgetLibrarySheet";
@@ -62,6 +66,7 @@ import {
   Pencil,
   X,
   LayoutGrid,
+  Users,
 } from "lucide-react";
 
 const ResponsiveGridLayout = WidthProvider(Responsive);
@@ -79,6 +84,7 @@ type WidgetId =
   | "bench"
   | "top_priority"
   | "voice_capture"
+  | "bench_whispers"
   | "done_today";
 
 const LG_BASE: LayoutItem[] = [
@@ -224,7 +230,17 @@ function loadActiveWidgets(): string[] {
     if (!raw) return DEFAULT_ACTIVE_WIDGETS;
     const parsed = JSON.parse(raw) as string[];
     if (!Array.isArray(parsed)) return DEFAULT_ACTIVE_WIDGETS;
-    return parsed.map((id) => ID_MIGRATIONS[id] ?? id);
+    let migrated = parsed.map((id) => ID_MIGRATIONS[id] ?? id);
+    // One-time auto-append for new widgets (e.g. bench, bench_whispers).
+    if (!localStorage.getItem(AUTO_APPEND_KEY)) {
+      const missing = AUTO_APPEND_WIDGETS.filter((id) => !migrated.includes(id));
+      if (missing.length > 0) {
+        migrated = [...migrated, ...missing];
+        try { localStorage.setItem(ACTIVE_WIDGETS_KEY, JSON.stringify(migrated)); } catch {}
+      }
+      try { localStorage.setItem(AUTO_APPEND_KEY, "1"); } catch {}
+    }
+    return migrated;
   } catch {
     return DEFAULT_ACTIVE_WIDGETS;
   }
@@ -1330,38 +1346,37 @@ function TodayPage() {
         {/* BENCH */}
         {activeWidgets.includes("bench") && (
         <div key="bench" className="relative">
-          <div
-            className={`h-full overflow-auto rounded-xl border border-border bg-card p-4 sm:p-5 lg:p-6 ${
-              !locks.bench && !isMobileViewport ? "" : ""
-            }`}
+          <Card
+            title="Your Bench"
+            icon={Users}
+            className="h-full overflow-auto"
+            dragHandle={!locks.bench && !isMobileViewport}
+            lockId="bench"
+            locked={!!locks.bench}
+            onToggleLock={toggleLock}
+            editMode={editMode}
+            onRemove={removeWidget}
           >
-            <div className="flex items-center justify-between gap-3 mb-2">
-              <div
-        className={
-                  !locks.bench && !isMobileViewport
-                    ? "widget-drag-handle cursor-grab active:cursor-grabbing flex-1 -m-2 p-2"
-                    : "flex-1"
-                }
-              >
-                <h2 className="inline-flex items-center gap-2 text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">
-                  Your Bench
-                </h2>
-              </div>
-              <WidgetChrome id="bench" locked={!!locks.bench} onToggle={toggleLock} />
-            </div>
-            <div className="no-drag">
-              <BenchRow
-                context={{
-                  energy: daily?.energy_level ?? null,
-                  topPriority: daily?.top_priority ?? null,
-                  priorityEmails: emails.filter(
-                    (e) => e.kind === "priority" || e.kind === "needs_response",
-                  ).length,
-                  meetings: meetingsToday.length,
-                }}
-              />
-            </div>
-          </div>
+            <BenchWidget />
+          </Card>
+        </div>
+        )}
+
+        {activeWidgets.includes("bench_whispers") && (
+        <div key="bench_whispers" className="relative">
+          <Card
+            title="Bench whispers"
+            icon={Sparkles}
+            className="h-full overflow-auto"
+            dragHandle={!locks.bench_whispers && !isMobileViewport}
+            lockId="bench_whispers"
+            locked={!!locks.bench_whispers}
+            onToggleLock={toggleLock}
+            editMode={editMode}
+            onRemove={removeWidget}
+          >
+            <BenchWhispersWidget />
+          </Card>
         </div>
         )}
 
