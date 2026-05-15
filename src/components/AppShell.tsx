@@ -1,6 +1,6 @@
 import { Link, useLocation, useNavigate } from "@tanstack/react-router";
 import { useEffect, type ReactNode } from "react";
-import { CalendarDays, Mic, Settings as SettingsIcon } from "lucide-react";
+import { CalendarDays, Mic, Settings as SettingsIcon, MessageSquare } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 
 export function AppShell({
