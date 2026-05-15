@@ -16,6 +16,8 @@ import { toast } from "sonner";
 import {
   ACTIVE_WIDGETS_KEY,
   DEFAULT_ACTIVE_WIDGETS,
+  AUTO_APPEND_WIDGETS,
+  AUTO_APPEND_KEY,
   defaultSizeFor,
 } from "@/config/widgets";
 import { WidgetLibrarySheet } from "@/components/WidgetLibrarySheet";
