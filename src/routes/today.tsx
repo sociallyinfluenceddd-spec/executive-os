@@ -1063,15 +1063,15 @@ function TodayPage() {
         </div>
 
         {/* CONTENT PULSE */}
-        <div key="content" className="relative">
+        <div key="content_pulse" className="relative">
           <Card
             title="Content pulse"
             icon={Sparkles}
             info
             className="h-full overflow-auto"
-            dragHandle={!locks.content && !isMobileViewport}
-            lockId="content"
-            locked={!!locks.content}
+            dragHandle={!locks.content_pulse && !isMobileViewport}
+            lockId="content_pulse"
+            locked={!!locks.content_pulse}
             onToggleLock={toggleLock}
           >
             <EmptyState text="Syncing Ideafetti content data…" />
