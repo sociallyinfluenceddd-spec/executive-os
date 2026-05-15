@@ -1162,14 +1162,14 @@ function TodayPage() {
         </div>
 
         {/* FOLLOW-UPS */}
-        <div key="followups" className="relative">
+        <div key="follow_ups" className="relative">
           <Card
             title="Follow-ups"
             icon={MessageCircle}
             className="h-full overflow-auto"
-            dragHandle={!locks.followups && !isMobileViewport}
-            lockId="followups"
-            locked={!!locks.followups}
+            dragHandle={!locks.follow_ups && !isMobileViewport}
+            lockId="follow_ups"
+            locked={!!locks.follow_ups}
             onToggleLock={toggleLock}
           >
             {followUps.length === 0 ? (
