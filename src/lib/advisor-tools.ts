@@ -175,7 +175,7 @@ export const ADVISOR_TOOLS: ToolDef[] = [
       const { data, error } = await supabase.from("exec_os_suggestions").insert({
         user_id: userId,
         kind: String(input.kind).slice(0, 50),
-        payload: (input.payload ?? {}) as Record<string, unknown>,
+        payload: (input.payload ?? {}) as any,
       }).select("id, kind").single();
       if (error) throw new Error(error.message);
       return { suggestion: data };
