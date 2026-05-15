@@ -1170,6 +1170,16 @@ function TodayPage() {
 
       <DoneForToday />
 
+      <footer className="mt-8 pt-4 border-t border-border flex justify-center">
+        <button
+          type="button"
+          onClick={resetLayout}
+          className="inline-flex items-center gap-1 text-[10px] uppercase tracking-wider text-muted-foreground hover:text-foreground"
+        >
+          <RotateCcw className="h-3 w-3" /> Reset layout
+        </button>
+      </footer>
+
       <CaptureModal
         open={captureOpen}
         onClose={() => setCaptureOpen(false)}
