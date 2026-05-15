@@ -74,7 +74,7 @@ const WIDGET_IDS: WidgetId[] = [
   "bench",
 ];
 
-const LG_BASE: Layout[] = [
+const LG_BASE: LayoutItem[] = [
   { i: "calendar", x: 0, y: 0, w: 4, h: 9, minW: 3, minH: 5 },
   { i: "inbox", x: 4, y: 0, w: 4, h: 9, minW: 3, minH: 5 },
   { i: "money", x: 8, y: 0, w: 4, h: 9, minW: 3, minH: 4 },
@@ -98,7 +98,7 @@ const MOBILE_ORDER: WidgetId[] = [
   "bench",
 ];
 
-function stackedLayout(cols: number): Layout[] {
+function stackedLayout(cols: number): LayoutItem[] {
   let y = 0;
   return MOBILE_ORDER.map((id) => {
     const base = LG_BASE.find((l) => l.i === id)!;
@@ -108,8 +108,8 @@ function stackedLayout(cols: number): Layout[] {
   });
 }
 
-function buildLayouts(locks: Record<string, boolean>): Layouts {
-  const apply = (arr: Layout[]) =>
+function buildLayouts(locks: Record<string, boolean>): ResponsiveLayouts {
+  const apply = (arr: LayoutItem[]) =>
     arr.map((l) => ({ ...l, static: !!locks[l.i] }));
   return {
     lg: apply(LG_BASE),
@@ -123,11 +123,11 @@ function buildLayouts(locks: Record<string, boolean>): Layouts {
 const LAYOUTS_KEY = "today_layouts_v1";
 const LOCKS_KEY = "today_locks_v1";
 
-function loadLayouts(): Layouts | null {
+function loadLayouts(): ResponsiveLayouts | null {
   if (typeof window === "undefined") return null;
   try {
     const raw = localStorage.getItem(LAYOUTS_KEY);
-    return raw ? (JSON.parse(raw) as Layouts) : null;
+    return raw ? (JSON.parse(raw) as ResponsiveLayouts) : null;
   } catch {
     return null;
   }
