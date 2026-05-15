@@ -227,11 +227,7 @@ export function FollowUpsWidget({
                   onClick={() => handleClick(f)}
                   className="no-drag group w-full flex items-center gap-3 py-2 text-left hover:bg-muted/40 rounded-md px-2 -mx-2 transition-colors"
                 >
-                  <Icon
-                    className="h-4 w-4 shrink-0 text-muted-foreground transition-colors"
-                    style={{ color: undefined }}
-                  />
-                  <style>{`.group:hover > svg { color: ${NAVY} !important; }`}</style>
+                  <Icon className="h-4 w-4 shrink-0 text-muted-foreground group-hover:text-[#083D77] transition-colors" />
                   <div className="min-w-0 flex-1">
                     <div className="text-sm font-semibold text-foreground truncate">
                       {f.sender}
