@@ -10,6 +10,16 @@ import { CaptureModal } from "@/components/CaptureModal";
 import { BenchRow } from "@/components/BenchRow";
 import { usePersonalization, isDarkColor } from "@/lib/personalization";
 import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
+import {
+  ACTIVE_WIDGETS_KEY,
+  DEFAULT_ACTIVE_WIDGETS,
+  defaultSizeFor,
+} from "@/config/widgets";
+import { WidgetLibrarySheet } from "@/components/WidgetLibrarySheet";
+import { TopPriorityWidget } from "@/components/widgets/top_priority";
+import { VoiceCaptureWidget } from "@/components/widgets/voice_capture";
+import { DoneTodayWidget } from "@/components/widgets/done_today";
 import {
   Select,
   SelectContent,
@@ -47,6 +57,10 @@ import {
   LockOpen,
   GripVertical,
   RotateCcw,
+  Plus,
+  Pencil,
+  X,
+  LayoutGrid,
 } from "lucide-react";
 
 const ResponsiveGridLayout = WidthProvider(Responsive);
@@ -57,58 +71,58 @@ type WidgetId =
   | "inbox"
   | "money"
   | "timeline"
-  | "content"
+  | "content_pulse"
   | "projects"
   | "wellness"
-  | "followups"
-  | "bench";
-
-const WIDGET_IDS: WidgetId[] = [
-  "calendar",
-  "inbox",
-  "money",
-  "timeline",
-  "content",
-  "projects",
-  "wellness",
-  "followups",
-  "bench",
-];
+  | "follow_ups"
+  | "bench"
+  | "top_priority"
+  | "voice_capture"
+  | "done_today";
 
 const LG_BASE: LayoutItem[] = [
-  { i: "calendar", x: 0, y: 0, w: 8, h: 6, minW: 3, minH: 4 },
-  { i: "inbox", x: 8, y: 0, w: 4, h: 6, minW: 3, minH: 4 },
-  { i: "money", x: 0, y: 6, w: 4, h: 6, minW: 3, minH: 4 },
-  { i: "timeline", x: 0, y: 12, w: 12, h: 4, minW: 6, minH: 3 },
-  { i: "content", x: 0, y: 16, w: 6, h: 5, minW: 3, minH: 4 },
-  { i: "projects", x: 6, y: 16, w: 6, h: 5, minW: 3, minH: 4 },
-  { i: "wellness", x: 0, y: 21, w: 6, h: 5, minW: 3, minH: 4 },
-  { i: "followups", x: 6, y: 21, w: 6, h: 5, minW: 3, minH: 4 },
-  { i: "bench", x: 0, y: 26, w: 12, h: 6, minW: 6, minH: 5 },
+  { i: "top_priority", x: 0, y: 0, w: 12, h: 3, minW: 4, minH: 2 },
+  { i: "calendar", x: 0, y: 3, w: 8, h: 6, minW: 3, minH: 4 },
+  { i: "inbox", x: 8, y: 3, w: 4, h: 6, minW: 3, minH: 4 },
+  { i: "money", x: 0, y: 9, w: 4, h: 6, minW: 3, minH: 4 },
+  { i: "timeline", x: 0, y: 15, w: 12, h: 4, minW: 6, minH: 3 },
+  { i: "content_pulse", x: 0, y: 19, w: 6, h: 5, minW: 3, minH: 4 },
+  { i: "projects", x: 6, y: 19, w: 6, h: 5, minW: 3, minH: 4 },
+  { i: "wellness", x: 0, y: 24, w: 6, h: 5, minW: 3, minH: 4 },
+  { i: "follow_ups", x: 6, y: 24, w: 6, h: 5, minW: 3, minH: 4 },
+  { i: "bench", x: 0, y: 29, w: 12, h: 6, minW: 6, minH: 5 },
+  { i: "voice_capture", x: 0, y: 35, w: 4, h: 4, minW: 3, minH: 3 },
+  { i: "done_today", x: 4, y: 35, w: 4, h: 3, minW: 3, minH: 2 },
 ];
 
 const MD_BASE: LayoutItem[] = [
-  { i: "calendar", x: 0, y: 0, w: 8, h: 6, minW: 3, minH: 4 },
-  { i: "inbox", x: 0, y: 6, w: 4, h: 6, minW: 3, minH: 4 },
-  { i: "money", x: 4, y: 6, w: 4, h: 6, minW: 3, minH: 4 },
-  { i: "timeline", x: 0, y: 12, w: 8, h: 4, minW: 4, minH: 3 },
-  { i: "content", x: 0, y: 16, w: 4, h: 5, minW: 3, minH: 4 },
-  { i: "projects", x: 4, y: 16, w: 4, h: 5, minW: 3, minH: 4 },
-  { i: "wellness", x: 0, y: 21, w: 4, h: 5, minW: 3, minH: 4 },
-  { i: "followups", x: 4, y: 21, w: 4, h: 5, minW: 3, minH: 4 },
-  { i: "bench", x: 0, y: 26, w: 8, h: 6, minW: 4, minH: 5 },
+  { i: "top_priority", x: 0, y: 0, w: 8, h: 3, minW: 4, minH: 2 },
+  { i: "calendar", x: 0, y: 3, w: 8, h: 6, minW: 3, minH: 4 },
+  { i: "inbox", x: 0, y: 9, w: 4, h: 6, minW: 3, minH: 4 },
+  { i: "money", x: 4, y: 9, w: 4, h: 6, minW: 3, minH: 4 },
+  { i: "timeline", x: 0, y: 15, w: 8, h: 4, minW: 4, minH: 3 },
+  { i: "content_pulse", x: 0, y: 19, w: 4, h: 5, minW: 3, minH: 4 },
+  { i: "projects", x: 4, y: 19, w: 4, h: 5, minW: 3, minH: 4 },
+  { i: "wellness", x: 0, y: 24, w: 4, h: 5, minW: 3, minH: 4 },
+  { i: "follow_ups", x: 4, y: 24, w: 4, h: 5, minW: 3, minH: 4 },
+  { i: "bench", x: 0, y: 29, w: 8, h: 6, minW: 4, minH: 5 },
+  { i: "voice_capture", x: 0, y: 35, w: 4, h: 4, minW: 3, minH: 3 },
+  { i: "done_today", x: 4, y: 35, w: 4, h: 3, minW: 3, minH: 2 },
 ];
 
 const MOBILE_ORDER: WidgetId[] = [
+  "top_priority",
   "inbox",
   "calendar",
   "timeline",
   "money",
-  "content",
+  "content_pulse",
   "projects",
-  "followups",
+  "follow_ups",
   "wellness",
   "bench",
+  "voice_capture",
+  "done_today",
 ];
 
 function stackedLayout(cols: number): LayoutItem[] {
@@ -129,6 +143,16 @@ function buildLayouts(locks: Record<string, boolean>): ResponsiveLayouts {
     md: apply(MD_BASE),
     sm: apply(stackedLayout(1)),
   };
+}
+
+// Migrate legacy widget IDs in saved layouts.
+const ID_MIGRATIONS: Record<string, string> = {
+  followups: "follow_ups",
+  content: "content_pulse",
+};
+function migrateLayoutItems(arr: LayoutItem[] | undefined): LayoutItem[] | undefined {
+  if (!arr) return arr;
+  return arr.map((l) => (ID_MIGRATIONS[l.i] ? { ...l, i: ID_MIGRATIONS[l.i] } : l));
 }
 
 const DASHBOARD_KEY = "execOs.dashboardLayout.v1";
@@ -167,9 +191,28 @@ function loadDashboard(): DashboardPersisted | null {
 function loadLayouts(): ResponsiveLayouts | null {
   const d = loadDashboard();
   if (!d) return null;
-  const { lg, md, sm } = d;
+  const lg = migrateLayoutItems(d.lg);
+  const md = migrateLayoutItems(d.md);
+  const sm = migrateLayoutItems(d.sm);
   if (!lg && !md && !sm) return null;
   return { lg, md, sm } as ResponsiveLayouts;
+}
+
+function loadActiveWidgets(): string[] {
+  if (typeof window === "undefined") return DEFAULT_ACTIVE_WIDGETS;
+  try {
+    const raw = localStorage.getItem(ACTIVE_WIDGETS_KEY);
+    if (!raw) return DEFAULT_ACTIVE_WIDGETS;
+    const parsed = JSON.parse(raw) as string[];
+    if (!Array.isArray(parsed)) return DEFAULT_ACTIVE_WIDGETS;
+    return parsed.map((id) => ID_MIGRATIONS[id] ?? id);
+  } catch {
+    return DEFAULT_ACTIVE_WIDGETS;
+  }
+}
+function saveActiveWidgets(ids: string[]) {
+  if (typeof window === "undefined") return;
+  try { localStorage.setItem(ACTIVE_WIDGETS_KEY, JSON.stringify(ids)); } catch {}
 }
 function loadLocks(): Record<string, boolean> {
   return loadDashboard()?.locked ?? {};
@@ -404,6 +447,61 @@ function TodayPage() {
     setLocks({});
     setLayouts(buildLayouts({}));
   }, []);
+
+  // Active widgets + edit mode + library sheet
+  const [activeWidgets, setActiveWidgets] = useState<string[]>(() => loadActiveWidgets());
+  const [editMode, setEditMode] = useState(false);
+  const [libraryOpen, setLibraryOpen] = useState(false);
+  useEffect(() => { saveActiveWidgets(activeWidgets); }, [activeWidgets]);
+
+  const addWidget = useCallback((id: string) => {
+    setActiveWidgets((cur) => (cur.includes(id) ? cur : [...cur, id]));
+    setLayouts((cur) => {
+      const size = defaultSizeFor(id);
+      const next: ResponsiveLayouts = { ...cur };
+      (Object.keys(next) as (keyof ResponsiveLayouts)[]).forEach((bp) => {
+        const arr = next[bp] ? [...next[bp]!] : [];
+        if (arr.find((l) => l.i === id)) { next[bp] = arr; return; }
+        const maxY = arr.reduce((m, l) => Math.max(m, l.y + l.h), 0);
+        const cols = bp === "lg" ? 12 : bp === "md" ? 8 : 1;
+        const w = bp === "sm" ? 1 : Math.min(size.w, cols);
+        arr.push({ i: id, x: 0, y: maxY, w, h: size.h, minW: 1, minH: 2 });
+        next[bp] = arr;
+      });
+      saveDashboard(next, locks);
+      return next;
+    });
+    toast.success(`Added ${id.replace(/_/g, " ").toUpperCase()}`);
+  }, [locks]);
+
+  const removeWidget = useCallback((id: string) => {
+    let prevActive: string[] = [];
+    let prevLayouts: ResponsiveLayouts | null = null;
+    setActiveWidgets((cur) => { prevActive = cur; return cur.filter((x) => x !== id); });
+    setLayouts((cur) => {
+      prevLayouts = cur;
+      const next: ResponsiveLayouts = { ...cur };
+      (Object.keys(next) as (keyof ResponsiveLayouts)[]).forEach((bp) => {
+        const arr = next[bp];
+        if (arr) next[bp] = arr.filter((l) => l.i !== id);
+      });
+      saveDashboard(next, locks);
+      return next;
+    });
+    toast(`Removed ${id.replace(/_/g, " ").toUpperCase()}`, {
+      action: {
+        label: "Undo",
+        onClick: () => {
+          setActiveWidgets(prevActive);
+          if (prevLayouts) {
+            setLayouts(prevLayouts);
+            saveDashboard(prevLayouts, locks);
+          }
+        },
+      },
+      duration: 5000,
+    });
+  }, [locks]);
 
   const firstName = useMemo(() => {
     const display = (user?.user_metadata?.display_name as string | undefined)?.trim();
@@ -766,8 +864,8 @@ function TodayPage() {
             )}
           </div>
 
-          {/* Status pill (desktop) */}
-          <div className="hidden lg:flex lg:col-span-2 lg:justify-end">
+          {/* Status pill (desktop) + Library / Edit buttons */}
+          <div className="hidden lg:flex lg:col-span-2 lg:justify-end items-center gap-2">
             <button
               type="button"
               onClick={() => setStatusOpen((v) => !v)}
@@ -780,6 +878,50 @@ function TodayPage() {
               />
               {stale ? "Stale data" : "Data fresh"}
             </button>
+            <button
+              type="button"
+              onClick={() => setLibraryOpen(true)}
+              aria-label="Add widget"
+              title="Widget library"
+              className="inline-flex items-center justify-center h-8 w-8 rounded-full border border-border hover:bg-muted text-[color:var(--navy)]"
+            >
+              <Plus className="h-4 w-4" />
+            </button>
+            <button
+              type="button"
+              onClick={() => setEditMode((v) => !v)}
+              aria-label="Edit dashboard"
+              title={editMode ? "Done editing" : "Edit dashboard"}
+              className={`inline-flex items-center justify-center h-8 w-8 rounded-full border border-border transition ${
+                editMode
+                  ? "bg-[color:var(--navy)] text-white border-[color:var(--navy)]"
+                  : "hover:bg-muted text-[color:var(--navy)]"
+              }`}
+            >
+              <Pencil className="h-3.5 w-3.5" />
+            </button>
+          </div>
+          {/* Mobile + / edit buttons (shown next to clock pill row) */}
+          <div className="flex lg:hidden items-center gap-2 -mt-1">
+            <button
+              type="button"
+              onClick={() => setLibraryOpen(true)}
+              aria-label="Add widget"
+              className="inline-flex items-center justify-center h-9 w-9 rounded-full border border-border hover:bg-muted text-[color:var(--navy)]"
+            >
+              <Plus className="h-4 w-4" />
+            </button>
+            <button
+              type="button"
+              onClick={() => setEditMode((v) => !v)}
+              aria-label="Edit dashboard"
+              className={`inline-flex items-center justify-center h-9 w-9 rounded-full border border-border transition ${
+                editMode ? "bg-[color:var(--navy)] text-white border-[color:var(--navy)]" : "hover:bg-muted text-[color:var(--navy)]"
+              }`}
+            >
+              <Pencil className="h-3.5 w-3.5" />
+            </button>
+            <span className="text-xs text-muted-foreground">{editMode ? "Editing" : ""}</span>
           </div>
         </div>
         {statusOpen && (
@@ -836,6 +978,7 @@ function TodayPage() {
         onLayoutChange={onLayoutChange}
       >
         {/* CALENDAR */}
+        {activeWidgets.includes("calendar") && (
         <div key="calendar" className="relative">
           <Card
             title="Calendar"
@@ -845,9 +988,11 @@ function TodayPage() {
             lockId="calendar"
             locked={!!locks.calendar}
             onToggleLock={toggleLock}
+            editMode={editMode}
+            onRemove={removeWidget}
             right={
               availableCalendars.length > 1 ? (
-                <Select value={selectedCalendar} onValueChange={setSelectedCalendar}>
+        <Select value={selectedCalendar} onValueChange={setSelectedCalendar}>
                   <SelectTrigger className="no-drag h-7 text-xs w-[140px] sm:w-[160px]">
                     <SelectValue />
                   </SelectTrigger>
@@ -921,8 +1066,10 @@ function TodayPage() {
             )}
           </Card>
         </div>
+        )}
 
         {/* INBOX */}
+        {activeWidgets.includes("inbox") && (
         <div key="inbox" className="relative">
           <Card
             title="Inbox"
@@ -932,9 +1079,11 @@ function TodayPage() {
             lockId="inbox"
             locked={!!locks.inbox}
             onToggleLock={toggleLock}
+            editMode={editMode}
+            onRemove={removeWidget}
             right={
               <Select value={accountFilter} onValueChange={setAccountFilter}>
-                <SelectTrigger className="no-drag h-7 text-xs w-[130px] sm:w-[150px]">
+        <SelectTrigger className="no-drag h-7 text-xs w-[130px] sm:w-[150px]">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -976,8 +1125,10 @@ function TodayPage() {
             )}
           </Card>
         </div>
+        )}
 
         {/* MONEY */}
+        {activeWidgets.includes("money") && (
         <div key="money" className="relative">
           <Card
             title="Money"
@@ -988,12 +1139,16 @@ function TodayPage() {
             lockId="money"
             locked={!!locks.money}
             onToggleLock={toggleLock}
+            editMode={editMode}
+            onRemove={removeWidget}
           >
             <EmptyState text="No lead data yet. Connecting Ideafetti DB…" />
           </Card>
         </div>
+        )}
 
         {/* TIMELINE */}
+        {activeWidgets.includes("timeline") && (
         <div key="timeline" className="relative">
           <Card
             title="Timeline"
@@ -1003,6 +1158,8 @@ function TodayPage() {
             lockId="timeline"
             locked={!!locks.timeline}
             onToggleLock={toggleLock}
+            editMode={editMode}
+            onRemove={removeWidget}
           >
             <DateNav
               selectedDate={selectedDate}
@@ -1017,24 +1174,30 @@ function TodayPage() {
             />
           </Card>
         </div>
+        )}
 
         {/* CONTENT PULSE */}
-        <div key="content" className="relative">
+        {activeWidgets.includes("content_pulse") && (
+        <div key="content_pulse" className="relative">
           <Card
             title="Content pulse"
             icon={Sparkles}
             info
             className="h-full overflow-auto"
-            dragHandle={!locks.content && !isMobileViewport}
-            lockId="content"
-            locked={!!locks.content}
+            dragHandle={!locks.content_pulse && !isMobileViewport}
+            lockId="content_pulse"
+            locked={!!locks.content_pulse}
             onToggleLock={toggleLock}
+            editMode={editMode}
+            onRemove={removeWidget}
           >
             <EmptyState text="Syncing Ideafetti content data…" />
           </Card>
         </div>
+        )}
 
         {/* PROJECTS */}
+        {activeWidgets.includes("projects") && (
         <div key="projects" className="relative">
           <Card
             title="Projects"
@@ -1044,10 +1207,12 @@ function TodayPage() {
             lockId="projects"
             locked={!!locks.projects}
             onToggleLock={toggleLock}
+            editMode={editMode}
+            onRemove={removeWidget}
           >
             <ul className="space-y-3">
               {DEFAULT_PROJECTS.map((p) => {
-                const stalled = p.last_touched_h > 168;
+        const stalled = p.last_touched_h > 168;
                 return (
                   <li key={p.name}>
                     <div className="flex items-center justify-between text-xs mb-1">
@@ -1081,8 +1246,8 @@ function TodayPage() {
             </ul>
           </Card>
         </div>
-
-        {/* WELLNESS */}
+        )}
+        {activeWidgets.includes("wellness") && (
         <div key="wellness" className="relative">
           <Card
             title="Wellness"
@@ -1092,11 +1257,13 @@ function TodayPage() {
             lockId="wellness"
             locked={!!locks.wellness}
             onToggleLock={toggleLock}
+            editMode={editMode}
+            onRemove={removeWidget}
           >
             <div className="flex items-center gap-4 mb-3">
               <Sparkline values={energySeries} />
               <div className="flex flex-col">
-                <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
+        <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
                   {trend === "up" && (
                     <ArrowUpRight className="h-3.5 w-3.5 text-[color:var(--sage)]" />
                   )}
@@ -1116,23 +1283,27 @@ function TodayPage() {
             </div>
           </Card>
         </div>
+        )}
 
         {/* FOLLOW-UPS */}
-        <div key="followups" className="relative">
+        {activeWidgets.includes("follow_ups") && (
+        <div key="follow_ups" className="relative">
           <Card
             title="Follow-ups"
             icon={MessageCircle}
             className="h-full overflow-auto"
-            dragHandle={!locks.followups && !isMobileViewport}
-            lockId="followups"
-            locked={!!locks.followups}
+            dragHandle={!locks.follow_ups && !isMobileViewport}
+            lockId="follow_ups"
+            locked={!!locks.follow_ups}
             onToggleLock={toggleLock}
+            editMode={editMode}
+            onRemove={removeWidget}
           >
             {followUps.length === 0 ? (
               <p className="text-xs text-muted-foreground py-3">All caught up. ✨</p>
             ) : (
               <ul className="divide-y divide-border">
-                {followUps.slice(0, 6).map((f) => {
+        {followUps.slice(0, 6).map((f) => {
                   const days = Math.floor(
                     (Date.now() - new Date(f.received_at!).getTime()) / 86400_000,
                   );
@@ -1164,8 +1335,10 @@ function TodayPage() {
             )}
           </Card>
         </div>
+        )}
 
         {/* BENCH */}
+        {activeWidgets.includes("bench") && (
         <div key="bench" className="relative">
           <div
             className={`h-full overflow-auto rounded-xl border border-border bg-card p-4 sm:p-5 lg:p-6 ${
@@ -1174,7 +1347,7 @@ function TodayPage() {
           >
             <div className="flex items-center justify-between gap-3 mb-2">
               <div
-                className={
+        className={
                   !locks.bench && !isMobileViewport
                     ? "widget-drag-handle cursor-grab active:cursor-grabbing flex-1 -m-2 p-2"
                     : "flex-1"
@@ -1200,7 +1373,90 @@ function TodayPage() {
             </div>
           </div>
         </div>
+        )}
+
+        {/* TOP PRIORITY (stub) */}
+        {activeWidgets.includes("top_priority") && (
+          <div key="top_priority" className="relative">
+            <Card
+              title="Top priority"
+              icon={Sparkles}
+              className="h-full overflow-auto"
+              dragHandle={!locks.top_priority && !isMobileViewport}
+              lockId="top_priority"
+              locked={!!locks.top_priority}
+              onToggleLock={toggleLock}
+              editMode={editMode}
+              onRemove={removeWidget}
+            >
+              <TopPriorityWidget topPriority={daily?.top_priority ?? null} />
+            </Card>
+          </div>
+        )}
+
+        {/* VOICE CAPTURE (stub) */}
+        {activeWidgets.includes("voice_capture") && (
+          <div key="voice_capture" className="relative">
+            <Card
+              title="Voice capture"
+              icon={Mic}
+              className="h-full overflow-auto"
+              dragHandle={!locks.voice_capture && !isMobileViewport}
+              lockId="voice_capture"
+              locked={!!locks.voice_capture}
+              onToggleLock={toggleLock}
+              editMode={editMode}
+              onRemove={removeWidget}
+            >
+              <VoiceCaptureWidget />
+            </Card>
+          </div>
+        )}
+
+        {/* DONE TODAY (stub) */}
+        {activeWidgets.includes("done_today") && (
+          <div key="done_today" className="relative">
+            <Card
+              title="Done for today"
+              icon={Activity}
+              className="h-full overflow-auto"
+              dragHandle={!locks.done_today && !isMobileViewport}
+              lockId="done_today"
+              locked={!!locks.done_today}
+              onToggleLock={toggleLock}
+              editMode={editMode}
+              onRemove={removeWidget}
+            >
+              <DoneTodayWidget />
+            </Card>
+          </div>
+        )}
       </ResponsiveGridLayout>
+
+      {activeWidgets.length === 0 && (
+        <div className="rounded-xl border border-dashed border-border bg-card p-12 flex flex-col items-center justify-center text-center gap-4">
+          <LayoutGrid className="h-10 w-10 text-muted-foreground/60" />
+          <div>
+            <p className="text-base font-medium text-foreground">Your dashboard is empty.</p>
+            <p className="text-sm text-muted-foreground mt-1">Click + to add widgets.</p>
+          </div>
+          <Button
+            onClick={() => setLibraryOpen(true)}
+            style={{ backgroundColor: "#083D77", color: "white" }}
+          >
+            Open widget library
+          </Button>
+        </div>
+      )}
+
+      <WidgetLibrarySheet
+        open={libraryOpen}
+        onOpenChange={setLibraryOpen}
+        side={isMobileViewport ? "bottom" : "right"}
+        activeIds={activeWidgets}
+        onAdd={(id) => addWidget(id)}
+        onRemove={(id) => removeWidget(id)}
+      />
 
       <button
         type="button"
@@ -1248,6 +1504,8 @@ function Card({
   lockId,
   locked,
   onToggleLock,
+  editMode = false,
+  onRemove,
 }: {
   title: string;
   icon?: React.ComponentType<{ className?: string }>;
@@ -1259,14 +1517,18 @@ function Card({
   lockId?: WidgetId;
   locked?: boolean;
   onToggleLock?: (id: WidgetId) => void;
+  editMode?: boolean;
+  onRemove?: (id: WidgetId) => void;
 }) {
   const isLocked = !!locked;
   return (
     <section
       className={`group/widget rounded-xl border bg-card p-4 sm:p-5 lg:p-6 transition-colors ${
-        isLocked
-          ? "border-border"
-          : "border-border hover:border-dotted hover:border-[color:var(--navy)]/40"
+        editMode
+          ? "border-dashed border-[color:var(--navy)]/50"
+          : isLocked
+            ? "border-border"
+            : "border-border hover:border-dotted hover:border-[color:var(--navy)]/40"
       } ${className}`}
     >
       <header
@@ -1292,6 +1554,19 @@ function Card({
         </h2>
         <div className="no-drag flex items-center gap-1">
           {right}
+          {lockId && onRemove && (
+            <button
+              type="button"
+              onClick={() => onRemove(lockId)}
+              className={`no-drag inline-flex items-center justify-center p-1.5 rounded text-muted-foreground hover:text-foreground hover:bg-muted transition ${
+                editMode ? "opacity-100" : "opacity-0 group-hover/widget:opacity-100"
+              }`}
+              aria-label="Remove widget"
+              title="Remove widget"
+            >
+              <X className="h-3.5 w-3.5" />
+            </button>
+          )}
           {lockId && onToggleLock && (
             <WidgetChrome id={lockId} locked={!!locked} onToggle={onToggleLock} />
           )}
