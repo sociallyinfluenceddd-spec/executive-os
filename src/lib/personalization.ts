@@ -1,16 +1,16 @@
 import { useEffect, useState } from "react";
 
-export type PersonalizationMode = "default" | "solid" | "image";
+export type PersonalizationMode = "default" | "color" | "image";
 
 export type Personalization = {
   mode: PersonalizationMode;
-  color?: string;
-  imageUrl?: string;
-  fullPage?: boolean;
+  color: string | null;
+  imageDataUrl: string | null;
+  applyFullPage: boolean;
 };
 
-export const PERSONALIZATION_KEY = "execOs.personalization.v1";
-const EVENT = "execOs.personalization.changed";
+export const PERSONALIZATION_KEY = "execOs.headerPersonalization.v1";
+const EVENT = "execOs.headerPersonalization.changed";
 
 export const BRAND_SWATCHES: { name: string; value: string }[] = [
   { name: "Sage", value: "#A4B494" },
@@ -23,8 +23,9 @@ export const BRAND_SWATCHES: { name: string; value: string }[] = [
 
 export const DEFAULT_PERSONALIZATION: Personalization = {
   mode: "default",
-  color: "#A4B494",
-  fullPage: false,
+  color: null,
+  imageDataUrl: null,
+  applyFullPage: false,
 };
 
 export function loadPersonalization(): Personalization {
@@ -32,7 +33,8 @@ export function loadPersonalization(): Personalization {
   try {
     const raw = localStorage.getItem(PERSONALIZATION_KEY);
     if (!raw) return DEFAULT_PERSONALIZATION;
-    return { ...DEFAULT_PERSONALIZATION, ...(JSON.parse(raw) as Personalization) };
+    const parsed = JSON.parse(raw) as Partial<Personalization>;
+    return { ...DEFAULT_PERSONALIZATION, ...parsed };
   } catch {
     return DEFAULT_PERSONALIZATION;
   }
@@ -41,11 +43,7 @@ export function loadPersonalization(): Personalization {
 export function savePersonalization(p: Personalization) {
   if (typeof window === "undefined") return;
   try {
-    if (p.mode === "default") {
-      localStorage.removeItem(PERSONALIZATION_KEY);
-    } else {
-      localStorage.setItem(PERSONALIZATION_KEY, JSON.stringify(p));
-    }
+    localStorage.setItem(PERSONALIZATION_KEY, JSON.stringify(p));
     window.dispatchEvent(new CustomEvent(EVENT));
   } catch {}
 }
@@ -68,13 +66,18 @@ export function usePersonalization(): [Personalization, (p: Personalization) => 
   return [state, update];
 }
 
-export function personalizationStyle(p: Personalization): React.CSSProperties | undefined {
-  if (p.mode === "solid" && p.color) return { backgroundColor: p.color };
-  if (p.mode === "image" && p.imageUrl)
-    return {
-      backgroundImage: `url(${p.imageUrl})`,
-      backgroundSize: "cover",
-      backgroundPosition: "center",
-    };
-  return undefined;
+/** Relative luminance per WCAG; returns 0..1. */
+export function luminance(hex: string): number {
+  const m = hex.replace("#", "");
+  const full = m.length === 3 ? m.split("").map((c) => c + c).join("") : m;
+  if (full.length !== 6) return 1;
+  const r = parseInt(full.slice(0, 2), 16) / 255;
+  const g = parseInt(full.slice(2, 4), 16) / 255;
+  const b = parseInt(full.slice(4, 6), 16) / 255;
+  const adj = (c: number) => (c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4));
+  return 0.2126 * adj(r) + 0.7152 * adj(g) + 0.0722 * adj(b);
+}
+
+export function isDarkColor(hex: string): boolean {
+  return luminance(hex) < 0.5;
 }
