@@ -65,6 +65,15 @@ Deno.serve(async (req) => {
     return text("Invalid JSON", 400);
   }
 
+  // Tolerate empty event payloads (Make emits these when a calendar has no upcoming events)
+  if (
+    body &&
+    typeof body === "object" &&
+    (typeof (body as any).external_id !== "string" || (body as any).external_id === "")
+  ) {
+    return json({ status: "skipped", reason: "empty event payload" }, 200);
+  }
+
   const v = validate(body);
   if (!v.ok) return json({ error: "Validation failed", message: v.error }, 400);
   const data = v.data;
