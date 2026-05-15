@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Mail, CalendarDays, MessageSquare, Instagram } from "lucide-react";
+import { Mail, CalendarDays, MessageSquare, MessageSquareMore } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -38,7 +38,7 @@ const CHANNEL_ICON: Record<Channel, React.ComponentType<{ className?: string }>>
   email: Mail,
   calendar: CalendarDays,
   text: MessageSquare,
-  social: Instagram,
+  social: MessageSquareMore,
 };
 
 export function FollowUpsWidget({
@@ -205,7 +205,7 @@ export function FollowUpsWidget({
         />
       ) : tab === "social" ? (
         <StubState
-          message="Instagram and TikTok DM access is API-restricted. Coming in Phase 3b."
+          message="MessageSquareMore and TikTok DM access is API-restricted. Coming in Phase 3b."
           onNotify={() => notifyMe("social_dms")}
         />
       ) : loading ? (
