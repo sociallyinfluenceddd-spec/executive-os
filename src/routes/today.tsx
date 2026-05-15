@@ -1347,6 +1347,8 @@ function Card({
   lockId,
   locked,
   onToggleLock,
+  editMode = false,
+  onRemove,
 }: {
   title: string;
   icon?: React.ComponentType<{ className?: string }>;
@@ -1358,14 +1360,18 @@ function Card({
   lockId?: WidgetId;
   locked?: boolean;
   onToggleLock?: (id: WidgetId) => void;
+  editMode?: boolean;
+  onRemove?: (id: WidgetId) => void;
 }) {
   const isLocked = !!locked;
   return (
     <section
       className={`group/widget rounded-xl border bg-card p-4 sm:p-5 lg:p-6 transition-colors ${
-        isLocked
-          ? "border-border"
-          : "border-border hover:border-dotted hover:border-[color:var(--navy)]/40"
+        editMode
+          ? "border-dashed border-[color:var(--navy)]/50"
+          : isLocked
+            ? "border-border"
+            : "border-border hover:border-dotted hover:border-[color:var(--navy)]/40"
       } ${className}`}
     >
       <header
@@ -1391,6 +1397,19 @@ function Card({
         </h2>
         <div className="no-drag flex items-center gap-1">
           {right}
+          {lockId && onRemove && (
+            <button
+              type="button"
+              onClick={() => onRemove(lockId)}
+              className={`no-drag inline-flex items-center justify-center p-1.5 rounded text-muted-foreground hover:text-foreground hover:bg-muted transition ${
+                editMode ? "opacity-100" : "opacity-0 group-hover/widget:opacity-100"
+              }`}
+              aria-label="Remove widget"
+              title="Remove widget"
+            >
+              <X className="h-3.5 w-3.5" />
+            </button>
+          )}
           {lockId && onToggleLock && (
             <WidgetChrome id={lockId} locked={!!locked} onToggle={onToggleLock} />
           )}
