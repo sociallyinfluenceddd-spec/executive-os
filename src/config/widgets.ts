@@ -21,6 +21,8 @@ export const WIDGET_CATALOG: WidgetCatalogItem[] = [
   { id: "done_today",    name: "Done for Today", icon: "CheckCircle2", description: "End-of-day shutdown button",                  status: "connected" },
   { id: "bench",         name: "Bench",          icon: "Users",        description: "Your AI expert team — tap an avatar to chat", status: "connected" },
   { id: "bench_whispers",name: "Bench Whispers", icon: "Sparkles",     description: "Proactive nudges from your advisors",         status: "connected" },
+  { id: "timers_alarms", name: "Timers + alarms",icon: "AlarmClock",   description: "Countdown timers and alarms with sound",      status: "connected" },
+  { id: "kitchen_recipes",name:"Kitchen + recipes",icon:"ChefHat",     description: "Shopping list, meals, recipes and tonight plan", status: "connected" },
 ];
 
 export const ACTIVE_WIDGETS_KEY = "execOs.activeWidgets.v1";
@@ -33,6 +35,8 @@ export const DEFAULT_ACTIVE_WIDGETS: string[] = [
   "timeline",
   "follow_ups",
   "bench_whispers",
+  "timers_alarms",
+  "kitchen_recipes",
   "content_pulse",
   "money",
   "projects",
@@ -40,8 +44,15 @@ export const DEFAULT_ACTIVE_WIDGETS: string[] = [
 
 // Widgets that should be auto-appended to existing users' saved layouts
 // once, if they don't already have them. Migration runs in src/routes/today.tsx.
-export const AUTO_APPEND_WIDGETS: string[] = ["bench", "bench_whispers"];
-export const AUTO_APPEND_KEY = "execOs.activeWidgets.autoAppend.v2";
+// Bump AUTO_APPEND_KEY whenever entries are added so the migration fires once
+// more for users who already passed the previous key.
+export const AUTO_APPEND_WIDGETS: string[] = [
+  "bench",
+  "bench_whispers",
+  "timers_alarms",
+  "kitchen_recipes",
+];
+export const AUTO_APPEND_KEY = "execOs.activeWidgets.autoAppend.v3";
 
 // Default grid sizes when a widget is freshly added via the library.
 // Full-width widgets get the timeline-style row.
@@ -52,6 +63,8 @@ export const DEFAULT_WIDGET_SIZE: Record<string, { w: number; h: number }> = {
   voice_capture: { w: 4, h: 4 },
   bench: { w: 12, h: 4 },
   bench_whispers: { w: 6, h: 6 },
+  timers_alarms: { w: 6, h: 7 },
+  kitchen_recipes: { w: 6, h: 8 },
 };
 
 export function defaultSizeFor(id: string): { w: number; h: number } {

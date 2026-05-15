@@ -25,6 +25,8 @@ import { TopPriorityWidget } from "@/components/widgets/top_priority";
 import { VoiceCaptureWidget } from "@/components/widgets/voice_capture";
 import { DoneTodayWidget } from "@/components/widgets/done_today";
 import { FollowUpsWidget } from "@/components/widgets/follow_ups";
+import { TimersAlarmsWidget } from "@/components/widgets/timers_alarms";
+import { KitchenRecipesWidget } from "@/components/widgets/kitchen_recipes";
 import {
   Select,
   SelectContent,
@@ -55,6 +57,8 @@ import {
   FolderKanban,
   MessageCircle,
   Activity,
+  AlarmClock,
+  ChefHat,
   Info,
   ChevronLeft,
   ChevronRight,
@@ -85,6 +89,8 @@ type WidgetId =
   | "top_priority"
   | "voice_capture"
   | "bench_whispers"
+  | "timers_alarms"
+  | "kitchen_recipes"
   | "done_today";
 
 const LG_BASE: LayoutItem[] = [
@@ -98,8 +104,10 @@ const LG_BASE: LayoutItem[] = [
   { i: "wellness", x: 0, y: 24, w: 6, h: 5, minW: 3, minH: 4 },
   { i: "follow_ups", x: 6, y: 24, w: 6, h: 8, minW: 3, minH: 4 },
   { i: "bench", x: 0, y: 29, w: 12, h: 6, minW: 6, minH: 5 },
-  { i: "voice_capture", x: 0, y: 35, w: 4, h: 4, minW: 3, minH: 3 },
-  { i: "done_today", x: 4, y: 35, w: 4, h: 3, minW: 3, minH: 2 },
+  { i: "timers_alarms", x: 0, y: 35, w: 6, h: 7, minW: 3, minH: 5 },
+  { i: "kitchen_recipes", x: 6, y: 35, w: 6, h: 8, minW: 3, minH: 6 },
+  { i: "voice_capture", x: 0, y: 43, w: 4, h: 4, minW: 3, minH: 3 },
+  { i: "done_today", x: 4, y: 43, w: 4, h: 3, minW: 3, minH: 2 },
 ];
 
 const MD_BASE: LayoutItem[] = [
@@ -113,8 +121,10 @@ const MD_BASE: LayoutItem[] = [
   { i: "wellness", x: 0, y: 24, w: 4, h: 5, minW: 3, minH: 4 },
   { i: "follow_ups", x: 4, y: 24, w: 4, h: 8, minW: 3, minH: 4 },
   { i: "bench", x: 0, y: 29, w: 8, h: 6, minW: 4, minH: 5 },
-  { i: "voice_capture", x: 0, y: 35, w: 4, h: 4, minW: 3, minH: 3 },
-  { i: "done_today", x: 4, y: 35, w: 4, h: 3, minW: 3, minH: 2 },
+  { i: "timers_alarms", x: 0, y: 35, w: 4, h: 7, minW: 3, minH: 5 },
+  { i: "kitchen_recipes", x: 4, y: 35, w: 4, h: 8, minW: 3, minH: 6 },
+  { i: "voice_capture", x: 0, y: 43, w: 4, h: 4, minW: 3, minH: 3 },
+  { i: "done_today", x: 4, y: 43, w: 4, h: 3, minW: 3, minH: 2 },
 ];
 
 const MOBILE_ORDER: WidgetId[] = [
@@ -128,6 +138,8 @@ const MOBILE_ORDER: WidgetId[] = [
   "follow_ups",
   "wellness",
   "bench",
+  "timers_alarms",
+  "kitchen_recipes",
   "voice_capture",
   "done_today",
 ];
@@ -1376,6 +1388,44 @@ function TodayPage() {
             onRemove={removeWidget}
           >
             <BenchWhispersWidget />
+          </Card>
+        </div>
+        )}
+
+        {/* TIMERS + ALARMS */}
+        {activeWidgets.includes("timers_alarms") && (
+        <div key="timers_alarms" className="relative">
+          <Card
+            title="Timers + alarms"
+            icon={AlarmClock}
+            className="h-full overflow-auto"
+            dragHandle={!locks.timers_alarms && !isMobileViewport}
+            lockId="timers_alarms"
+            locked={!!locks.timers_alarms}
+            onToggleLock={toggleLock}
+            editMode={editMode}
+            onRemove={removeWidget}
+          >
+            <TimersAlarmsWidget />
+          </Card>
+        </div>
+        )}
+
+        {/* KITCHEN + RECIPES */}
+        {activeWidgets.includes("kitchen_recipes") && (
+        <div key="kitchen_recipes" className="relative">
+          <Card
+            title="Kitchen + recipes"
+            icon={ChefHat}
+            className="h-full overflow-auto"
+            dragHandle={!locks.kitchen_recipes && !isMobileViewport}
+            lockId="kitchen_recipes"
+            locked={!!locks.kitchen_recipes}
+            onToggleLock={toggleLock}
+            editMode={editMode}
+            onRemove={removeWidget}
+          >
+            <KitchenRecipesWidget />
           </Card>
         </div>
         )}
