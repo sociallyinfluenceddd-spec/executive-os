@@ -189,13 +189,31 @@ function loadDashboard(): DashboardPersisted | null {
   }
 }
 
+const FOLLOWUPS_BUMP_KEY = "execOs.followups.heightBump.v1";
+function bumpFollowUpsHeight(arr: LayoutItem[] | undefined): LayoutItem[] | undefined {
+  if (!arr) return arr;
+  return arr.map((l) => (l.i === "follow_ups" && (l.h ?? 0) < 6 ? { ...l, h: 8 } : l));
+}
+
 function loadLayouts(): ResponsiveLayouts | null {
   const d = loadDashboard();
   if (!d) return null;
-  const lg = migrateLayoutItems(d.lg);
-  const md = migrateLayoutItems(d.md);
-  const sm = migrateLayoutItems(d.sm);
+  let lg = migrateLayoutItems(d.lg);
+  let md = migrateLayoutItems(d.md);
+  let sm = migrateLayoutItems(d.sm);
   if (!lg && !md && !sm) return null;
+
+  if (typeof window !== "undefined" && !localStorage.getItem(FOLLOWUPS_BUMP_KEY)) {
+    lg = bumpFollowUpsHeight(lg);
+    md = bumpFollowUpsHeight(md);
+    sm = bumpFollowUpsHeight(sm);
+    try {
+      const payload: DashboardPersisted = { lg, md, sm, locked: d.locked };
+      localStorage.setItem(DASHBOARD_KEY, JSON.stringify(payload));
+      localStorage.setItem(FOLLOWUPS_BUMP_KEY, "1");
+    } catch {}
+  }
+
   return { lg, md, sm } as ResponsiveLayouts;
 }
 
