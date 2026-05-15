@@ -979,6 +979,7 @@ function TodayPage() {
         onLayoutChange={onLayoutChange}
       >
         {/* CALENDAR */}
+        {activeWidgets.includes("calendar") && (
         <div key="calendar" className="relative">
           <Card
             title="Calendar"
@@ -992,7 +993,7 @@ function TodayPage() {
             onRemove={removeWidget}
             right={
               availableCalendars.length > 1 ? (
-                <Select value={selectedCalendar} onValueChange={setSelectedCalendar}>
+        <Select value={selectedCalendar} onValueChange={setSelectedCalendar}>
                   <SelectTrigger className="no-drag h-7 text-xs w-[140px] sm:w-[160px]">
                     <SelectValue />
                   </SelectTrigger>
@@ -1066,8 +1067,10 @@ function TodayPage() {
             )}
           </Card>
         </div>
+        )}
 
         {/* INBOX */}
+        {activeWidgets.includes("inbox") && (
         <div key="inbox" className="relative">
           <Card
             title="Inbox"
@@ -1081,7 +1084,7 @@ function TodayPage() {
             onRemove={removeWidget}
             right={
               <Select value={accountFilter} onValueChange={setAccountFilter}>
-                <SelectTrigger className="no-drag h-7 text-xs w-[130px] sm:w-[150px]">
+        <SelectTrigger className="no-drag h-7 text-xs w-[130px] sm:w-[150px]">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -1123,8 +1126,10 @@ function TodayPage() {
             )}
           </Card>
         </div>
+        )}
 
         {/* MONEY */}
+        {activeWidgets.includes("money") && (
         <div key="money" className="relative">
           <Card
             title="Money"
@@ -1141,8 +1146,10 @@ function TodayPage() {
             <EmptyState text="No lead data yet. Connecting Ideafetti DB…" />
           </Card>
         </div>
+        )}
 
         {/* TIMELINE */}
+        {activeWidgets.includes("timeline") && (
         <div key="timeline" className="relative">
           <Card
             title="Timeline"
@@ -1168,8 +1175,10 @@ function TodayPage() {
             />
           </Card>
         </div>
+        )}
 
         {/* CONTENT PULSE */}
+        {activeWidgets.includes("content_pulse") && (
         <div key="content_pulse" className="relative">
           <Card
             title="Content pulse"
@@ -1186,8 +1195,10 @@ function TodayPage() {
             <EmptyState text="Syncing Ideafetti content data…" />
           </Card>
         </div>
+        )}
 
         {/* PROJECTS */}
+        {activeWidgets.includes("projects") && (
         <div key="projects" className="relative">
           <Card
             title="Projects"
@@ -1202,7 +1213,7 @@ function TodayPage() {
           >
             <ul className="space-y-3">
               {DEFAULT_PROJECTS.map((p) => {
-                const stalled = p.last_touched_h > 168;
+        const stalled = p.last_touched_h > 168;
                 return (
                   <li key={p.name}>
                     <div className="flex items-center justify-between text-xs mb-1">
@@ -1238,6 +1249,7 @@ function TodayPage() {
         </div>
 
         {/* WELLNESS */}
+        {activeWidgets.includes("wellness") && (
         <div key="wellness" className="relative">
           <Card
             title="Wellness"
@@ -1253,7 +1265,7 @@ function TodayPage() {
             <div className="flex items-center gap-4 mb-3">
               <Sparkline values={energySeries} />
               <div className="flex flex-col">
-                <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
+        <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
                   {trend === "up" && (
                     <ArrowUpRight className="h-3.5 w-3.5 text-[color:var(--sage)]" />
                   )}
@@ -1273,8 +1285,10 @@ function TodayPage() {
             </div>
           </Card>
         </div>
+        )}
 
         {/* FOLLOW-UPS */}
+        {activeWidgets.includes("follow_ups") && (
         <div key="follow_ups" className="relative">
           <Card
             title="Follow-ups"
@@ -1291,7 +1305,7 @@ function TodayPage() {
               <p className="text-xs text-muted-foreground py-3">All caught up. ✨</p>
             ) : (
               <ul className="divide-y divide-border">
-                {followUps.slice(0, 6).map((f) => {
+        {followUps.slice(0, 6).map((f) => {
                   const days = Math.floor(
                     (Date.now() - new Date(f.received_at!).getTime()) / 86400_000,
                   );
@@ -1323,8 +1337,10 @@ function TodayPage() {
             )}
           </Card>
         </div>
+        )}
 
         {/* BENCH */}
+        {activeWidgets.includes("bench") && (
         <div key="bench" className="relative">
           <div
             className={`h-full overflow-auto rounded-xl border border-border bg-card p-4 sm:p-5 lg:p-6 ${
@@ -1333,7 +1349,7 @@ function TodayPage() {
           >
             <div className="flex items-center justify-between gap-3 mb-2">
               <div
-                className={
+        className={
                   !locks.bench && !isMobileViewport
                     ? "widget-drag-handle cursor-grab active:cursor-grabbing flex-1 -m-2 p-2"
                     : "flex-1"
@@ -1359,6 +1375,7 @@ function TodayPage() {
             </div>
           </div>
         </div>
+        )}
       </ResponsiveGridLayout>
 
       <button
@@ -1393,6 +1410,7 @@ function TodayPage() {
         onClose={() => setSelectedEvent(null)}
       />
     </div>
+        )}
   );
 }
 
