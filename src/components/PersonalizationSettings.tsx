@@ -3,7 +3,11 @@ import { HexColorPicker } from "react-colorful";
 import { toast } from "sonner";
 import {
   BRAND_SWATCHES,
+  DEFAULT_PERSONALIZATION,
+  PERSONALIZATION_KEY,
+  isDarkColor,
   usePersonalization,
+  type Personalization,
   type PersonalizationMode,
 } from "@/lib/personalization";
 
@@ -44,6 +48,8 @@ export function PersonalizationSettings() {
           Customize the top header area of Today.
         </p>
       </div>
+
+      <HeaderPreview p={p} />
 
       <div className="inline-flex rounded-lg border border-border bg-muted/50 p-0.5">
         {(["default", "color", "image"] as PersonalizationMode[]).map((m) => {
@@ -159,7 +165,66 @@ export function PersonalizationSettings() {
           />
         </div>
       )}
+
+      <div className="pt-3 border-t border-border flex justify-end">
+        <button
+          type="button"
+          onClick={() => {
+            try { localStorage.removeItem(PERSONALIZATION_KEY); } catch {}
+            setP({ ...DEFAULT_PERSONALIZATION });
+          }}
+          className="text-xs text-muted-foreground hover:text-foreground underline"
+        >
+          Reset to default
+        </button>
+      </div>
     </section>
+  );
+}
+
+function HeaderPreview({ p }: { p: Personalization }) {
+  let bgStyle: React.CSSProperties = { backgroundColor: "var(--color-background)" };
+  let dark = false;
+  let isImage = false;
+  if (p.mode === "color" && p.color) {
+    bgStyle = { backgroundColor: p.color };
+    dark = isDarkColor(p.color);
+  } else if (p.mode === "image" && p.imageDataUrl) {
+    bgStyle = {
+      backgroundImage: `url(${p.imageDataUrl})`,
+      backgroundSize: "cover",
+      backgroundPosition: "center",
+    };
+    dark = true;
+    isImage = true;
+  }
+  const textColor = dark ? "#ffffff" : "var(--color-foreground)";
+  const subColor = dark ? "rgba(255,255,255,0.8)" : "var(--color-muted-foreground)";
+  const textShadow = isImage ? "0 1px 2px rgba(0,0,0,0.3)" : undefined;
+  return (
+    <div className="space-y-1.5">
+      <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Preview</p>
+      <div
+        className="relative rounded-lg border border-border overflow-hidden h-20 px-4 flex items-center justify-between"
+        style={bgStyle}
+      >
+        {p.applyFullPage && isImage && (
+          <div className="absolute inset-0 pointer-events-none" style={{ backgroundColor: "rgba(255,255,255,0.6)" }} />
+        )}
+        <div className="relative" style={{ color: textColor, textShadow }}>
+          <div className="text-sm font-semibold">Good morning, Alex</div>
+          <div className="text-[11px]" style={{ color: subColor, textShadow }}>
+            Top priority: Ship the v1 launch
+          </div>
+        </div>
+        <div
+          className="relative text-sm tabular-nums font-mono"
+          style={{ color: textColor, textShadow }}
+        >
+          09:42
+        </div>
+      </div>
+    </div>
   );
 }
 
