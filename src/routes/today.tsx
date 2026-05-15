@@ -230,7 +230,17 @@ function loadActiveWidgets(): string[] {
     if (!raw) return DEFAULT_ACTIVE_WIDGETS;
     const parsed = JSON.parse(raw) as string[];
     if (!Array.isArray(parsed)) return DEFAULT_ACTIVE_WIDGETS;
-    return parsed.map((id) => ID_MIGRATIONS[id] ?? id);
+    let migrated = parsed.map((id) => ID_MIGRATIONS[id] ?? id);
+    // One-time auto-append for new widgets (e.g. bench, bench_whispers).
+    if (!localStorage.getItem(AUTO_APPEND_KEY)) {
+      const missing = AUTO_APPEND_WIDGETS.filter((id) => !migrated.includes(id));
+      if (missing.length > 0) {
+        migrated = [...migrated, ...missing];
+        try { localStorage.setItem(ACTIVE_WIDGETS_KEY, JSON.stringify(migrated)); } catch {}
+      }
+      try { localStorage.setItem(AUTO_APPEND_KEY, "1"); } catch {}
+    }
+    return migrated;
   } catch {
     return DEFAULT_ACTIVE_WIDGETS;
   }
