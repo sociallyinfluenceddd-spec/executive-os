@@ -87,3 +87,13 @@
     -webkit-font-smoothing: antialiased;
   }
 }
+
+/* react-grid-layout placeholder + handle styling */
+.react-grid-item.react-grid-placeholder {
+  background: var(--color-sage) !important;
+  opacity: 0.25 !important;
+  border-radius: var(--radius-lg);
+}
+.react-grid-item > .react-resizable-handle::after {
+  border-color: var(--color-muted-foreground);
+}
