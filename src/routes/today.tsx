@@ -90,7 +90,7 @@ const LG_BASE: LayoutItem[] = [
   { i: "content_pulse", x: 0, y: 19, w: 6, h: 5, minW: 3, minH: 4 },
   { i: "projects", x: 6, y: 19, w: 6, h: 5, minW: 3, minH: 4 },
   { i: "wellness", x: 0, y: 24, w: 6, h: 5, minW: 3, minH: 4 },
-  { i: "follow_ups", x: 6, y: 24, w: 6, h: 5, minW: 3, minH: 4 },
+  { i: "follow_ups", x: 6, y: 24, w: 6, h: 8, minW: 3, minH: 4 },
   { i: "bench", x: 0, y: 29, w: 12, h: 6, minW: 6, minH: 5 },
   { i: "voice_capture", x: 0, y: 35, w: 4, h: 4, minW: 3, minH: 3 },
   { i: "done_today", x: 4, y: 35, w: 4, h: 3, minW: 3, minH: 2 },
