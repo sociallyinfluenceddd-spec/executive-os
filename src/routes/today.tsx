@@ -1247,8 +1247,7 @@ function TodayPage() {
             </ul>
           </Card>
         </div>
-
-        {/* WELLNESS */}
+        )}
         {activeWidgets.includes("wellness") && (
         <div key="wellness" className="relative">
           <Card
