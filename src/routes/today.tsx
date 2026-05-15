@@ -1491,7 +1491,6 @@ function TodayPage() {
         onClose={() => setSelectedEvent(null)}
       />
     </div>
-        )}
   );
 }
 
