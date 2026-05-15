@@ -3,7 +3,11 @@ import { HexColorPicker } from "react-colorful";
 import { toast } from "sonner";
 import {
   BRAND_SWATCHES,
+  DEFAULT_PERSONALIZATION,
+  PERSONALIZATION_KEY,
+  isDarkColor,
   usePersonalization,
+  type Personalization,
   type PersonalizationMode,
 } from "@/lib/personalization";
 
