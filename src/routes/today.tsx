@@ -594,7 +594,7 @@ function TodayPage() {
       .channel("exec_os_emails_rt")
       .on(
         "postgres_changes",
-        { event: "*", schema: "public", table: "exec_os_emails" },
+        { event: "*", schema: "public", table: "exec_os_emails", filter: `user_id=eq.${user.id}` },
         (payload) => {
           setEmailsLoadedAt(Date.now());
           setEmails((cur) => {
@@ -623,7 +623,7 @@ function TodayPage() {
       .channel("exec_os_calendar_rt")
       .on(
         "postgres_changes",
-        { event: "*", schema: "public", table: "exec_os_calendar_events" },
+        { event: "*", schema: "public", table: "exec_os_calendar_events", filter: `user_id=eq.${user.id}` },
         (payload) => {
           setCalendarLoadedAt(Date.now());
           setCalendarEvents((cur) => {
