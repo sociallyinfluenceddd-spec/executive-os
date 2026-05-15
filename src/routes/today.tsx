@@ -1,5 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Fragment, useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
+import { Responsive, WidthProvider, type LayoutItem, type ResponsiveLayouts } from "react-grid-layout/legacy";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { AppShell } from "@/components/AppShell";
@@ -41,7 +42,105 @@ import {
   Info,
   ChevronLeft,
   ChevronRight,
+  Lock,
+  Unlock,
+  GripVertical,
+  RotateCcw,
 } from "lucide-react";
+
+const ResponsiveGridLayout = WidthProvider(Responsive);
+
+// ----- Dashboard layout -----
+type WidgetId =
+  | "calendar"
+  | "inbox"
+  | "money"
+  | "timeline"
+  | "content"
+  | "projects"
+  | "wellness"
+  | "followups"
+  | "bench";
+
+const WIDGET_IDS: WidgetId[] = [
+  "calendar",
+  "inbox",
+  "money",
+  "timeline",
+  "content",
+  "projects",
+  "wellness",
+  "followups",
+  "bench",
+];
+
+const LG_BASE: LayoutItem[] = [
+  { i: "calendar", x: 0, y: 0, w: 4, h: 9, minW: 3, minH: 5 },
+  { i: "inbox", x: 4, y: 0, w: 4, h: 9, minW: 3, minH: 5 },
+  { i: "money", x: 8, y: 0, w: 4, h: 9, minW: 3, minH: 4 },
+  { i: "timeline", x: 0, y: 9, w: 12, h: 10, minW: 6, minH: 6 },
+  { i: "content", x: 0, y: 19, w: 6, h: 5, minW: 3, minH: 4 },
+  { i: "projects", x: 6, y: 19, w: 6, h: 8, minW: 3, minH: 5 },
+  { i: "wellness", x: 0, y: 24, w: 6, h: 5, minW: 3, minH: 4 },
+  { i: "followups", x: 6, y: 27, w: 6, h: 8, minW: 3, minH: 5 },
+  { i: "bench", x: 0, y: 32, w: 12, h: 8, minW: 6, minH: 5 },
+];
+
+const MOBILE_ORDER: WidgetId[] = [
+  "inbox",
+  "calendar",
+  "timeline",
+  "money",
+  "content",
+  "projects",
+  "followups",
+  "wellness",
+  "bench",
+];
+
+function stackedLayout(cols: number): LayoutItem[] {
+  let y = 0;
+  return MOBILE_ORDER.map((id) => {
+    const base = LG_BASE.find((l) => l.i === id)!;
+    const item: LayoutItem = { i: id, x: 0, y, w: cols, h: base.h, minW: 1, minH: base.minH };
+    y += base.h;
+    return item;
+  });
+}
+
+function buildLayouts(locks: Record<string, boolean>): ResponsiveLayouts {
+  const apply = (arr: LayoutItem[]) =>
+    arr.map((l) => ({ ...l, static: !!locks[l.i] }));
+  return {
+    lg: apply(LG_BASE),
+    md: apply(LG_BASE),
+    sm: apply(stackedLayout(6)),
+    xs: apply(stackedLayout(4)),
+    xxs: apply(stackedLayout(2)),
+  };
+}
+
+const LAYOUTS_KEY = "today_layouts_v1";
+const LOCKS_KEY = "today_locks_v1";
+
+function loadLayouts(): ResponsiveLayouts | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = localStorage.getItem(LAYOUTS_KEY);
+    return raw ? (JSON.parse(raw) as ResponsiveLayouts) : null;
+  } catch {
+    return null;
+  }
+}
+function loadLocks(): Record<string, boolean> {
+  if (typeof window === "undefined") return {};
+  try {
+    const raw = localStorage.getItem(LOCKS_KEY);
+    return raw ? (JSON.parse(raw) as Record<string, boolean>) : {};
+  } catch {
+    return {};
+  }
+}
 
 function startOfDay(d: Date): Date {
   const x = new Date(d);
@@ -232,6 +331,34 @@ function TodayPage() {
     if (typeof window === "undefined") return;
     window.localStorage.setItem("today.selectedCalendar", selectedCalendar);
   }, [selectedCalendar]);
+
+  // Dashboard grid layout state
+  const isMobileViewport = useIsMobile();
+  const [locks, setLocks] = useState<Record<string, boolean>>(() => loadLocks());
+  const [layouts, setLayouts] = useState<ResponsiveLayouts>(() => loadLayouts() ?? buildLayouts(loadLocks()));
+  useEffect(() => {
+    try { localStorage.setItem(LOCKS_KEY, JSON.stringify(locks)); } catch {}
+    setLayouts((cur) => {
+      const next: ResponsiveLayouts = { ...cur };
+      (Object.keys(next) as (keyof ResponsiveLayouts)[]).forEach((bp) => {
+        const arr = next[bp];
+        if (arr) next[bp] = arr.map((l) => ({ ...l, static: !!locks[l.i] }));
+      });
+      return next;
+    });
+  }, [locks]);
+  const onLayoutChange = useCallback((_layout: readonly LayoutItem[], all: ResponsiveLayouts) => {
+    setLayouts(all);
+    try { localStorage.setItem(LAYOUTS_KEY, JSON.stringify(all)); } catch {}
+  }, []);
+  const toggleLock = useCallback((id: WidgetId) => {
+    setLocks((cur) => ({ ...cur, [id]: !cur[id] }));
+  }, []);
+  const resetLayout = useCallback(() => {
+    const fresh = buildLayouts(locks);
+    setLayouts(fresh);
+    try { localStorage.setItem(LAYOUTS_KEY, JSON.stringify(fresh)); } catch {}
+  }, [locks]);
 
   const firstName = useMemo(() => {
     const display = (user?.user_metadata?.display_name as string | undefined)?.trim();
@@ -605,76 +732,43 @@ function TodayPage() {
         )}
       </header>
 
-      {/* Main responsive grid: mobile single col, tablet 6-col, desktop 12-col.
-          Mobile order: Inbox, Calendar, Timeline, Money, Content, Projects, Follow-ups, Wellness.
-          Tablet order: Calendar, Inbox, Money (row 1) | Timeline | Content, Projects | Wellness, Follow-ups. */}
-      <div className="grid grid-cols-1 md:grid-cols-6 lg:grid-cols-12 gap-3 sm:gap-4">
-        {/* MONEY */}
-        <div className="order-4 md:order-3 lg:order-none md:col-span-2 lg:col-span-4">
-          <Card title="Money" icon={Banknote} info>
-            <EmptyState text="No lead data yet. Connecting Ideafetti DB…" />
-          </Card>
-        </div>
-
-        {/* INBOX */}
-        <div className="order-1 md:order-2 lg:order-none md:col-span-2 lg:col-span-4">
-          <Card
-            title="Inbox"
-            icon={Inbox}
-            right={
-              <Select value={accountFilter} onValueChange={setAccountFilter}>
-                <SelectTrigger className="h-7 text-xs w-[130px] sm:w-[150px]">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All accounts</SelectItem>
-                  {ACCOUNTS.map((a) => (
-                    <SelectItem key={a} value={a}>
-                      {a.split("@")[0]}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            }
-          >
-            <div className="grid grid-cols-2 gap-2 mb-3">
-              <BigStat value={priorityCount} label="Priority" />
-              <BigStat value={needsRespCount} label="Need response" />
-            </div>
-            {topSenders.length === 0 ? (
-              <p className="text-xs text-muted-foreground py-2">Inbox clear. ✨</p>
-            ) : (
-              <ul className="space-y-1.5">
-                {topSenders.map((e) => (
-                  <li
-                    key={e.id}
-                    className="flex items-center gap-2 text-xs text-foreground"
-                  >
-                    <span
-                      className={`h-1.5 w-1.5 rounded-full shrink-0 ${urgencyDot(e.received_at)}`}
-                    />
-                    <span className="font-medium truncate">
-                      {e.sender_name || e.sender_email || "Unknown"}
-                    </span>
-                    <span className="text-muted-foreground ml-auto shrink-0">
-                      {relTime(e.received_at)}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </Card>
-        </div>
-
-        {/* CALENDAR TODAY */}
-        <div className="order-2 md:order-1 lg:order-none md:col-span-2 lg:col-span-4">
+      {/* Draggable / resizable dashboard grid */}
+      <div className="flex items-center justify-end gap-2 -mb-1">
+        <button
+          type="button"
+          onClick={resetLayout}
+          className="inline-flex items-center gap-1 text-[10px] uppercase tracking-wider text-muted-foreground hover:text-foreground"
+        >
+          <RotateCcw className="h-3 w-3" /> Reset layout
+        </button>
+      </div>
+      <ResponsiveGridLayout
+        className="layout"
+        layouts={layouts}
+        breakpoints={{ lg: 1200, md: 996, sm: 768, xs: 480, xxs: 0 }}
+        cols={{ lg: 12, md: 12, sm: 6, xs: 4, xxs: 2 }}
+        rowHeight={40}
+        margin={[16, 16]}
+        containerPadding={[0, 0]}
+        compactType="vertical"
+        draggableHandle=".widget-drag-handle"
+        draggableCancel=".no-drag"
+        isDraggable={!isMobileViewport}
+        isResizable={!isMobileViewport}
+        onLayoutChange={onLayoutChange}
+      >
+        {/* CALENDAR */}
+        <div key="calendar" className="relative">
+          <WidgetChrome id="calendar" locked={!!locks.calendar} onToggle={toggleLock} />
           <Card
             title="Calendar"
             icon={CalendarClock}
+            className="h-full overflow-auto pr-10"
+            dragHandle={!locks.calendar && !isMobileViewport}
             right={
               availableCalendars.length > 1 ? (
                 <Select value={selectedCalendar} onValueChange={setSelectedCalendar}>
-                  <SelectTrigger className="h-7 text-xs w-[140px] sm:w-[160px]">
+                  <SelectTrigger className="no-drag h-7 text-xs w-[140px] sm:w-[160px]">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -720,7 +814,7 @@ function TodayPage() {
                       <button
                         type="button"
                         onClick={() => setSelectedEvent(m)}
-                        className="w-full flex items-center gap-2 text-xs text-left rounded-md px-2 min-h-[44px] sm:min-h-0 sm:py-1 hover:bg-muted transition-colors"
+                        className="no-drag w-full flex items-center gap-2 text-xs text-left rounded-md px-2 min-h-[44px] sm:min-h-0 sm:py-1 hover:bg-muted transition-colors"
                       >
                         <span className="tabular-nums text-muted-foreground w-14 shrink-0">
                           {whenLabel(m.start_at)}
@@ -734,7 +828,7 @@ function TodayPage() {
                             target="_blank"
                             rel="noreferrer"
                             onClick={(e) => e.stopPropagation()}
-                            className="text-[color:var(--navy)] shrink-0 p-2 -m-2"
+                            className="no-drag text-[color:var(--navy)] shrink-0 p-2 -m-2"
                           >
                             <Video className="h-4 w-4" />
                           </a>
@@ -748,9 +842,82 @@ function TodayPage() {
           </Card>
         </div>
 
-        {/* TIMELINE — full width */}
-        <div className="order-3 md:order-4 lg:order-none md:col-span-6 lg:col-span-12">
-          <Card title="Timeline" icon={Activity}>
+        {/* INBOX */}
+        <div key="inbox" className="relative">
+          <WidgetChrome id="inbox" locked={!!locks.inbox} onToggle={toggleLock} />
+          <Card
+            title="Inbox"
+            icon={Inbox}
+            className="h-full overflow-auto pr-10"
+            dragHandle={!locks.inbox && !isMobileViewport}
+            right={
+              <Select value={accountFilter} onValueChange={setAccountFilter}>
+                <SelectTrigger className="no-drag h-7 text-xs w-[130px] sm:w-[150px]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All accounts</SelectItem>
+                  {ACCOUNTS.map((a) => (
+                    <SelectItem key={a} value={a}>
+                      {a.split("@")[0]}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            }
+          >
+            <div className="grid grid-cols-2 gap-2 mb-3">
+              <BigStat value={priorityCount} label="Priority" />
+              <BigStat value={needsRespCount} label="Need response" />
+            </div>
+            {topSenders.length === 0 ? (
+              <p className="text-xs text-muted-foreground py-2">Inbox clear. ✨</p>
+            ) : (
+              <ul className="space-y-1.5">
+                {topSenders.map((e) => (
+                  <li
+                    key={e.id}
+                    className="flex items-center gap-2 text-xs text-foreground"
+                  >
+                    <span
+                      className={`h-1.5 w-1.5 rounded-full shrink-0 ${urgencyDot(e.received_at)}`}
+                    />
+                    <span className="font-medium truncate">
+                      {e.sender_name || e.sender_email || "Unknown"}
+                    </span>
+                    <span className="text-muted-foreground ml-auto shrink-0">
+                      {relTime(e.received_at)}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </Card>
+        </div>
+
+        {/* MONEY */}
+        <div key="money" className="relative">
+          <WidgetChrome id="money" locked={!!locks.money} onToggle={toggleLock} />
+          <Card
+            title="Money"
+            icon={Banknote}
+            info
+            className="h-full overflow-auto pr-10"
+            dragHandle={!locks.money && !isMobileViewport}
+          >
+            <EmptyState text="No lead data yet. Connecting Ideafetti DB…" />
+          </Card>
+        </div>
+
+        {/* TIMELINE */}
+        <div key="timeline" className="relative">
+          <WidgetChrome id="timeline" locked={!!locks.timeline} onToggle={toggleLock} />
+          <Card
+            title="Timeline"
+            icon={Activity}
+            className="h-full overflow-auto pr-10"
+            dragHandle={!locks.timeline && !isMobileViewport}
+          >
             <DateNav
               selectedDate={selectedDate}
               setSelectedDate={setSelectedDate}
@@ -766,15 +933,28 @@ function TodayPage() {
         </div>
 
         {/* CONTENT PULSE */}
-        <div className="order-5 md:order-5 lg:order-none md:col-span-3 lg:col-span-6">
-          <Card title="Content pulse" icon={Sparkles} info>
+        <div key="content" className="relative">
+          <WidgetChrome id="content" locked={!!locks.content} onToggle={toggleLock} />
+          <Card
+            title="Content pulse"
+            icon={Sparkles}
+            info
+            className="h-full overflow-auto pr-10"
+            dragHandle={!locks.content && !isMobileViewport}
+          >
             <EmptyState text="Syncing Ideafetti content data…" />
           </Card>
         </div>
 
         {/* PROJECTS */}
-        <div className="order-6 md:order-6 lg:order-none md:col-span-3 lg:col-span-6">
-          <Card title="Projects" icon={FolderKanban}>
+        <div key="projects" className="relative">
+          <WidgetChrome id="projects" locked={!!locks.projects} onToggle={toggleLock} />
+          <Card
+            title="Projects"
+            icon={FolderKanban}
+            className="h-full overflow-auto pr-10"
+            dragHandle={!locks.projects && !isMobileViewport}
+          >
             <ul className="space-y-3">
               {DEFAULT_PROJECTS.map((p) => {
                 const stalled = p.last_touched_h > 168;
@@ -812,9 +992,48 @@ function TodayPage() {
           </Card>
         </div>
 
-        {/* FOLLOW-UPS — mobile order 7, tablet order 8 (after Wellness), desktop col-span-6 */}
-        <div className="order-7 md:order-8 lg:order-none md:col-span-3 lg:col-span-6">
-          <Card title="Follow-ups" icon={MessageCircle}>
+        {/* WELLNESS */}
+        <div key="wellness" className="relative">
+          <WidgetChrome id="wellness" locked={!!locks.wellness} onToggle={toggleLock} />
+          <Card
+            title="Wellness"
+            icon={TrendingUp}
+            className="h-full overflow-auto pr-10"
+            dragHandle={!locks.wellness && !isMobileViewport}
+          >
+            <div className="flex items-center gap-4 mb-3">
+              <Sparkline values={energySeries} />
+              <div className="flex flex-col">
+                <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
+                  {trend === "up" && (
+                    <ArrowUpRight className="h-3.5 w-3.5 text-[color:var(--sage)]" />
+                  )}
+                  {trend === "down" && (
+                    <ArrowDownRight className="h-3.5 w-3.5 text-[color:var(--rose)]" />
+                  )}
+                  {trend === "flat" && <Minus className="h-3.5 w-3.5" />}
+                  {trend === "none" ? "Not enough data" : `Energy ${trend}`}
+                </span>
+                <span className="text-xs text-muted-foreground mt-1">
+                  Mood: {daily?.mood ?? "—"}
+                </span>
+                <span className="text-xs text-muted-foreground">
+                  Logged {loggedDays}/7 days
+                </span>
+              </div>
+            </div>
+          </Card>
+        </div>
+
+        {/* FOLLOW-UPS */}
+        <div key="followups" className="relative">
+          <WidgetChrome id="followups" locked={!!locks.followups} onToggle={toggleLock} />
+          <Card
+            title="Follow-ups"
+            icon={MessageCircle}
+            className="h-full overflow-auto pr-10"
+            dragHandle={!locks.followups && !isMobileViewport}
+          >
             {followUps.length === 0 ? (
               <p className="text-xs text-muted-foreground py-3">All caught up. ✨</p>
             ) : (
@@ -839,7 +1058,7 @@ function TodayPage() {
                       <Button
                         size="sm"
                         variant="outline"
-                        className="h-9 sm:h-7 text-xs"
+                        className="no-drag h-9 sm:h-7 text-xs"
                         onClick={() => setEmailStatus(f.id, "read")}
                       >
                         Replied
@@ -852,43 +1071,40 @@ function TodayPage() {
           </Card>
         </div>
 
-        {/* WELLNESS — mobile order 8, tablet order 7 (before Follow-ups) */}
-        <div className="order-8 md:order-7 lg:order-none md:col-span-3 lg:col-span-6">
-          <Card title="Wellness" icon={TrendingUp}>
-            <div className="flex items-center gap-4 mb-3">
-              <Sparkline values={energySeries} />
-              <div className="flex flex-col">
-                <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
-                  {trend === "up" && (
-                    <ArrowUpRight className="h-3.5 w-3.5 text-[color:var(--sage)]" />
-                  )}
-                  {trend === "down" && (
-                    <ArrowDownRight className="h-3.5 w-3.5 text-[color:var(--rose)]" />
-                  )}
-                  {trend === "flat" && <Minus className="h-3.5 w-3.5" />}
-                  {trend === "none" ? "Not enough data" : `Energy ${trend}`}
-                </span>
-                <span className="text-xs text-muted-foreground mt-1">
-                  Mood: {daily?.mood ?? "—"}
-                </span>
-                <span className="text-xs text-muted-foreground">
-                  Logged {loggedDays}/7 days
-                </span>
-              </div>
+        {/* BENCH */}
+        <div key="bench" className="relative">
+          <WidgetChrome id="bench" locked={!!locks.bench} onToggle={toggleLock} />
+          <div
+            className={`h-full overflow-auto rounded-xl border border-border bg-card p-4 sm:p-5 lg:p-6 pr-10 ${
+              !locks.bench && !isMobileViewport ? "" : ""
+            }`}
+          >
+            <div
+              className={
+                !locks.bench && !isMobileViewport
+                  ? "widget-drag-handle cursor-grab active:cursor-grabbing -m-2 p-2 mb-2"
+                  : "mb-2"
+              }
+            >
+              <h2 className="inline-flex items-center gap-2 text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">
+                Your Bench
+              </h2>
             </div>
-          </Card>
+            <div className="no-drag">
+              <BenchRow
+                context={{
+                  energy: daily?.energy_level ?? null,
+                  topPriority: daily?.top_priority ?? null,
+                  priorityEmails: emails.filter(
+                    (e) => e.kind === "priority" || e.kind === "needs_response",
+                  ).length,
+                  meetings: meetingsToday.length,
+                }}
+              />
+            </div>
+          </div>
         </div>
-      </div>
-
-      {/* ROW 5 — Bench */}
-      <BenchRow
-        context={{
-          energy: daily?.energy_level ?? null,
-          topPriority: daily?.top_priority ?? null,
-          priorityEmails: emails.filter((e) => e.kind === "priority" || e.kind === "needs_response").length,
-          meetings: meetingsToday.length,
-        }}
-      />
+      </ResponsiveGridLayout>
 
       <button
         type="button"
@@ -922,6 +1138,7 @@ function Card({
   className = "",
   right,
   info = false,
+  dragHandle = false,
 }: {
   title: string;
   icon?: React.ComponentType<{ className?: string }>;
@@ -929,18 +1146,23 @@ function Card({
   className?: string;
   right?: React.ReactNode;
   info?: boolean;
+  dragHandle?: boolean;
 }) {
   return (
     <section
       className={`rounded-xl border border-border bg-card p-4 sm:p-5 lg:p-6 ${className}`}
     >
-      <header className="flex items-center justify-between gap-3 mb-4">
+      <header
+        className={`flex items-center justify-between gap-3 mb-4 ${
+          dragHandle ? "widget-drag-handle cursor-grab active:cursor-grabbing" : ""
+        }`}
+      >
         <h2 className="inline-flex items-center gap-2 text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">
           {Icon && <Icon className="h-3.5 w-3.5" />}
           {title}
           {info && (
             <span
-              className="relative group inline-flex"
+              className="no-drag relative group inline-flex"
               tabIndex={0}
               aria-label="What is this?"
             >
@@ -951,10 +1173,34 @@ function Card({
             </span>
           )}
         </h2>
-        {right}
+        {right && <div className="no-drag">{right}</div>}
       </header>
       {children}
     </section>
+  );
+}
+
+function WidgetChrome({
+  id,
+  locked,
+  onToggle,
+}: {
+  id: WidgetId;
+  locked: boolean;
+  onToggle: (id: WidgetId) => void;
+}) {
+  return (
+    <div className="no-drag absolute top-1.5 right-1.5 z-20 flex items-center gap-0.5 opacity-60 hover:opacity-100 transition">
+      <button
+        type="button"
+        onClick={() => onToggle(id)}
+        className="p-1.5 rounded hover:bg-muted text-muted-foreground"
+        aria-label={locked ? "Unlock widget" : "Lock widget"}
+        title={locked ? "Unlock widget" : "Lock widget"}
+      >
+        {locked ? <Lock className="h-3.5 w-3.5" /> : <Unlock className="h-3.5 w-3.5" />}
+      </button>
+    </div>
   );
 }
 

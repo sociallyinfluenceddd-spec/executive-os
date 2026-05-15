@@ -1,6 +1,8 @@
 @import "tailwindcss" source(none);
 @source "../src";
 @import "tw-animate-css";
+@import "react-grid-layout/css/styles.css";
+@import "react-resizable/css/styles.css";
 
 @custom-variant dark (&:is(.dark *));
 
@@ -84,4 +86,14 @@
     color: var(--color-foreground);
     -webkit-font-smoothing: antialiased;
   }
+}
+
+/* react-grid-layout placeholder + handle styling */
+.react-grid-item.react-grid-placeholder {
+  background: var(--color-sage) !important;
+  opacity: 0.25 !important;
+  border-radius: var(--radius-lg);
+}
+.react-grid-item > .react-resizable-handle::after {
+  border-color: var(--color-muted-foreground);
 }
