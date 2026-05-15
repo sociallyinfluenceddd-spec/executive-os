@@ -1,5 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Fragment, useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
+import { Responsive, WidthProvider, type Layout, type Layouts } from "react-grid-layout";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { AppShell } from "@/components/AppShell";
@@ -41,7 +42,105 @@ import {
   Info,
   ChevronLeft,
   ChevronRight,
+  Lock,
+  Unlock,
+  GripVertical,
+  RotateCcw,
 } from "lucide-react";
+
+const ResponsiveGridLayout = WidthProvider(Responsive);
+
+// ----- Dashboard layout -----
+type WidgetId =
+  | "calendar"
+  | "inbox"
+  | "money"
+  | "timeline"
+  | "content"
+  | "projects"
+  | "wellness"
+  | "followups"
+  | "bench";
+
+const WIDGET_IDS: WidgetId[] = [
+  "calendar",
+  "inbox",
+  "money",
+  "timeline",
+  "content",
+  "projects",
+  "wellness",
+  "followups",
+  "bench",
+];
+
+const LG_BASE: Layout[] = [
+  { i: "calendar", x: 0, y: 0, w: 4, h: 9, minW: 3, minH: 5 },
+  { i: "inbox", x: 4, y: 0, w: 4, h: 9, minW: 3, minH: 5 },
+  { i: "money", x: 8, y: 0, w: 4, h: 9, minW: 3, minH: 4 },
+  { i: "timeline", x: 0, y: 9, w: 12, h: 10, minW: 6, minH: 6 },
+  { i: "content", x: 0, y: 19, w: 6, h: 5, minW: 3, minH: 4 },
+  { i: "projects", x: 6, y: 19, w: 6, h: 8, minW: 3, minH: 5 },
+  { i: "wellness", x: 0, y: 24, w: 6, h: 5, minW: 3, minH: 4 },
+  { i: "followups", x: 6, y: 27, w: 6, h: 8, minW: 3, minH: 5 },
+  { i: "bench", x: 0, y: 32, w: 12, h: 8, minW: 6, minH: 5 },
+];
+
+const MOBILE_ORDER: WidgetId[] = [
+  "inbox",
+  "calendar",
+  "timeline",
+  "money",
+  "content",
+  "projects",
+  "followups",
+  "wellness",
+  "bench",
+];
+
+function stackedLayout(cols: number): Layout[] {
+  let y = 0;
+  return MOBILE_ORDER.map((id) => {
+    const base = LG_BASE.find((l) => l.i === id)!;
+    const item: Layout = { i: id, x: 0, y, w: cols, h: base.h, minW: 1, minH: base.minH };
+    y += base.h;
+    return item;
+  });
+}
+
+function buildLayouts(locks: Record<string, boolean>): Layouts {
+  const apply = (arr: Layout[]) =>
+    arr.map((l) => ({ ...l, static: !!locks[l.i] }));
+  return {
+    lg: apply(LG_BASE),
+    md: apply(LG_BASE),
+    sm: apply(stackedLayout(6)),
+    xs: apply(stackedLayout(4)),
+    xxs: apply(stackedLayout(2)),
+  };
+}
+
+const LAYOUTS_KEY = "today_layouts_v1";
+const LOCKS_KEY = "today_locks_v1";
+
+function loadLayouts(): Layouts | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = localStorage.getItem(LAYOUTS_KEY);
+    return raw ? (JSON.parse(raw) as Layouts) : null;
+  } catch {
+    return null;
+  }
+}
+function loadLocks(): Record<string, boolean> {
+  if (typeof window === "undefined") return {};
+  try {
+    const raw = localStorage.getItem(LOCKS_KEY);
+    return raw ? (JSON.parse(raw) as Record<string, boolean>) : {};
+  } catch {
+    return {};
+  }
+}
 
 function startOfDay(d: Date): Date {
   const x = new Date(d);
