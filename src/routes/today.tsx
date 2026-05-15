@@ -43,7 +43,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Lock,
-  Unlock,
+  LockOpen,
   GripVertical,
   RotateCcw,
 } from "lucide-react";
