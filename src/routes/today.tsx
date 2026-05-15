@@ -102,7 +102,7 @@ function stackedLayout(cols: number): LayoutItem[] {
   let y = 0;
   return MOBILE_ORDER.map((id) => {
     const base = LG_BASE.find((l) => l.i === id)!;
-    const item: Layout = { i: id, x: 0, y, w: cols, h: base.h, minW: 1, minH: base.minH };
+    const item: LayoutItem = { i: id, x: 0, y, w: cols, h: base.h, minW: 1, minH: base.minH };
     y += base.h;
     return item;
   });
