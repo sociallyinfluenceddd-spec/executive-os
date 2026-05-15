@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Fragment, useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Responsive, WidthProvider, type LayoutItem, type ResponsiveLayouts } from "react-grid-layout/legacy";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -83,7 +83,6 @@ type WidgetId =
   | "timeline"
   | "content_pulse"
   | "projects"
-  | "wellness"
   | "follow_ups"
   | "bench"
   | "top_priority"
@@ -101,8 +100,7 @@ const LG_BASE: LayoutItem[] = [
   { i: "timeline", x: 0, y: 15, w: 12, h: 4, minW: 6, minH: 3 },
   { i: "content_pulse", x: 0, y: 19, w: 6, h: 5, minW: 3, minH: 4 },
   { i: "projects", x: 6, y: 19, w: 6, h: 5, minW: 3, minH: 4 },
-  { i: "wellness", x: 0, y: 24, w: 6, h: 5, minW: 3, minH: 4 },
-  { i: "follow_ups", x: 6, y: 24, w: 6, h: 8, minW: 3, minH: 4 },
+  { i: "follow_ups", x: 0, y: 24, w: 12, h: 8, minW: 3, minH: 4 },
   { i: "bench", x: 0, y: 29, w: 12, h: 6, minW: 6, minH: 5 },
   { i: "timers_alarms", x: 0, y: 35, w: 6, h: 7, minW: 3, minH: 5 },
   { i: "kitchen_recipes", x: 6, y: 35, w: 6, h: 8, minW: 3, minH: 6 },
@@ -118,8 +116,7 @@ const MD_BASE: LayoutItem[] = [
   { i: "timeline", x: 0, y: 15, w: 8, h: 4, minW: 4, minH: 3 },
   { i: "content_pulse", x: 0, y: 19, w: 4, h: 5, minW: 3, minH: 4 },
   { i: "projects", x: 4, y: 19, w: 4, h: 5, minW: 3, minH: 4 },
-  { i: "wellness", x: 0, y: 24, w: 4, h: 5, minW: 3, minH: 4 },
-  { i: "follow_ups", x: 4, y: 24, w: 4, h: 8, minW: 3, minH: 4 },
+  { i: "follow_ups", x: 0, y: 24, w: 8, h: 8, minW: 3, minH: 4 },
   { i: "bench", x: 0, y: 29, w: 8, h: 6, minW: 4, minH: 5 },
   { i: "timers_alarms", x: 0, y: 35, w: 4, h: 7, minW: 3, minH: 5 },
   { i: "kitchen_recipes", x: 4, y: 35, w: 4, h: 8, minW: 3, minH: 6 },
@@ -136,7 +133,6 @@ const MOBILE_ORDER: WidgetId[] = [
   "content_pulse",
   "projects",
   "follow_ups",
-  "wellness",
   "bench",
   "timers_alarms",
   "kitchen_recipes",
@@ -484,12 +480,22 @@ function TodayPage() {
     toast.success(`Added ${id.replace(/_/g, " ").toUpperCase()}`);
   }, [locks]);
 
+  // Refs hold the current committed state so removeWidget can snapshot
+  // synchronously before issuing the two setState calls. The previous
+  // implementation captured `prevActive`/`prevLayouts` from inside two
+  // separate setState callbacks; under concurrent renders or StrictMode
+  // the toast's Undo could restore stale state. Refs are updated by the
+  // effects below to stay in sync with React's committed state.
+  const activeWidgetsRef = useRef<string[]>([]);
+  const layoutsRef = useRef<ResponsiveLayouts | null>(null);
+  useEffect(() => { activeWidgetsRef.current = activeWidgets; }, [activeWidgets]);
+  useEffect(() => { layoutsRef.current = layouts; }, [layouts]);
+
   const removeWidget = useCallback((id: string) => {
-    let prevActive: string[] = [];
-    let prevLayouts: ResponsiveLayouts | null = null;
-    setActiveWidgets((cur) => { prevActive = cur; return cur.filter((x) => x !== id); });
+    const prevActive = activeWidgetsRef.current;
+    const prevLayouts = layoutsRef.current;
+    setActiveWidgets((cur) => cur.filter((x) => x !== id));
     setLayouts((cur) => {
-      prevLayouts = cur;
       const next: ResponsiveLayouts = { ...cur };
       (Object.keys(next) as (keyof ResponsiveLayouts)[]).forEach((bp) => {
         const arr = next[bp];
@@ -1233,43 +1239,10 @@ function TodayPage() {
           </Card>
         </div>
         )}
-        {activeWidgets.includes("wellness") && (
-        <div key="wellness" className="relative">
-          <Card
-            title="Wellness"
-            icon={TrendingUp}
-            className="h-full overflow-auto"
-            dragHandle={!locks.wellness && !isMobileViewport}
-            lockId="wellness"
-            locked={!!locks.wellness}
-            onToggleLock={toggleLock}
-            editMode={editMode}
-            onRemove={removeWidget}
-          >
-            <div className="flex items-center gap-4 mb-3">
-              <Sparkline values={energySeries} />
-              <div className="flex flex-col">
-        <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
-                  {trend === "up" && (
-                    <ArrowUpRight className="h-3.5 w-3.5 text-[color:var(--sage)]" />
-                  )}
-                  {trend === "down" && (
-                    <ArrowDownRight className="h-3.5 w-3.5 text-[color:var(--rose)]" />
-                  )}
-                  {trend === "flat" && <Minus className="h-3.5 w-3.5" />}
-                  {trend === "none" ? "Not enough data" : `Energy ${trend}`}
-                </span>
-                <span className="text-xs text-muted-foreground mt-1">
-                  Mood: {daily?.mood ?? "—"}
-                </span>
-                <span className="text-xs text-muted-foreground">
-                  Logged {loggedDays}/7 days
-                </span>
-              </div>
-            </div>
-          </Card>
-        </div>
-        )}
+        {/* WELLNESS widget removed: never made it into the widget catalog,
+           so any user who removed it couldn't re-add it. The Sparkline /
+           trend / mood components remain in case a real wellness widget is
+           rebuilt later. */}
 
         {/* FOLLOW-UPS */}
         {activeWidgets.includes("follow_ups") && (
