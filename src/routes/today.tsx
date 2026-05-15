@@ -43,7 +43,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Lock,
-  Unlock,
+  LockOpen,
   GripVertical,
   RotateCcw,
 } from "lucide-react";
@@ -769,12 +769,14 @@ function TodayPage() {
       >
         {/* CALENDAR */}
         <div key="calendar" className="relative">
-          <WidgetChrome id="calendar" locked={!!locks.calendar} onToggle={toggleLock} />
           <Card
             title="Calendar"
             icon={CalendarClock}
-            className="h-full overflow-auto pr-10"
+            className="h-full overflow-auto"
             dragHandle={!locks.calendar && !isMobileViewport}
+            lockId="calendar"
+            locked={!!locks.calendar}
+            onToggleLock={toggleLock}
             right={
               availableCalendars.length > 1 ? (
                 <Select value={selectedCalendar} onValueChange={setSelectedCalendar}>
@@ -854,12 +856,14 @@ function TodayPage() {
 
         {/* INBOX */}
         <div key="inbox" className="relative">
-          <WidgetChrome id="inbox" locked={!!locks.inbox} onToggle={toggleLock} />
           <Card
             title="Inbox"
             icon={Inbox}
-            className="h-full overflow-auto pr-10"
+            className="h-full overflow-auto"
             dragHandle={!locks.inbox && !isMobileViewport}
+            lockId="inbox"
+            locked={!!locks.inbox}
+            onToggleLock={toggleLock}
             right={
               <Select value={accountFilter} onValueChange={setAccountFilter}>
                 <SelectTrigger className="no-drag h-7 text-xs w-[130px] sm:w-[150px]">
@@ -907,13 +911,15 @@ function TodayPage() {
 
         {/* MONEY */}
         <div key="money" className="relative">
-          <WidgetChrome id="money" locked={!!locks.money} onToggle={toggleLock} />
           <Card
             title="Money"
             icon={Banknote}
             info
-            className="h-full overflow-auto pr-10"
+            className="h-full overflow-auto"
             dragHandle={!locks.money && !isMobileViewport}
+            lockId="money"
+            locked={!!locks.money}
+            onToggleLock={toggleLock}
           >
             <EmptyState text="No lead data yet. Connecting Ideafetti DB…" />
           </Card>
@@ -921,12 +927,14 @@ function TodayPage() {
 
         {/* TIMELINE */}
         <div key="timeline" className="relative">
-          <WidgetChrome id="timeline" locked={!!locks.timeline} onToggle={toggleLock} />
           <Card
             title="Timeline"
             icon={Activity}
-            className="h-full overflow-auto pr-10"
+            className="h-full overflow-auto"
             dragHandle={!locks.timeline && !isMobileViewport}
+            lockId="timeline"
+            locked={!!locks.timeline}
+            onToggleLock={toggleLock}
           >
             <DateNav
               selectedDate={selectedDate}
@@ -944,13 +952,15 @@ function TodayPage() {
 
         {/* CONTENT PULSE */}
         <div key="content" className="relative">
-          <WidgetChrome id="content" locked={!!locks.content} onToggle={toggleLock} />
           <Card
             title="Content pulse"
             icon={Sparkles}
             info
-            className="h-full overflow-auto pr-10"
+            className="h-full overflow-auto"
             dragHandle={!locks.content && !isMobileViewport}
+            lockId="content"
+            locked={!!locks.content}
+            onToggleLock={toggleLock}
           >
             <EmptyState text="Syncing Ideafetti content data…" />
           </Card>
@@ -958,12 +968,14 @@ function TodayPage() {
 
         {/* PROJECTS */}
         <div key="projects" className="relative">
-          <WidgetChrome id="projects" locked={!!locks.projects} onToggle={toggleLock} />
           <Card
             title="Projects"
             icon={FolderKanban}
-            className="h-full overflow-auto pr-10"
+            className="h-full overflow-auto"
             dragHandle={!locks.projects && !isMobileViewport}
+            lockId="projects"
+            locked={!!locks.projects}
+            onToggleLock={toggleLock}
           >
             <ul className="space-y-3">
               {DEFAULT_PROJECTS.map((p) => {
@@ -1004,12 +1016,14 @@ function TodayPage() {
 
         {/* WELLNESS */}
         <div key="wellness" className="relative">
-          <WidgetChrome id="wellness" locked={!!locks.wellness} onToggle={toggleLock} />
           <Card
             title="Wellness"
             icon={TrendingUp}
-            className="h-full overflow-auto pr-10"
+            className="h-full overflow-auto"
             dragHandle={!locks.wellness && !isMobileViewport}
+            lockId="wellness"
+            locked={!!locks.wellness}
+            onToggleLock={toggleLock}
           >
             <div className="flex items-center gap-4 mb-3">
               <Sparkline values={energySeries} />
@@ -1037,12 +1051,14 @@ function TodayPage() {
 
         {/* FOLLOW-UPS */}
         <div key="followups" className="relative">
-          <WidgetChrome id="followups" locked={!!locks.followups} onToggle={toggleLock} />
           <Card
             title="Follow-ups"
             icon={MessageCircle}
-            className="h-full overflow-auto pr-10"
+            className="h-full overflow-auto"
             dragHandle={!locks.followups && !isMobileViewport}
+            lockId="followups"
+            locked={!!locks.followups}
+            onToggleLock={toggleLock}
           >
             {followUps.length === 0 ? (
               <p className="text-xs text-muted-foreground py-3">All caught up. ✨</p>
@@ -1083,22 +1099,24 @@ function TodayPage() {
 
         {/* BENCH */}
         <div key="bench" className="relative">
-          <WidgetChrome id="bench" locked={!!locks.bench} onToggle={toggleLock} />
           <div
-            className={`h-full overflow-auto rounded-xl border border-border bg-card p-4 sm:p-5 lg:p-6 pr-10 ${
+            className={`h-full overflow-auto rounded-xl border border-border bg-card p-4 sm:p-5 lg:p-6 ${
               !locks.bench && !isMobileViewport ? "" : ""
             }`}
           >
-            <div
-              className={
-                !locks.bench && !isMobileViewport
-                  ? "widget-drag-handle cursor-grab active:cursor-grabbing -m-2 p-2 mb-2"
-                  : "mb-2"
-              }
-            >
-              <h2 className="inline-flex items-center gap-2 text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">
-                Your Bench
-              </h2>
+            <div className="flex items-center justify-between gap-3 mb-2">
+              <div
+                className={
+                  !locks.bench && !isMobileViewport
+                    ? "widget-drag-handle cursor-grab active:cursor-grabbing flex-1 -m-2 p-2"
+                    : "flex-1"
+                }
+              >
+                <h2 className="inline-flex items-center gap-2 text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">
+                  Your Bench
+                </h2>
+              </div>
+              <WidgetChrome id="bench" locked={!!locks.bench} onToggle={toggleLock} />
             </div>
             <div className="no-drag">
               <BenchRow
@@ -1149,6 +1167,9 @@ function Card({
   right,
   info = false,
   dragHandle = false,
+  lockId,
+  locked,
+  onToggleLock,
 }: {
   title: string;
   icon?: React.ComponentType<{ className?: string }>;
@@ -1157,6 +1178,9 @@ function Card({
   right?: React.ReactNode;
   info?: boolean;
   dragHandle?: boolean;
+  lockId?: WidgetId;
+  locked?: boolean;
+  onToggleLock?: (id: WidgetId) => void;
 }) {
   return (
     <section
@@ -1183,7 +1207,12 @@ function Card({
             </span>
           )}
         </h2>
-        {right && <div className="no-drag">{right}</div>}
+        <div className="no-drag flex items-center gap-1">
+          {right}
+          {lockId && onToggleLock && (
+            <WidgetChrome id={lockId} locked={!!locked} onToggle={onToggleLock} />
+          )}
+        </div>
       </header>
       {children}
     </section>
@@ -1200,17 +1229,15 @@ function WidgetChrome({
   onToggle: (id: WidgetId) => void;
 }) {
   return (
-    <div className="no-drag absolute top-1.5 right-1.5 z-20 flex items-center gap-0.5 opacity-60 hover:opacity-100 transition">
-      <button
-        type="button"
-        onClick={() => onToggle(id)}
-        className="p-1.5 rounded hover:bg-muted text-muted-foreground"
-        aria-label={locked ? "Unlock widget" : "Lock widget"}
-        title={locked ? "Unlock widget" : "Lock widget"}
-      >
-        {locked ? <Lock className="h-3.5 w-3.5" /> : <Unlock className="h-3.5 w-3.5" />}
-      </button>
-    </div>
+    <button
+      type="button"
+      onClick={() => onToggle(id)}
+      className="no-drag inline-flex items-center justify-center p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition"
+      aria-label={locked ? "Unlock widget" : "Lock widget"}
+      title={locked ? "Unlock widget" : "Lock widget"}
+    >
+      {locked ? <Lock className="h-3.5 w-3.5" /> : <LockOpen className="h-3.5 w-3.5" />}
+    </button>
   );
 }
 
