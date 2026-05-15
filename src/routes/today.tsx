@@ -130,26 +130,60 @@ function buildLayouts(locks: Record<string, boolean>): ResponsiveLayouts {
   };
 }
 
-const LAYOUTS_KEY = "today_layouts_v1";
-const LOCKS_KEY = "today_locks_v1";
+const DASHBOARD_KEY = "execOs.dashboardLayout.v1";
+// Legacy keys (migrated on first load)
+const LEGACY_LAYOUTS_KEY = "today_layouts_v1";
+const LEGACY_LOCKS_KEY = "today_locks_v1";
 
-function loadLayouts(): ResponsiveLayouts | null {
+type DashboardPersisted = {
+  lg?: LayoutItem[];
+  md?: LayoutItem[];
+  sm?: LayoutItem[];
+  locked?: Record<string, boolean>;
+};
+
+function loadDashboard(): DashboardPersisted | null {
   if (typeof window === "undefined") return null;
   try {
-    const raw = localStorage.getItem(LAYOUTS_KEY);
-    return raw ? (JSON.parse(raw) as ResponsiveLayouts) : null;
+    const raw = localStorage.getItem(DASHBOARD_KEY);
+    if (raw) return JSON.parse(raw) as DashboardPersisted;
+    // Migrate from legacy keys
+    const legacyLayouts = localStorage.getItem(LEGACY_LAYOUTS_KEY);
+    const legacyLocks = localStorage.getItem(LEGACY_LOCKS_KEY);
+    if (legacyLayouts || legacyLocks) {
+      const layouts = legacyLayouts ? (JSON.parse(legacyLayouts) as ResponsiveLayouts) : {};
+      const locked = legacyLocks ? (JSON.parse(legacyLocks) as Record<string, boolean>) : {};
+      const migrated: DashboardPersisted = { ...layouts, locked };
+      try { localStorage.setItem(DASHBOARD_KEY, JSON.stringify(migrated)); } catch {}
+      return migrated;
+    }
+    return null;
   } catch {
     return null;
   }
 }
+
+function loadLayouts(): ResponsiveLayouts | null {
+  const d = loadDashboard();
+  if (!d) return null;
+  const { lg, md, sm } = d;
+  if (!lg && !md && !sm) return null;
+  return { lg, md, sm } as ResponsiveLayouts;
+}
 function loadLocks(): Record<string, boolean> {
-  if (typeof window === "undefined") return {};
+  return loadDashboard()?.locked ?? {};
+}
+function saveDashboard(layouts: ResponsiveLayouts, locked: Record<string, boolean>) {
+  if (typeof window === "undefined") return;
   try {
-    const raw = localStorage.getItem(LOCKS_KEY);
-    return raw ? (JSON.parse(raw) as Record<string, boolean>) : {};
-  } catch {
-    return {};
-  }
+    const payload: DashboardPersisted = {
+      lg: layouts.lg as LayoutItem[] | undefined,
+      md: layouts.md as LayoutItem[] | undefined,
+      sm: layouts.sm as LayoutItem[] | undefined,
+      locked,
+    };
+    localStorage.setItem(DASHBOARD_KEY, JSON.stringify(payload));
+  } catch {}
 }
 
 function startOfDay(d: Date): Date {
