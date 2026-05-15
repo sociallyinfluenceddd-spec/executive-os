@@ -659,15 +659,51 @@ function TodayPage() {
   }
 
   const [personalization] = usePersonalization();
-  const personaStyle = personalizationStyle(personalization);
-  const wrapperStyle = personalization.fullPage ? personaStyle : undefined;
-  const headerStyle = personalization.fullPage ? undefined : personaStyle;
+  const personaStyle: React.CSSProperties | undefined = (() => {
+    if (personalization.mode === "color" && personalization.color) {
+      return { backgroundColor: personalization.color };
+    }
+    if (personalization.mode === "image" && personalization.imageDataUrl) {
+      return {
+        backgroundImage: `url(${personalization.imageDataUrl})`,
+        backgroundSize: "cover",
+        backgroundPosition: "center",
+      };
+    }
+    return undefined;
+  })();
+  const isImage = personalization.mode === "image" && !!personalization.imageDataUrl;
+  const isDarkBg =
+    personalization.mode === "color" && !!personalization.color
+      ? isDarkColor(personalization.color)
+      : isImage; // assume images need light text by default
+  const fullPage = personalization.applyFullPage && !!personaStyle;
+  const wrapperStyle = fullPage ? personaStyle : undefined;
+  const headerStyle = fullPage ? undefined : personaStyle;
   const headerBgClass = headerStyle ? "" : "bg-background/85 backdrop-blur";
+  const overlayNeeded = fullPage && isImage;
+  const textOverrideClass = isDarkBg ? "today-personalized-text" : "";
+  const textShadowStyle: React.CSSProperties | undefined = isImage
+    ? { textShadow: "0 1px 2px rgba(0,0,0,0.3)" }
+    : undefined;
 
   return (
-    <div className="space-y-3 sm:space-y-4 pb-32" style={wrapperStyle}>
+    <div
+      className={`relative space-y-3 sm:space-y-4 pb-32 ${textOverrideClass}`}
+      style={{ ...wrapperStyle, ...textShadowStyle }}
+    >
+      {overlayNeeded && (
+        <div
+          aria-hidden
+          className="pointer-events-none fixed inset-0 z-0"
+          style={{ backgroundColor: "rgba(255,255,255,0.6)" }}
+        />
+      )}
       {/* HEADER STRIP — sticky */}
-      <header style={headerStyle} className={`sticky top-0 z-30 -mx-3 sm:-mx-5 lg:-mx-6 px-3 sm:px-5 lg:px-6 py-3 sm:py-4 ${headerBgClass} border-b border-border`}>
+      <header
+        style={{ ...headerStyle, ...(headerStyle && isImage ? textShadowStyle : {}) }}
+        className={`relative z-10 sticky top-0 z-30 -mx-3 sm:-mx-5 lg:-mx-6 px-3 sm:px-5 lg:px-6 py-3 sm:py-4 ${headerBgClass} border-b border-border ${headerStyle && isDarkBg ? "today-personalized-text" : ""}`}
+      >
         {/* Mobile: stacked. Desktop: 12-col grid */}
         <div className="flex flex-col gap-3 lg:grid lg:grid-cols-12 lg:gap-4 lg:items-center">
           {/* Top row on mobile: clock + data-fresh pill */}
