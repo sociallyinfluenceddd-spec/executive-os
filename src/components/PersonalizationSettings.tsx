@@ -49,6 +49,8 @@ export function PersonalizationSettings() {
         </p>
       </div>
 
+      <HeaderPreview p={p} />
+
       <div className="inline-flex rounded-lg border border-border bg-muted/50 p-0.5">
         {(["default", "color", "image"] as PersonalizationMode[]).map((m) => {
           const active = p.mode === m;
