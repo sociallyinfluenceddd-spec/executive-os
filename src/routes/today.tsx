@@ -777,15 +777,6 @@ function TodayPage() {
       </header>
 
       {/* Draggable / resizable dashboard grid */}
-      <div className="flex items-center justify-end gap-2 -mb-1">
-        <button
-          type="button"
-          onClick={resetLayout}
-          className="inline-flex items-center gap-1 text-[10px] uppercase tracking-wider text-muted-foreground hover:text-foreground"
-        >
-          <RotateCcw className="h-3 w-3" /> Reset layout
-        </button>
-      </div>
       <ResponsiveGridLayout
         className="layout"
         layouts={layouts}
