@@ -1104,16 +1104,19 @@ function TodayPage() {
               !locks.bench && !isMobileViewport ? "" : ""
             }`}
           >
-            <div
-              className={
-                !locks.bench && !isMobileViewport
-                  ? "widget-drag-handle cursor-grab active:cursor-grabbing -m-2 p-2 mb-2"
-                  : "mb-2"
-              }
-            >
-              <h2 className="inline-flex items-center gap-2 text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">
-                Your Bench
-              </h2>
+            <div className="flex items-center justify-between gap-3 mb-2">
+              <div
+                className={
+                  !locks.bench && !isMobileViewport
+                    ? "widget-drag-handle cursor-grab active:cursor-grabbing flex-1 -m-2 p-2"
+                    : "flex-1"
+                }
+              >
+                <h2 className="inline-flex items-center gap-2 text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">
+                  Your Bench
+                </h2>
+              </div>
+              <WidgetChrome id="bench" locked={!!locks.bench} onToggle={toggleLock} />
             </div>
             <div className="no-drag">
               <BenchRow
