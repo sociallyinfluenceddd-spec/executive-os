@@ -66,6 +66,7 @@ import {
   Pencil,
   X,
   LayoutGrid,
+  Users,
 } from "lucide-react";
 
 const ResponsiveGridLayout = WidthProvider(Responsive);
@@ -83,6 +84,7 @@ type WidgetId =
   | "bench"
   | "top_priority"
   | "voice_capture"
+  | "bench_whispers"
   | "done_today";
 
 const LG_BASE: LayoutItem[] = [
