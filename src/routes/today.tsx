@@ -1200,17 +1200,15 @@ function WidgetChrome({
   onToggle: (id: WidgetId) => void;
 }) {
   return (
-    <div className="no-drag absolute top-1.5 right-1.5 z-20 flex items-center gap-0.5 opacity-60 hover:opacity-100 transition">
-      <button
-        type="button"
-        onClick={() => onToggle(id)}
-        className="p-1.5 rounded hover:bg-muted text-muted-foreground"
-        aria-label={locked ? "Unlock widget" : "Lock widget"}
-        title={locked ? "Unlock widget" : "Lock widget"}
-      >
-        {locked ? <Lock className="h-3.5 w-3.5" /> : <Unlock className="h-3.5 w-3.5" />}
-      </button>
-    </div>
+    <button
+      type="button"
+      onClick={() => onToggle(id)}
+      className="no-drag inline-flex items-center justify-center p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition"
+      aria-label={locked ? "Unlock widget" : "Lock widget"}
+      title={locked ? "Unlock widget" : "Lock widget"}
+    >
+      {locked ? <Lock className="h-3.5 w-3.5" /> : <LockOpen className="h-3.5 w-3.5" />}
+    </button>
   );
 }
 
