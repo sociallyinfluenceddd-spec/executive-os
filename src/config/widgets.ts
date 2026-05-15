@@ -12,7 +12,7 @@ export const WIDGET_CATALOG: WidgetCatalogItem[] = [
   { id: "inbox",         name: "Inbox",          icon: "Mail",         description: "Priority + needs-response email counts",     status: "connected" },
   { id: "calendar",      name: "Calendar Today", icon: "CalendarDays", description: "Today's events with full detail panel",       status: "connected" },
   { id: "timeline",      name: "Timeline",       icon: "Activity",     description: "24-hour visual timeline of meetings",         status: "connected" },
-  { id: "projects",      name: "Projects",       icon: "FolderKanban", description: "Active project progress bars",                status: "connected" },
+  { id: "projects",      name: "Projects",       icon: "FolderKanban", description: "Active project progress bars",                status: "needs_setup" },
   { id: "follow_ups",    name: "Follow-ups",     icon: "MessageCircle",description: "People + threads awaiting your reply",        status: "needs_setup" },
   { id: "money",         name: "Money",          icon: "CreditCard",   description: "Lead pipeline + revenue from Ideafetti",      status: "needs_setup" },
   { id: "content_pulse", name: "Content Pulse",  icon: "Sparkles",     description: "Latest content performance from Ideafetti",   status: "needs_setup" },
@@ -27,6 +27,10 @@ export const WIDGET_CATALOG: WidgetCatalogItem[] = [
 
 export const ACTIVE_WIDGETS_KEY = "execOs.activeWidgets.v1";
 
+// New-user defaults. The three "Ideafetti-fed" widgets (money, content_pulse,
+// projects) are intentionally OFF here — they have no live data source yet
+// and used to show fake/placeholder content as if real. Users can add them
+// from the widget library once their backend is wired up.
 export const DEFAULT_ACTIVE_WIDGETS: string[] = [
   "top_priority",
   "bench",
@@ -37,9 +41,6 @@ export const DEFAULT_ACTIVE_WIDGETS: string[] = [
   "bench_whispers",
   "timers_alarms",
   "kitchen_recipes",
-  "content_pulse",
-  "money",
-  "projects",
 ];
 
 // Widgets that should be auto-appended to existing users' saved layouts

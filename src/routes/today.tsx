@@ -426,13 +426,10 @@ function urgencyDot(iso: string | null): string {
   return "bg-[color:var(--sage)]";
 }
 
-const DEFAULT_PROJECTS = [
-  { name: "Ideafetti", progress: 62, last_touched_h: 4 },
-  { name: "AI Lead Conversion", progress: 38, last_touched_h: 26 },
-  { name: "Skool community", progress: 50, last_touched_h: 200 },
-  { name: "Content / TikTok", progress: 71, last_touched_h: 12 },
-  { name: "Executive OS", progress: 28, last_touched_h: 1 },
-];
+// PROJECTS used to ship with five hardcoded fake rows (Ideafetti 62%, AI Lead
+// 38%, etc.) displayed to the user as if real. Removed — the widget now
+// renders an honest "needs setup" empty state until a real backing source
+// (Ideafetti DB, exec_os_projects table, etc.) is wired in.
 
 function TodayPage() {
   // Live clock
@@ -490,9 +487,14 @@ function TodayPage() {
     setLocks((cur) => ({ ...cur, [id]: !cur[id] }));
   }, []);
   const resetLayout = useCallback(() => {
+    const ok = typeof window !== "undefined"
+      ? window.confirm("Reset dashboard layout? This will undo all drag, resize, and lock customizations.")
+      : true;
+    if (!ok) return;
     try { localStorage.removeItem(DASHBOARD_KEY); } catch {}
     setLocks({});
     setLayouts(buildLayouts({}));
+    toast.success("Dashboard layout reset");
   }, []);
 
   // Active widgets + edit mode + library sheet
@@ -628,7 +630,7 @@ function TodayPage() {
   useEffect(() => {
     if (!user) return;
     const ch = supabase
-      .channel("cockpit_emails")
+      .channel("exec_os_emails_rt")
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "exec_os_emails" },
@@ -657,7 +659,7 @@ function TodayPage() {
   useEffect(() => {
     if (!user) return;
     const ch = supabase
-      .channel("cockpit_calendar")
+      .channel("exec_os_calendar_rt")
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "exec_os_calendar_events" },
@@ -1189,7 +1191,10 @@ function TodayPage() {
             editMode={editMode}
             onRemove={removeWidget}
           >
-            <EmptyState text="No lead data yet. Connecting Ideafetti DB…" />
+            <NeedsSetup
+              title="Money widget needs a backing source"
+              body="Lead pipeline + revenue come from Ideafetti. The connector isn’t wired yet — this widget will populate once it is."
+            />
           </Card>
         </div>
         )}
@@ -1238,7 +1243,10 @@ function TodayPage() {
             editMode={editMode}
             onRemove={removeWidget}
           >
-            <EmptyState text="Syncing Ideafetti content data…" />
+            <NeedsSetup
+              title="Content pulse needs a backing source"
+              body="Content metrics come from Ideafetti. The connector isn’t wired yet — this widget will populate once it is."
+            />
           </Card>
         </div>
         )}
@@ -1257,40 +1265,10 @@ function TodayPage() {
             editMode={editMode}
             onRemove={removeWidget}
           >
-            <ul className="space-y-3">
-              {DEFAULT_PROJECTS.map((p) => {
-        const stalled = p.last_touched_h > 168;
-                return (
-                  <li key={p.name}>
-                    <div className="flex items-center justify-between text-xs mb-1">
-                      <span className="font-medium text-foreground flex items-center gap-2">
-                        {p.name}
-                        {stalled && (
-                          <span className="px-1.5 py-0.5 text-[10px] rounded-full bg-[color:var(--rose)]/20 text-[color:var(--rose)]">
-                            Stalled
-                          </span>
-                        )}
-                      </span>
-                      <span className="text-muted-foreground">
-                        {p.last_touched_h < 24
-                          ? `${p.last_touched_h}h ago`
-                          : `${Math.round(p.last_touched_h / 24)}d ago`}
-                      </span>
-                    </div>
-                    <div className="h-2 rounded-full bg-muted overflow-hidden">
-                      <div
-                        className="h-full rounded-full"
-                        style={{
-                          width: `${p.progress}%`,
-                          background:
-                            "linear-gradient(90deg, var(--sage), var(--navy))",
-                        }}
-                      />
-                    </div>
-                  </li>
-                );
-              })}
-            </ul>
+            <NeedsSetup
+              title="Projects needs a backing source"
+              body="This widget used to show placeholder data. Wire it to an exec_os_projects table or your Ideafetti DB to see real progress here."
+            />
           </Card>
         </div>
         )}
@@ -1676,6 +1654,21 @@ function EmptyState({ text }: { text: string }) {
     <p className="text-xs text-muted-foreground/70 italic py-6 text-center">
       {text}
     </p>
+  );
+}
+
+// Honest "not wired yet" state — used by widgets that don't have a backing
+// data source. Visually distinct from "table is empty" so the user can tell
+// them apart at a glance.
+function NeedsSetup({ title, body }: { title: string; body: string }) {
+  return (
+    <div className="flex flex-col items-center justify-center text-center gap-1.5 py-6 px-4">
+      <div className="text-xs font-semibold uppercase tracking-wider text-[color:var(--orange)]">
+        Needs setup
+      </div>
+      <div className="text-sm font-medium text-foreground">{title}</div>
+      <div className="text-xs text-muted-foreground max-w-[28ch]">{body}</div>
+    </div>
   );
 }
 
