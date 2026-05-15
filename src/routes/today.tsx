@@ -20,6 +20,7 @@ import { WidgetLibrarySheet } from "@/components/WidgetLibrarySheet";
 import { TopPriorityWidget } from "@/components/widgets/top_priority";
 import { VoiceCaptureWidget } from "@/components/widgets/voice_capture";
 import { DoneTodayWidget } from "@/components/widgets/done_today";
+import { FollowUpsWidget } from "@/components/widgets/follow_ups";
 import {
   Select,
   SelectContent,
@@ -1299,40 +1300,11 @@ function TodayPage() {
             editMode={editMode}
             onRemove={removeWidget}
           >
-            {followUps.length === 0 ? (
-              <p className="text-xs text-muted-foreground py-3">All caught up. ✨</p>
-            ) : (
-              <ul className="divide-y divide-border">
-        {followUps.slice(0, 6).map((f) => {
-                  const days = Math.floor(
-                    (Date.now() - new Date(f.received_at!).getTime()) / 86400_000,
-                  );
-                  return (
-                    <li key={f.id} className="py-2 flex items-start gap-3">
-                      <div className="min-w-0 flex-1">
-                        <div className="text-sm font-medium text-foreground truncate">
-                          {f.sender_name || f.sender_email || "Unknown"}
-                        </div>
-                        <div className="text-xs text-muted-foreground truncate">
-                          {f.subject || f.snippet || "(no subject)"}
-                        </div>
-                        <div className="text-[11px] text-[color:var(--rose)] mt-0.5">
-                          {days}d waiting
-                        </div>
-                      </div>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="no-drag h-9 sm:h-7 text-xs"
-                        onClick={() => setEmailStatus(f.id, "read")}
-                      >
-                        Replied
-                      </Button>
-                    </li>
-                  );
-                })}
-              </ul>
-            )}
+            <FollowUpsWidget
+              userId={user?.id}
+              userEmail={user?.email}
+              onOpenEvent={(ev) => setSelectedEvent(ev)}
+            />
           </Card>
         </div>
         )}

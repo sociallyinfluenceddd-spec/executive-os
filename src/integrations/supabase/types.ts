@@ -331,6 +331,27 @@ export type Database = {
         }
         Relationships: []
       }
+      feature_interest: {
+        Row: {
+          created_at: string
+          feature: string
+          id: string
+          user_email: string | null
+        }
+        Insert: {
+          created_at?: string
+          feature: string
+          id?: string
+          user_email?: string | null
+        }
+        Update: {
+          created_at?: string
+          feature?: string
+          id?: string
+          user_email?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
