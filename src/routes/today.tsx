@@ -1216,13 +1216,18 @@ function Card({
   locked?: boolean;
   onToggleLock?: (id: WidgetId) => void;
 }) {
+  const isLocked = !!locked;
   return (
     <section
-      className={`rounded-xl border border-border bg-card p-4 sm:p-5 lg:p-6 ${className}`}
+      className={`group/widget rounded-xl border bg-card p-4 sm:p-5 lg:p-6 transition-colors ${
+        isLocked
+          ? "border-border"
+          : "border-border hover:border-dotted hover:border-[color:var(--navy)]/40"
+      } ${className}`}
     >
       <header
         className={`flex items-center justify-between gap-3 mb-4 ${
-          dragHandle ? "widget-drag-handle cursor-grab active:cursor-grabbing" : ""
+          dragHandle && !isLocked ? "widget-drag-handle cursor-grab active:cursor-grabbing" : ""
         }`}
       >
         <h2 className="inline-flex items-center gap-2 text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">
@@ -1266,7 +1271,11 @@ function WidgetChrome({
     <button
       type="button"
       onClick={() => onToggle(id)}
-      className="no-drag inline-flex items-center justify-center p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition"
+      className={`no-drag inline-flex items-center justify-center p-1.5 rounded hover:bg-muted transition ${
+        locked
+          ? "text-[color:var(--navy)]"
+          : "text-muted-foreground hover:text-foreground"
+      }`}
       aria-label={locked ? "Unlock widget" : "Lock widget"}
       title={locked ? "Unlock widget" : "Lock widget"}
     >
