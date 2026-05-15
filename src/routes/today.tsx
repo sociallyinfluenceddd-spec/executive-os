@@ -1376,7 +1376,89 @@ function TodayPage() {
           </div>
         </div>
         )}
+
+        {/* TOP PRIORITY (stub) */}
+        {activeWidgets.includes("top_priority") && (
+          <div key="top_priority" className="relative">
+            <Card
+              title="Top priority"
+              icon={Sparkles}
+              className="h-full overflow-auto"
+              dragHandle={!locks.top_priority && !isMobileViewport}
+              lockId="top_priority"
+              locked={!!locks.top_priority}
+              onToggleLock={toggleLock}
+              editMode={editMode}
+              onRemove={removeWidget}
+            >
+              <TopPriorityWidget topPriority={daily?.top_priority ?? null} />
+            </Card>
+          </div>
+        )}
+
+        {/* VOICE CAPTURE (stub) */}
+        {activeWidgets.includes("voice_capture") && (
+          <div key="voice_capture" className="relative">
+            <Card
+              title="Voice capture"
+              icon={Mic}
+              className="h-full overflow-auto"
+              dragHandle={!locks.voice_capture && !isMobileViewport}
+              lockId="voice_capture"
+              locked={!!locks.voice_capture}
+              onToggleLock={toggleLock}
+              editMode={editMode}
+              onRemove={removeWidget}
+            >
+              <VoiceCaptureWidget />
+            </Card>
+          </div>
+        )}
+
+        {/* DONE TODAY (stub) */}
+        {activeWidgets.includes("done_today") && (
+          <div key="done_today" className="relative">
+            <Card
+              title="Done for today"
+              icon={Activity}
+              className="h-full overflow-auto"
+              dragHandle={!locks.done_today && !isMobileViewport}
+              lockId="done_today"
+              locked={!!locks.done_today}
+              onToggleLock={toggleLock}
+              editMode={editMode}
+              onRemove={removeWidget}
+            >
+              <DoneTodayWidget />
+            </Card>
+          </div>
+        )}
       </ResponsiveGridLayout>
+
+      {activeWidgets.length === 0 && (
+        <div className="rounded-xl border border-dashed border-border bg-card p-12 flex flex-col items-center justify-center text-center gap-4">
+          <LayoutGrid className="h-10 w-10 text-muted-foreground/60" />
+          <div>
+            <p className="text-base font-medium text-foreground">Your dashboard is empty.</p>
+            <p className="text-sm text-muted-foreground mt-1">Click + to add widgets.</p>
+          </div>
+          <Button
+            onClick={() => setLibraryOpen(true)}
+            style={{ backgroundColor: "#083D77", color: "white" }}
+          >
+            Open widget library
+          </Button>
+        </div>
+      )}
+
+      <WidgetLibrarySheet
+        open={libraryOpen}
+        onOpenChange={setLibraryOpen}
+        side={isMobileViewport ? "bottom" : "right"}
+        activeIds={activeWidgets}
+        onAdd={(id) => addWidget(id)}
+        onRemove={(id) => removeWidget(id)}
+      />
 
       <button
         type="button"
