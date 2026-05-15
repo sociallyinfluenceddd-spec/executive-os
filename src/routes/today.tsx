@@ -12,7 +12,6 @@ import { usePersonalization, isDarkColor } from "@/lib/personalization";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import {
-  WIDGET_CATALOG,
   ACTIVE_WIDGETS_KEY,
   DEFAULT_ACTIVE_WIDGETS,
   defaultSizeFor,
