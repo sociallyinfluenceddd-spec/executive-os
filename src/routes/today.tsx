@@ -10,6 +10,17 @@ import { CaptureModal } from "@/components/CaptureModal";
 import { BenchRow } from "@/components/BenchRow";
 import { usePersonalization, isDarkColor } from "@/lib/personalization";
 import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
+import {
+  WIDGET_CATALOG,
+  ACTIVE_WIDGETS_KEY,
+  DEFAULT_ACTIVE_WIDGETS,
+  defaultSizeFor,
+} from "@/config/widgets";
+import { WidgetLibrarySheet } from "@/components/WidgetLibrarySheet";
+import { TopPriorityWidget } from "@/components/widgets/top_priority";
+import { VoiceCaptureWidget } from "@/components/widgets/voice_capture";
+import { DoneTodayWidget } from "@/components/widgets/done_today";
 import {
   Select,
   SelectContent,
