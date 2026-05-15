@@ -45,7 +45,7 @@ const InputSchema = z.object({
 export const streamAdvisorChat = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator(InputSchema.parse)
-  .handler(async function* ({ data, context }) {
+  .handler(async function* ({ data, context }): AsyncGenerator<any, void, unknown> {
     const { supabase, userId } = context;
 
     // --- Load agent config ---
@@ -92,14 +92,15 @@ export const streamAdvisorChat = createServerFn({ method: "POST" })
       threadId = thread?.id ?? null;
     }
 
-    const { data: history } = await supabase
+    let historyQuery = supabase
       .from("exec_os_agent_messages")
       .select("role, content, tool_calls, tool_results")
       .eq("agent_id", agent.id)
       .eq("user_id", userId)
-      .eq("thread_id", threadId)
       .order("created_at", { ascending: true })
       .limit(40);
+    if (threadId) historyQuery = historyQuery.eq("thread_id", threadId);
+    const { data: history } = await historyQuery;
 
     const messages: AnthropicMessage[] = [];
     for (const m of history ?? []) {
@@ -265,7 +266,7 @@ export const streamAdvisorChat = createServerFn({ method: "POST" })
         role: "assistant",
         content: assistantText,
         reasoning: assistantThinking || null,
-        tool_calls: lastAssistantBlocks.filter((b) => b.type === "tool_use") as unknown as Record<string, unknown>,
+        tool_calls: lastAssistantBlocks.filter((b) => b.type === "tool_use") as any,
         model: modelId,
         input_tokens: totalInputTokens,
         output_tokens: totalOutputTokens,
