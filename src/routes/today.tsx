@@ -332,6 +332,34 @@ function TodayPage() {
     window.localStorage.setItem("today.selectedCalendar", selectedCalendar);
   }, [selectedCalendar]);
 
+  // Dashboard grid layout state
+  const isMobileViewport = useIsMobile();
+  const [locks, setLocks] = useState<Record<string, boolean>>(() => loadLocks());
+  const [layouts, setLayouts] = useState<ResponsiveLayouts>(() => loadLayouts() ?? buildLayouts(loadLocks()));
+  useEffect(() => {
+    try { localStorage.setItem(LOCKS_KEY, JSON.stringify(locks)); } catch {}
+    setLayouts((cur) => {
+      const next: ResponsiveLayouts = { ...cur };
+      (Object.keys(next) as (keyof ResponsiveLayouts)[]).forEach((bp) => {
+        const arr = next[bp];
+        if (arr) next[bp] = arr.map((l) => ({ ...l, static: !!locks[l.i] }));
+      });
+      return next;
+    });
+  }, [locks]);
+  const onLayoutChange = useCallback((_layout: LayoutItem[], all: ResponsiveLayouts) => {
+    setLayouts(all);
+    try { localStorage.setItem(LAYOUTS_KEY, JSON.stringify(all)); } catch {}
+  }, []);
+  const toggleLock = useCallback((id: WidgetId) => {
+    setLocks((cur) => ({ ...cur, [id]: !cur[id] }));
+  }, []);
+  const resetLayout = useCallback(() => {
+    const fresh = buildLayouts(locks);
+    setLayouts(fresh);
+    try { localStorage.setItem(LAYOUTS_KEY, JSON.stringify(fresh)); } catch {}
+  }, [locks]);
+
   const firstName = useMemo(() => {
     const display = (user?.user_metadata?.display_name as string | undefined)?.trim();
     if (display) return display.split(" ")[0];
