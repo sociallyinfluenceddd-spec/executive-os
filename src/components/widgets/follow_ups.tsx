@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
+import { relTime } from "@/lib/time";
 
 type Channel = "email" | "calendar" | "text" | "social";
 type Tab = "all" | Channel;
@@ -22,17 +23,6 @@ export type FollowUp = {
 const STORAGE_KEY = "execOs.followups.activeTab.v1";
 const NAVY = "#083D77";
 const ORANGE = "#E97451";
-
-function relTime(iso: string): string {
-  const diff = new Date(iso).getTime() - Date.now();
-  const abs = Math.abs(diff);
-  const m = Math.round(abs / 60000);
-  if (m < 60) return diff < 0 ? `${m}m ago` : `in ${m}m`;
-  const h = Math.round(m / 60);
-  if (h < 24) return diff < 0 ? `${h}h ago` : `in ${h}h`;
-  const d = Math.round(h / 24);
-  return diff < 0 ? `${d}d ago` : `in ${d}d`;
-}
 
 const CHANNEL_ICON: Record<Channel, React.ComponentType<{ className?: string }>> = {
   email: Mail,

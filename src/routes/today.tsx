@@ -27,6 +27,8 @@ import { DoneTodayWidget } from "@/components/widgets/done_today";
 import { FollowUpsWidget } from "@/components/widgets/follow_ups";
 import { TimersAlarmsWidget } from "@/components/widgets/timers_alarms";
 import { KitchenRecipesWidget } from "@/components/widgets/kitchen_recipes";
+import { ACCOUNTS } from "@/config/accounts";
+import { relTime, whenLabel } from "@/lib/time";
 import {
   Select,
   SelectContent,
@@ -276,13 +278,8 @@ export const Route = createFileRoute("/today")({
   ),
 });
 
-const ACCOUNTS = [
-  "hello@donnabdicenso.com",
-  "sociallyinfluenceddd@gmail.com",
-  "sociallydonna@gmail.com",
-  "ideafetti@gmail.com",
-  "donna@dblankstyle.com",
-];
+// ACCOUNTS moved to src/config/accounts.ts (imported above) to stop the
+// three-place duplication called out in the audit.
 
 type EmailRow = {
   id: string;
@@ -348,23 +345,7 @@ function energyDisplay(level: number | null) {
   return ENERGY_EMOJI[nearest];
 }
 
-function relTime(iso: string | null): string {
-  if (!iso) return "";
-  const ms = Date.now() - new Date(iso).getTime();
-  const m = Math.round(ms / 60000);
-  if (m < 1) return "just now";
-  if (m < 60) return `${m}m ago`;
-  const h = Math.round(m / 60);
-  if (h < 24) return `${h}h ago`;
-  return `${Math.round(h / 24)}d ago`;
-}
-
-function whenLabel(iso: string | null): string {
-  if (!iso) return "";
-  const d = new Date(iso);
-  const time = d.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
-  return time;
-}
+// relTime + whenLabel moved to src/lib/time.ts (single source of truth).
 
 function isToday(iso: string | null): boolean {
   if (!iso) return false;
