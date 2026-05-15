@@ -11,3 +11,6 @@ verify_jwt = true
 
 [functions.extract-from-capture]
 verify_jwt = true
+
+[functions.refresh-calendars]
+verify_jwt = true

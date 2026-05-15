@@ -61,6 +61,7 @@ import {
   Activity,
   AlarmClock,
   ChefHat,
+  RefreshCw,
   Info,
   ChevronLeft,
   ChevronRight,
@@ -406,6 +407,38 @@ function TodayPage() {
     if (typeof window === "undefined") return;
     window.localStorage.setItem("execOs.today.selectedCalendar.v1", selectedCalendar);
   }, [selectedCalendar]);
+
+  // Manual calendar refresh — triggers the Make.com calendar-sync scenarios
+  // via the refresh-calendars edge function. Useful when an event was just
+  // added/changed in Google Calendar and we don't want to wait for the
+  // daily 5am cron pull.
+  const [refreshing, setRefreshing] = useState(false);
+  const refreshCalendars = useCallback(async () => {
+    if (refreshing) return;
+    setRefreshing(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("refresh-calendars", {
+        body: {},
+      });
+      if (error) {
+        toast.error(`Refresh failed: ${error.message}`);
+        return;
+      }
+      const results = (data?.results ?? []) as Array<{ ok: boolean; error?: string }>;
+      const failed = results.filter((r) => !r.ok);
+      if (failed.length === 0) {
+        toast.success("Calendar sync started — new events will appear shortly.");
+      } else if (failed.length === results.length) {
+        toast.error(`All scenarios failed: ${failed[0]?.error ?? "unknown"}`);
+      } else {
+        toast.warning(`${failed.length}/${results.length} scenarios failed to start.`);
+      }
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Refresh failed");
+    } finally {
+      setRefreshing(false);
+    }
+  }, [refreshing]);
 
   // Dashboard grid layout state
   //
@@ -1002,21 +1035,36 @@ function TodayPage() {
             editMode={editMode}
             onRemove={removeWidget}
             right={
-              availableCalendars.length > 1 ? (
-        <Select value={selectedCalendar} onValueChange={setSelectedCalendar}>
-                  <SelectTrigger className="no-drag h-7 text-xs w-[140px] sm:w-[160px]">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All calendars</SelectItem>
-                    {availableCalendars.map((c) => (
-                      <SelectItem key={c} value={c}>
-                        {c}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              ) : null
+              <div className="flex items-center gap-1.5 no-drag">
+                {availableCalendars.length > 1 ? (
+                  <Select value={selectedCalendar} onValueChange={setSelectedCalendar}>
+                    <SelectTrigger className="h-7 text-xs w-[140px] sm:w-[160px]">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All calendars</SelectItem>
+                      {availableCalendars.map((c) => (
+                        <SelectItem key={c} value={c}>
+                          {c}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                ) : null}
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  className="h-7 w-7"
+                  disabled={refreshing}
+                  onClick={refreshCalendars}
+                  aria-label="Refresh calendars from Google"
+                  title="Refresh calendars from Google"
+                >
+                  <RefreshCw
+                    className={`h-3.5 w-3.5 ${refreshing ? "animate-spin" : ""}`}
+                  />
+                </Button>
+              </div>
             }
           >
             <DateNav
