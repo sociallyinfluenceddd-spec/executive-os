@@ -192,9 +192,28 @@ function loadDashboard(): DashboardPersisted | null {
 function loadLayouts(): ResponsiveLayouts | null {
   const d = loadDashboard();
   if (!d) return null;
-  const { lg, md, sm } = d;
+  const lg = migrateLayoutItems(d.lg);
+  const md = migrateLayoutItems(d.md);
+  const sm = migrateLayoutItems(d.sm);
   if (!lg && !md && !sm) return null;
   return { lg, md, sm } as ResponsiveLayouts;
+}
+
+function loadActiveWidgets(): string[] {
+  if (typeof window === "undefined") return DEFAULT_ACTIVE_WIDGETS;
+  try {
+    const raw = localStorage.getItem(ACTIVE_WIDGETS_KEY);
+    if (!raw) return DEFAULT_ACTIVE_WIDGETS;
+    const parsed = JSON.parse(raw) as string[];
+    if (!Array.isArray(parsed)) return DEFAULT_ACTIVE_WIDGETS;
+    return parsed.map((id) => ID_MIGRATIONS[id] ?? id);
+  } catch {
+    return DEFAULT_ACTIVE_WIDGETS;
+  }
+}
+function saveActiveWidgets(ids: string[]) {
+  if (typeof window === "undefined") return;
+  try { localStorage.setItem(ACTIVE_WIDGETS_KEY, JSON.stringify(ids)); } catch {}
 }
 function loadLocks(): Record<string, boolean> {
   return loadDashboard()?.locked ?? {};
