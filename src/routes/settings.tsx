@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { SavedIndicator } from "@/components/SavedIndicator";
 import { BenchSettings } from "@/components/BenchSettings";
+import { PersonalizationSettings } from "@/components/PersonalizationSettings";
 
 export const Route = createFileRoute("/settings")({
   component: () => (
@@ -82,6 +83,8 @@ function SettingsPage() {
       </section>
 
       <BenchSettings />
+
+      <PersonalizationSettings />
 
       <section className="rounded-xl border border-border bg-card p-6">
         <Button variant="outline" onClick={signOut} className="w-full">

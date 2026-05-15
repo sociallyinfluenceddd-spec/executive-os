@@ -8,6 +8,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { DoneForToday } from "@/components/DoneForToday";
 import { CaptureModal } from "@/components/CaptureModal";
 import { BenchRow } from "@/components/BenchRow";
+import { usePersonalization, personalizationStyle } from "@/lib/personalization";
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -657,10 +658,16 @@ function TodayPage() {
     else trend = "flat";
   }
 
+  const [personalization] = usePersonalization();
+  const personaStyle = personalizationStyle(personalization);
+  const wrapperStyle = personalization.fullPage ? personaStyle : undefined;
+  const headerStyle = personalization.fullPage ? undefined : personaStyle;
+  const headerBgClass = headerStyle ? "" : "bg-background/85 backdrop-blur";
+
   return (
-    <div className="space-y-3 sm:space-y-4 pb-32">
+    <div className="space-y-3 sm:space-y-4 pb-32" style={wrapperStyle}>
       {/* HEADER STRIP — sticky */}
-      <header className="sticky top-0 z-30 -mx-3 sm:-mx-5 lg:-mx-6 px-3 sm:px-5 lg:px-6 py-3 sm:py-4 bg-background/85 backdrop-blur border-b border-border">
+      <header style={headerStyle} className={`sticky top-0 z-30 -mx-3 sm:-mx-5 lg:-mx-6 px-3 sm:px-5 lg:px-6 py-3 sm:py-4 ${headerBgClass} border-b border-border`}>
         {/* Mobile: stacked. Desktop: 12-col grid */}
         <div className="flex flex-col gap-3 lg:grid lg:grid-cols-12 lg:gap-4 lg:items-center">
           {/* Top row on mobile: clock + data-fresh pill */}
