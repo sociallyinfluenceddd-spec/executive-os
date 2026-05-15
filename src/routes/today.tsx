@@ -755,8 +755,8 @@ function TodayPage() {
       <ResponsiveGridLayout
         className="layout"
         layouts={layouts}
-        breakpoints={{ lg: 1200, md: 996, sm: 768, xs: 480, xxs: 0 }}
-        cols={{ lg: 12, md: 12, sm: 6, xs: 4, xxs: 2 }}
+        breakpoints={{ lg: 1200, md: 768, sm: 0 }}
+        cols={{ lg: 12, md: 8, sm: 1 }}
         rowHeight={40}
         margin={[16, 16]}
         containerPadding={[0, 0]}
