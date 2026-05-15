@@ -399,10 +399,10 @@ function TodayPage() {
     setLocks((cur) => ({ ...cur, [id]: !cur[id] }));
   }, []);
   const resetLayout = useCallback(() => {
-    const fresh = buildLayouts(locks);
-    setLayouts(fresh);
-    saveDashboard(fresh, locks);
-  }, [locks]);
+    try { localStorage.removeItem(DASHBOARD_KEY); } catch {}
+    setLocks({});
+    setLayouts(buildLayouts({}));
+  }, []);
 
   const firstName = useMemo(() => {
     const display = (user?.user_metadata?.display_name as string | undefined)?.trim();
