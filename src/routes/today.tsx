@@ -732,76 +732,43 @@ function TodayPage() {
         )}
       </header>
 
-      {/* Main responsive grid: mobile single col, tablet 6-col, desktop 12-col.
-          Mobile order: Inbox, Calendar, Timeline, Money, Content, Projects, Follow-ups, Wellness.
-          Tablet order: Calendar, Inbox, Money (row 1) | Timeline | Content, Projects | Wellness, Follow-ups. */}
-      <div className="grid grid-cols-1 md:grid-cols-6 lg:grid-cols-12 gap-3 sm:gap-4">
-        {/* MONEY */}
-        <div className="order-4 md:order-3 lg:order-none md:col-span-2 lg:col-span-4">
-          <Card title="Money" icon={Banknote} info>
-            <EmptyState text="No lead data yet. Connecting Ideafetti DB…" />
-          </Card>
-        </div>
-
-        {/* INBOX */}
-        <div className="order-1 md:order-2 lg:order-none md:col-span-2 lg:col-span-4">
-          <Card
-            title="Inbox"
-            icon={Inbox}
-            right={
-              <Select value={accountFilter} onValueChange={setAccountFilter}>
-                <SelectTrigger className="h-7 text-xs w-[130px] sm:w-[150px]">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All accounts</SelectItem>
-                  {ACCOUNTS.map((a) => (
-                    <SelectItem key={a} value={a}>
-                      {a.split("@")[0]}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            }
-          >
-            <div className="grid grid-cols-2 gap-2 mb-3">
-              <BigStat value={priorityCount} label="Priority" />
-              <BigStat value={needsRespCount} label="Need response" />
-            </div>
-            {topSenders.length === 0 ? (
-              <p className="text-xs text-muted-foreground py-2">Inbox clear. ✨</p>
-            ) : (
-              <ul className="space-y-1.5">
-                {topSenders.map((e) => (
-                  <li
-                    key={e.id}
-                    className="flex items-center gap-2 text-xs text-foreground"
-                  >
-                    <span
-                      className={`h-1.5 w-1.5 rounded-full shrink-0 ${urgencyDot(e.received_at)}`}
-                    />
-                    <span className="font-medium truncate">
-                      {e.sender_name || e.sender_email || "Unknown"}
-                    </span>
-                    <span className="text-muted-foreground ml-auto shrink-0">
-                      {relTime(e.received_at)}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </Card>
-        </div>
-
-        {/* CALENDAR TODAY */}
-        <div className="order-2 md:order-1 lg:order-none md:col-span-2 lg:col-span-4">
+      {/* Draggable / resizable dashboard grid */}
+      <div className="flex items-center justify-end gap-2 -mb-1">
+        <button
+          type="button"
+          onClick={resetLayout}
+          className="inline-flex items-center gap-1 text-[10px] uppercase tracking-wider text-muted-foreground hover:text-foreground"
+        >
+          <RotateCcw className="h-3 w-3" /> Reset layout
+        </button>
+      </div>
+      <ResponsiveGridLayout
+        className="layout"
+        layouts={layouts}
+        breakpoints={{ lg: 1200, md: 996, sm: 768, xs: 480, xxs: 0 }}
+        cols={{ lg: 12, md: 12, sm: 6, xs: 4, xxs: 2 }}
+        rowHeight={40}
+        margin={[16, 16]}
+        containerPadding={[0, 0]}
+        compactType="vertical"
+        draggableHandle=".widget-drag-handle"
+        draggableCancel=".no-drag"
+        isDraggable={!isMobileViewport}
+        isResizable={!isMobileViewport}
+        onLayoutChange={onLayoutChange}
+      >
+        {/* CALENDAR */}
+        <div key="calendar" className="relative">
+          <WidgetChrome id="calendar" locked={!!locks.calendar} onToggle={toggleLock} />
           <Card
             title="Calendar"
             icon={CalendarClock}
+            className="h-full overflow-auto pr-10"
+            dragHandle={!locks.calendar && !isMobileViewport}
             right={
               availableCalendars.length > 1 ? (
                 <Select value={selectedCalendar} onValueChange={setSelectedCalendar}>
-                  <SelectTrigger className="h-7 text-xs w-[140px] sm:w-[160px]">
+                  <SelectTrigger className="no-drag h-7 text-xs w-[140px] sm:w-[160px]">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -847,7 +814,7 @@ function TodayPage() {
                       <button
                         type="button"
                         onClick={() => setSelectedEvent(m)}
-                        className="w-full flex items-center gap-2 text-xs text-left rounded-md px-2 min-h-[44px] sm:min-h-0 sm:py-1 hover:bg-muted transition-colors"
+                        className="no-drag w-full flex items-center gap-2 text-xs text-left rounded-md px-2 min-h-[44px] sm:min-h-0 sm:py-1 hover:bg-muted transition-colors"
                       >
                         <span className="tabular-nums text-muted-foreground w-14 shrink-0">
                           {whenLabel(m.start_at)}
@@ -861,7 +828,7 @@ function TodayPage() {
                             target="_blank"
                             rel="noreferrer"
                             onClick={(e) => e.stopPropagation()}
-                            className="text-[color:var(--navy)] shrink-0 p-2 -m-2"
+                            className="no-drag text-[color:var(--navy)] shrink-0 p-2 -m-2"
                           >
                             <Video className="h-4 w-4" />
                           </a>
@@ -875,9 +842,82 @@ function TodayPage() {
           </Card>
         </div>
 
-        {/* TIMELINE — full width */}
-        <div className="order-3 md:order-4 lg:order-none md:col-span-6 lg:col-span-12">
-          <Card title="Timeline" icon={Activity}>
+        {/* INBOX */}
+        <div key="inbox" className="relative">
+          <WidgetChrome id="inbox" locked={!!locks.inbox} onToggle={toggleLock} />
+          <Card
+            title="Inbox"
+            icon={Inbox}
+            className="h-full overflow-auto pr-10"
+            dragHandle={!locks.inbox && !isMobileViewport}
+            right={
+              <Select value={accountFilter} onValueChange={setAccountFilter}>
+                <SelectTrigger className="no-drag h-7 text-xs w-[130px] sm:w-[150px]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All accounts</SelectItem>
+                  {ACCOUNTS.map((a) => (
+                    <SelectItem key={a} value={a}>
+                      {a.split("@")[0]}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            }
+          >
+            <div className="grid grid-cols-2 gap-2 mb-3">
+              <BigStat value={priorityCount} label="Priority" />
+              <BigStat value={needsRespCount} label="Need response" />
+            </div>
+            {topSenders.length === 0 ? (
+              <p className="text-xs text-muted-foreground py-2">Inbox clear. ✨</p>
+            ) : (
+              <ul className="space-y-1.5">
+                {topSenders.map((e) => (
+                  <li
+                    key={e.id}
+                    className="flex items-center gap-2 text-xs text-foreground"
+                  >
+                    <span
+                      className={`h-1.5 w-1.5 rounded-full shrink-0 ${urgencyDot(e.received_at)}`}
+                    />
+                    <span className="font-medium truncate">
+                      {e.sender_name || e.sender_email || "Unknown"}
+                    </span>
+                    <span className="text-muted-foreground ml-auto shrink-0">
+                      {relTime(e.received_at)}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </Card>
+        </div>
+
+        {/* MONEY */}
+        <div key="money" className="relative">
+          <WidgetChrome id="money" locked={!!locks.money} onToggle={toggleLock} />
+          <Card
+            title="Money"
+            icon={Banknote}
+            info
+            className="h-full overflow-auto pr-10"
+            dragHandle={!locks.money && !isMobileViewport}
+          >
+            <EmptyState text="No lead data yet. Connecting Ideafetti DB…" />
+          </Card>
+        </div>
+
+        {/* TIMELINE */}
+        <div key="timeline" className="relative">
+          <WidgetChrome id="timeline" locked={!!locks.timeline} onToggle={toggleLock} />
+          <Card
+            title="Timeline"
+            icon={Activity}
+            className="h-full overflow-auto pr-10"
+            dragHandle={!locks.timeline && !isMobileViewport}
+          >
             <DateNav
               selectedDate={selectedDate}
               setSelectedDate={setSelectedDate}
@@ -893,15 +933,28 @@ function TodayPage() {
         </div>
 
         {/* CONTENT PULSE */}
-        <div className="order-5 md:order-5 lg:order-none md:col-span-3 lg:col-span-6">
-          <Card title="Content pulse" icon={Sparkles} info>
+        <div key="content" className="relative">
+          <WidgetChrome id="content" locked={!!locks.content} onToggle={toggleLock} />
+          <Card
+            title="Content pulse"
+            icon={Sparkles}
+            info
+            className="h-full overflow-auto pr-10"
+            dragHandle={!locks.content && !isMobileViewport}
+          >
             <EmptyState text="Syncing Ideafetti content data…" />
           </Card>
         </div>
 
         {/* PROJECTS */}
-        <div className="order-6 md:order-6 lg:order-none md:col-span-3 lg:col-span-6">
-          <Card title="Projects" icon={FolderKanban}>
+        <div key="projects" className="relative">
+          <WidgetChrome id="projects" locked={!!locks.projects} onToggle={toggleLock} />
+          <Card
+            title="Projects"
+            icon={FolderKanban}
+            className="h-full overflow-auto pr-10"
+            dragHandle={!locks.projects && !isMobileViewport}
+          >
             <ul className="space-y-3">
               {DEFAULT_PROJECTS.map((p) => {
                 const stalled = p.last_touched_h > 168;
@@ -939,9 +992,48 @@ function TodayPage() {
           </Card>
         </div>
 
-        {/* FOLLOW-UPS — mobile order 7, tablet order 8 (after Wellness), desktop col-span-6 */}
-        <div className="order-7 md:order-8 lg:order-none md:col-span-3 lg:col-span-6">
-          <Card title="Follow-ups" icon={MessageCircle}>
+        {/* WELLNESS */}
+        <div key="wellness" className="relative">
+          <WidgetChrome id="wellness" locked={!!locks.wellness} onToggle={toggleLock} />
+          <Card
+            title="Wellness"
+            icon={TrendingUp}
+            className="h-full overflow-auto pr-10"
+            dragHandle={!locks.wellness && !isMobileViewport}
+          >
+            <div className="flex items-center gap-4 mb-3">
+              <Sparkline values={energySeries} />
+              <div className="flex flex-col">
+                <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
+                  {trend === "up" && (
+                    <ArrowUpRight className="h-3.5 w-3.5 text-[color:var(--sage)]" />
+                  )}
+                  {trend === "down" && (
+                    <ArrowDownRight className="h-3.5 w-3.5 text-[color:var(--rose)]" />
+                  )}
+                  {trend === "flat" && <Minus className="h-3.5 w-3.5" />}
+                  {trend === "none" ? "Not enough data" : `Energy ${trend}`}
+                </span>
+                <span className="text-xs text-muted-foreground mt-1">
+                  Mood: {daily?.mood ?? "—"}
+                </span>
+                <span className="text-xs text-muted-foreground">
+                  Logged {loggedDays}/7 days
+                </span>
+              </div>
+            </div>
+          </Card>
+        </div>
+
+        {/* FOLLOW-UPS */}
+        <div key="followups" className="relative">
+          <WidgetChrome id="followups" locked={!!locks.followups} onToggle={toggleLock} />
+          <Card
+            title="Follow-ups"
+            icon={MessageCircle}
+            className="h-full overflow-auto pr-10"
+            dragHandle={!locks.followups && !isMobileViewport}
+          >
             {followUps.length === 0 ? (
               <p className="text-xs text-muted-foreground py-3">All caught up. ✨</p>
             ) : (
@@ -966,7 +1058,7 @@ function TodayPage() {
                       <Button
                         size="sm"
                         variant="outline"
-                        className="h-9 sm:h-7 text-xs"
+                        className="no-drag h-9 sm:h-7 text-xs"
                         onClick={() => setEmailStatus(f.id, "read")}
                       >
                         Replied
@@ -979,43 +1071,40 @@ function TodayPage() {
           </Card>
         </div>
 
-        {/* WELLNESS — mobile order 8, tablet order 7 (before Follow-ups) */}
-        <div className="order-8 md:order-7 lg:order-none md:col-span-3 lg:col-span-6">
-          <Card title="Wellness" icon={TrendingUp}>
-            <div className="flex items-center gap-4 mb-3">
-              <Sparkline values={energySeries} />
-              <div className="flex flex-col">
-                <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
-                  {trend === "up" && (
-                    <ArrowUpRight className="h-3.5 w-3.5 text-[color:var(--sage)]" />
-                  )}
-                  {trend === "down" && (
-                    <ArrowDownRight className="h-3.5 w-3.5 text-[color:var(--rose)]" />
-                  )}
-                  {trend === "flat" && <Minus className="h-3.5 w-3.5" />}
-                  {trend === "none" ? "Not enough data" : `Energy ${trend}`}
-                </span>
-                <span className="text-xs text-muted-foreground mt-1">
-                  Mood: {daily?.mood ?? "—"}
-                </span>
-                <span className="text-xs text-muted-foreground">
-                  Logged {loggedDays}/7 days
-                </span>
-              </div>
+        {/* BENCH */}
+        <div key="bench" className="relative">
+          <WidgetChrome id="bench" locked={!!locks.bench} onToggle={toggleLock} />
+          <div
+            className={`h-full overflow-auto rounded-xl border border-border bg-card p-4 sm:p-5 lg:p-6 pr-10 ${
+              !locks.bench && !isMobileViewport ? "" : ""
+            }`}
+          >
+            <div
+              className={
+                !locks.bench && !isMobileViewport
+                  ? "widget-drag-handle cursor-grab active:cursor-grabbing -m-2 p-2 mb-2"
+                  : "mb-2"
+              }
+            >
+              <h2 className="inline-flex items-center gap-2 text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">
+                Your Bench
+              </h2>
             </div>
-          </Card>
+            <div className="no-drag">
+              <BenchRow
+                context={{
+                  energy: daily?.energy_level ?? null,
+                  topPriority: daily?.top_priority ?? null,
+                  priorityEmails: emails.filter(
+                    (e) => e.kind === "priority" || e.kind === "needs_response",
+                  ).length,
+                  meetings: meetingsToday.length,
+                }}
+              />
+            </div>
+          </div>
         </div>
-      </div>
-
-      {/* ROW 5 — Bench */}
-      <BenchRow
-        context={{
-          energy: daily?.energy_level ?? null,
-          topPriority: daily?.top_priority ?? null,
-          priorityEmails: emails.filter((e) => e.kind === "priority" || e.kind === "needs_response").length,
-          meetings: meetingsToday.length,
-        }}
-      />
+      </ResponsiveGridLayout>
 
       <button
         type="button"
