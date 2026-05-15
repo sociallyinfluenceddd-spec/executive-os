@@ -75,15 +75,27 @@ const WIDGET_IDS: WidgetId[] = [
 ];
 
 const LG_BASE: LayoutItem[] = [
-  { i: "calendar", x: 0, y: 0, w: 4, h: 9, minW: 3, minH: 5 },
-  { i: "inbox", x: 4, y: 0, w: 4, h: 9, minW: 3, minH: 5 },
-  { i: "money", x: 8, y: 0, w: 4, h: 9, minW: 3, minH: 4 },
-  { i: "timeline", x: 0, y: 9, w: 12, h: 10, minW: 6, minH: 6 },
-  { i: "content", x: 0, y: 19, w: 6, h: 5, minW: 3, minH: 4 },
-  { i: "projects", x: 6, y: 19, w: 6, h: 8, minW: 3, minH: 5 },
-  { i: "wellness", x: 0, y: 24, w: 6, h: 5, minW: 3, minH: 4 },
-  { i: "followups", x: 6, y: 27, w: 6, h: 8, minW: 3, minH: 5 },
-  { i: "bench", x: 0, y: 32, w: 12, h: 8, minW: 6, minH: 5 },
+  { i: "calendar", x: 0, y: 0, w: 8, h: 6, minW: 3, minH: 4 },
+  { i: "inbox", x: 8, y: 0, w: 4, h: 6, minW: 3, minH: 4 },
+  { i: "money", x: 0, y: 6, w: 4, h: 6, minW: 3, minH: 4 },
+  { i: "timeline", x: 0, y: 12, w: 12, h: 4, minW: 6, minH: 3 },
+  { i: "content", x: 0, y: 16, w: 6, h: 5, minW: 3, minH: 4 },
+  { i: "projects", x: 6, y: 16, w: 6, h: 5, minW: 3, minH: 4 },
+  { i: "wellness", x: 0, y: 21, w: 6, h: 5, minW: 3, minH: 4 },
+  { i: "followups", x: 6, y: 21, w: 6, h: 5, minW: 3, minH: 4 },
+  { i: "bench", x: 0, y: 26, w: 12, h: 6, minW: 6, minH: 5 },
+];
+
+const MD_BASE: LayoutItem[] = [
+  { i: "calendar", x: 0, y: 0, w: 8, h: 6, minW: 3, minH: 4 },
+  { i: "inbox", x: 0, y: 6, w: 4, h: 6, minW: 3, minH: 4 },
+  { i: "money", x: 4, y: 6, w: 4, h: 6, minW: 3, minH: 4 },
+  { i: "timeline", x: 0, y: 12, w: 8, h: 4, minW: 4, minH: 3 },
+  { i: "content", x: 0, y: 16, w: 4, h: 5, minW: 3, minH: 4 },
+  { i: "projects", x: 4, y: 16, w: 4, h: 5, minW: 3, minH: 4 },
+  { i: "wellness", x: 0, y: 21, w: 4, h: 5, minW: 3, minH: 4 },
+  { i: "followups", x: 4, y: 21, w: 4, h: 5, minW: 3, minH: 4 },
+  { i: "bench", x: 0, y: 26, w: 8, h: 6, minW: 4, minH: 5 },
 ];
 
 const MOBILE_ORDER: WidgetId[] = [
@@ -113,10 +125,8 @@ function buildLayouts(locks: Record<string, boolean>): ResponsiveLayouts {
     arr.map((l) => ({ ...l, static: !!locks[l.i] }));
   return {
     lg: apply(LG_BASE),
-    md: apply(LG_BASE),
-    sm: apply(stackedLayout(6)),
-    xs: apply(stackedLayout(4)),
-    xxs: apply(stackedLayout(2)),
+    md: apply(MD_BASE),
+    sm: apply(stackedLayout(1)),
   };
 }
 
