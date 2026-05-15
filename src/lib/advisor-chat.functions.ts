@@ -17,9 +17,9 @@ export const runAdvisorTurn = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator(InputSchema.parse)
   .handler(async ({ data, context }) => {
-    const events: AdvisorStreamEvent[] = [];
+    const events: unknown[] = [];
     for await (const ev of runAdvisorChat(context.supabase, context.userId, data)) {
       events.push(ev);
     }
-    return { events };
+    return { events: events as AdvisorStreamEvent[] };
   });
