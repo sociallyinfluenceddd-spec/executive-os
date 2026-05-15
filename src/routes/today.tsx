@@ -72,58 +72,58 @@ type WidgetId =
   | "inbox"
   | "money"
   | "timeline"
-  | "content"
+  | "content_pulse"
   | "projects"
   | "wellness"
-  | "followups"
-  | "bench";
-
-const WIDGET_IDS: WidgetId[] = [
-  "calendar",
-  "inbox",
-  "money",
-  "timeline",
-  "content",
-  "projects",
-  "wellness",
-  "followups",
-  "bench",
-];
+  | "follow_ups"
+  | "bench"
+  | "top_priority"
+  | "voice_capture"
+  | "done_today";
 
 const LG_BASE: LayoutItem[] = [
-  { i: "calendar", x: 0, y: 0, w: 8, h: 6, minW: 3, minH: 4 },
-  { i: "inbox", x: 8, y: 0, w: 4, h: 6, minW: 3, minH: 4 },
-  { i: "money", x: 0, y: 6, w: 4, h: 6, minW: 3, minH: 4 },
-  { i: "timeline", x: 0, y: 12, w: 12, h: 4, minW: 6, minH: 3 },
-  { i: "content", x: 0, y: 16, w: 6, h: 5, minW: 3, minH: 4 },
-  { i: "projects", x: 6, y: 16, w: 6, h: 5, minW: 3, minH: 4 },
-  { i: "wellness", x: 0, y: 21, w: 6, h: 5, minW: 3, minH: 4 },
-  { i: "followups", x: 6, y: 21, w: 6, h: 5, minW: 3, minH: 4 },
-  { i: "bench", x: 0, y: 26, w: 12, h: 6, minW: 6, minH: 5 },
+  { i: "top_priority", x: 0, y: 0, w: 12, h: 3, minW: 4, minH: 2 },
+  { i: "calendar", x: 0, y: 3, w: 8, h: 6, minW: 3, minH: 4 },
+  { i: "inbox", x: 8, y: 3, w: 4, h: 6, minW: 3, minH: 4 },
+  { i: "money", x: 0, y: 9, w: 4, h: 6, minW: 3, minH: 4 },
+  { i: "timeline", x: 0, y: 15, w: 12, h: 4, minW: 6, minH: 3 },
+  { i: "content_pulse", x: 0, y: 19, w: 6, h: 5, minW: 3, minH: 4 },
+  { i: "projects", x: 6, y: 19, w: 6, h: 5, minW: 3, minH: 4 },
+  { i: "wellness", x: 0, y: 24, w: 6, h: 5, minW: 3, minH: 4 },
+  { i: "follow_ups", x: 6, y: 24, w: 6, h: 5, minW: 3, minH: 4 },
+  { i: "bench", x: 0, y: 29, w: 12, h: 6, minW: 6, minH: 5 },
+  { i: "voice_capture", x: 0, y: 35, w: 4, h: 4, minW: 3, minH: 3 },
+  { i: "done_today", x: 4, y: 35, w: 4, h: 3, minW: 3, minH: 2 },
 ];
 
 const MD_BASE: LayoutItem[] = [
-  { i: "calendar", x: 0, y: 0, w: 8, h: 6, minW: 3, minH: 4 },
-  { i: "inbox", x: 0, y: 6, w: 4, h: 6, minW: 3, minH: 4 },
-  { i: "money", x: 4, y: 6, w: 4, h: 6, minW: 3, minH: 4 },
-  { i: "timeline", x: 0, y: 12, w: 8, h: 4, minW: 4, minH: 3 },
-  { i: "content", x: 0, y: 16, w: 4, h: 5, minW: 3, minH: 4 },
-  { i: "projects", x: 4, y: 16, w: 4, h: 5, minW: 3, minH: 4 },
-  { i: "wellness", x: 0, y: 21, w: 4, h: 5, minW: 3, minH: 4 },
-  { i: "followups", x: 4, y: 21, w: 4, h: 5, minW: 3, minH: 4 },
-  { i: "bench", x: 0, y: 26, w: 8, h: 6, minW: 4, minH: 5 },
+  { i: "top_priority", x: 0, y: 0, w: 8, h: 3, minW: 4, minH: 2 },
+  { i: "calendar", x: 0, y: 3, w: 8, h: 6, minW: 3, minH: 4 },
+  { i: "inbox", x: 0, y: 9, w: 4, h: 6, minW: 3, minH: 4 },
+  { i: "money", x: 4, y: 9, w: 4, h: 6, minW: 3, minH: 4 },
+  { i: "timeline", x: 0, y: 15, w: 8, h: 4, minW: 4, minH: 3 },
+  { i: "content_pulse", x: 0, y: 19, w: 4, h: 5, minW: 3, minH: 4 },
+  { i: "projects", x: 4, y: 19, w: 4, h: 5, minW: 3, minH: 4 },
+  { i: "wellness", x: 0, y: 24, w: 4, h: 5, minW: 3, minH: 4 },
+  { i: "follow_ups", x: 4, y: 24, w: 4, h: 5, minW: 3, minH: 4 },
+  { i: "bench", x: 0, y: 29, w: 8, h: 6, minW: 4, minH: 5 },
+  { i: "voice_capture", x: 0, y: 35, w: 4, h: 4, minW: 3, minH: 3 },
+  { i: "done_today", x: 4, y: 35, w: 4, h: 3, minW: 3, minH: 2 },
 ];
 
 const MOBILE_ORDER: WidgetId[] = [
+  "top_priority",
   "inbox",
   "calendar",
   "timeline",
   "money",
-  "content",
+  "content_pulse",
   "projects",
-  "followups",
+  "follow_ups",
   "wellness",
   "bench",
+  "voice_capture",
+  "done_today",
 ];
 
 function stackedLayout(cols: number): LayoutItem[] {
@@ -144,6 +144,16 @@ function buildLayouts(locks: Record<string, boolean>): ResponsiveLayouts {
     md: apply(MD_BASE),
     sm: apply(stackedLayout(1)),
   };
+}
+
+// Migrate legacy widget IDs in saved layouts.
+const ID_MIGRATIONS: Record<string, string> = {
+  followups: "follow_ups",
+  content: "content_pulse",
+};
+function migrateLayoutItems(arr: LayoutItem[] | undefined): LayoutItem[] | undefined {
+  if (!arr) return arr;
+  return arr.map((l) => (ID_MIGRATIONS[l.i] ? { ...l, i: ID_MIGRATIONS[l.i] } : l));
 }
 
 const DASHBOARD_KEY = "execOs.dashboardLayout.v1";
