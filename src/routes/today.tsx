@@ -449,6 +449,61 @@ function TodayPage() {
     setLayouts(buildLayouts({}));
   }, []);
 
+  // Active widgets + edit mode + library sheet
+  const [activeWidgets, setActiveWidgets] = useState<string[]>(() => loadActiveWidgets());
+  const [editMode, setEditMode] = useState(false);
+  const [libraryOpen, setLibraryOpen] = useState(false);
+  useEffect(() => { saveActiveWidgets(activeWidgets); }, [activeWidgets]);
+
+  const addWidget = useCallback((id: string) => {
+    setActiveWidgets((cur) => (cur.includes(id) ? cur : [...cur, id]));
+    setLayouts((cur) => {
+      const size = defaultSizeFor(id);
+      const next: ResponsiveLayouts = { ...cur };
+      (Object.keys(next) as (keyof ResponsiveLayouts)[]).forEach((bp) => {
+        const arr = next[bp] ? [...next[bp]!] : [];
+        if (arr.find((l) => l.i === id)) { next[bp] = arr; return; }
+        const maxY = arr.reduce((m, l) => Math.max(m, l.y + l.h), 0);
+        const cols = bp === "lg" ? 12 : bp === "md" ? 8 : 1;
+        const w = bp === "sm" ? 1 : Math.min(size.w, cols);
+        arr.push({ i: id, x: 0, y: maxY, w, h: size.h, minW: 1, minH: 2 });
+        next[bp] = arr;
+      });
+      saveDashboard(next, locks);
+      return next;
+    });
+    toast.success(`Added ${id.replace(/_/g, " ").toUpperCase()}`);
+  }, [locks]);
+
+  const removeWidget = useCallback((id: string) => {
+    let prevActive: string[] = [];
+    let prevLayouts: ResponsiveLayouts | null = null;
+    setActiveWidgets((cur) => { prevActive = cur; return cur.filter((x) => x !== id); });
+    setLayouts((cur) => {
+      prevLayouts = cur;
+      const next: ResponsiveLayouts = { ...cur };
+      (Object.keys(next) as (keyof ResponsiveLayouts)[]).forEach((bp) => {
+        const arr = next[bp];
+        if (arr) next[bp] = arr.filter((l) => l.i !== id);
+      });
+      saveDashboard(next, locks);
+      return next;
+    });
+    toast(`Removed ${id.replace(/_/g, " ").toUpperCase()}`, {
+      action: {
+        label: "Undo",
+        onClick: () => {
+          setActiveWidgets(prevActive);
+          if (prevLayouts) {
+            setLayouts(prevLayouts);
+            saveDashboard(prevLayouts, locks);
+          }
+        },
+      },
+      duration: 5000,
+    });
+  }, [locks]);
+
   const firstName = useMemo(() => {
     const display = (user?.user_metadata?.display_name as string | undefined)?.trim();
     if (display) return display.split(" ")[0];
