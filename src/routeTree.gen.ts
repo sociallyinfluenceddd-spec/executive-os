@@ -13,6 +13,7 @@ import { Route as TodayRouteImport } from './routes/today'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as CaptureRouteImport } from './routes/capture'
+import { Route as AdvisorsRouteImport } from './routes/advisors'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ApiChatStreamRouteImport } from './routes/api/chat/stream'
 
@@ -36,6 +37,11 @@ const CaptureRoute = CaptureRouteImport.update({
   path: '/capture',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdvisorsRoute = AdvisorsRouteImport.update({
+  id: '/advisors',
+  path: '/advisors',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
@@ -49,6 +55,7 @@ const ApiChatStreamRoute = ApiChatStreamRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/advisors': typeof AdvisorsRoute
   '/capture': typeof CaptureRoute
   '/login': typeof LoginRoute
   '/settings': typeof SettingsRoute
@@ -57,6 +64,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/advisors': typeof AdvisorsRoute
   '/capture': typeof CaptureRoute
   '/login': typeof LoginRoute
   '/settings': typeof SettingsRoute
@@ -66,6 +74,7 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/advisors': typeof AdvisorsRoute
   '/capture': typeof CaptureRoute
   '/login': typeof LoginRoute
   '/settings': typeof SettingsRoute
@@ -76,16 +85,25 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/advisors'
     | '/capture'
     | '/login'
     | '/settings'
     | '/today'
     | '/api/chat/stream'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/capture' | '/login' | '/settings' | '/today' | '/api/chat/stream'
+  to:
+    | '/'
+    | '/advisors'
+    | '/capture'
+    | '/login'
+    | '/settings'
+    | '/today'
+    | '/api/chat/stream'
   id:
     | '__root__'
     | '/'
+    | '/advisors'
     | '/capture'
     | '/login'
     | '/settings'
@@ -95,6 +113,7 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AdvisorsRoute: typeof AdvisorsRoute
   CaptureRoute: typeof CaptureRoute
   LoginRoute: typeof LoginRoute
   SettingsRoute: typeof SettingsRoute
@@ -132,6 +151,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CaptureRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/advisors': {
+      id: '/advisors'
+      path: '/advisors'
+      fullPath: '/advisors'
+      preLoaderRoute: typeof AdvisorsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -151,6 +177,7 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AdvisorsRoute: AdvisorsRoute,
   CaptureRoute: CaptureRoute,
   LoginRoute: LoginRoute,
   SettingsRoute: SettingsRoute,
@@ -160,3 +187,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
