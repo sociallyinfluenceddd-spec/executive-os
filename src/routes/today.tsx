@@ -408,9 +408,25 @@ function TodayPage() {
   }, [selectedCalendar]);
 
   // Dashboard grid layout state
+  //
+  // H-2 + H-12 (AUDIT.md): persistence is now a *derived sink*. The previous
+  // implementation had 4+ places calling saveDashboard(...) — sometimes
+  // inside a setLayouts updater (where it ran during render commit),
+  // sometimes against `loadLocks()` (re-reading from disk), sometimes
+  // against in-memory `locks`. localStorage could mismatch React state.
+  // Single persistence effect below is the only writer.
   const isMobileViewport = useIsMobile();
   const [locks, setLocks] = useState<Record<string, boolean>>(() => loadLocks());
   const [layouts, setLayouts] = useState<ResponsiveLayouts>(() => loadLayouts() ?? buildLayouts(loadLocks()));
+
+  // The single source of persistence. Runs after every commit that changes
+  // layouts or locks. No other code path writes to DASHBOARD_KEY.
+  useEffect(() => {
+    saveDashboard(layouts, locks);
+  }, [layouts, locks]);
+
+  // Sync the `static` flag on each layout item from locks. react-grid-layout
+  // reads this off the layout objects, so locks need to be reflected there.
   useEffect(() => {
     setLayouts((cur) => {
       const next: ResponsiveLayouts = { ...cur };
@@ -418,13 +434,12 @@ function TodayPage() {
         const arr = next[bp];
         if (arr) next[bp] = arr.map((l) => ({ ...l, static: !!locks[l.i] }));
       });
-      saveDashboard(next, locks);
       return next;
     });
   }, [locks]);
+
   const onLayoutChange = useCallback((_layout: readonly LayoutItem[], all: ResponsiveLayouts) => {
     setLayouts(all);
-    saveDashboard(all, loadLocks());
   }, []);
   const toggleLock = useCallback((id: WidgetId) => {
     setLocks((cur) => ({ ...cur, [id]: !cur[id] }));
@@ -434,7 +449,6 @@ function TodayPage() {
       ? window.confirm("Reset dashboard layout? This will undo all drag, resize, and lock customizations.")
       : true;
     if (!ok) return;
-    try { localStorage.removeItem(DASHBOARD_KEY); } catch {}
     setLocks({});
     setLayouts(buildLayouts({}));
     toast.success("Dashboard layout reset");
@@ -460,11 +474,10 @@ function TodayPage() {
         arr.push({ i: id, x: 0, y: maxY, w, h: size.h, minW: 1, minH: 2 });
         next[bp] = arr;
       });
-      saveDashboard(next, locks);
       return next;
     });
     toast.success(`Added ${id.replace(/_/g, " ").toUpperCase()}`);
-  }, [locks]);
+  }, []);
 
   // Refs hold the current committed state so removeWidget can snapshot
   // synchronously before issuing the two setState calls. The previous
@@ -487,7 +500,6 @@ function TodayPage() {
         const arr = next[bp];
         if (arr) next[bp] = arr.filter((l) => l.i !== id);
       });
-      saveDashboard(next, locks);
       return next;
     });
     toast(`Removed ${id.replace(/_/g, " ").toUpperCase()}`, {
@@ -495,15 +507,12 @@ function TodayPage() {
         label: "Undo",
         onClick: () => {
           setActiveWidgets(prevActive);
-          if (prevLayouts) {
-            setLayouts(prevLayouts);
-            saveDashboard(prevLayouts, locks);
-          }
+          if (prevLayouts) setLayouts(prevLayouts);
         },
       },
       duration: 5000,
     });
-  }, [locks]);
+  }, []);
 
   const firstName = useMemo(() => {
     const display = (user?.user_metadata?.display_name as string | undefined)?.trim();
