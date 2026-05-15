@@ -91,6 +91,45 @@ export type Database = {
         }
         Relationships: []
       }
+      exec_os_ai_usage: {
+        Row: {
+          advisor_id: string | null
+          cost_usd: number
+          created_at: string
+          day: string
+          id: string
+          input_tokens: number
+          model: string
+          output_tokens: number
+          tier: string
+          user_id: string
+        }
+        Insert: {
+          advisor_id?: string | null
+          cost_usd?: number
+          created_at?: string
+          day?: string
+          id?: string
+          input_tokens?: number
+          model: string
+          output_tokens?: number
+          tier: string
+          user_id: string
+        }
+        Update: {
+          advisor_id?: string | null
+          cost_usd?: number
+          created_at?: string
+          day?: string
+          id?: string
+          input_tokens?: number
+          model?: string
+          output_tokens?: number
+          tier?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       exec_os_calendar_events: {
         Row: {
           account: string
