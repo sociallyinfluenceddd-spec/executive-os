@@ -9,6 +9,33 @@ import { relTime } from "@/lib/time";
 type Channel = "email" | "calendar" | "text" | "social";
 type Tab = "all" | Channel;
 
+// Subset shapes — we only read these fields off the row, not the whole
+// generated-types union. Keeps the boundary typed without dragging in the
+// full table schema.
+type EmailRowLite = {
+  id: string;
+  external_id?: string | null;
+  kind: "priority" | "needs_response" | "invite" | "meeting" | string;
+  sender_name?: string | null;
+  sender_email?: string | null;
+  subject?: string | null;
+  snippet?: string | null;
+  received_at: string;
+};
+type CalendarRowLite = {
+  id: string;
+  title?: string | null;
+  description?: string | null;
+  start_at: string;
+  end_at?: string | null;
+  organizer_email?: string | null;
+  calendar_name?: string | null;
+  status?: string | null;
+  video_url?: string | null;
+  location?: string | null;
+};
+export type FollowUpRaw = EmailRowLite | CalendarRowLite;
+
 export type FollowUp = {
   id: string;
   channel: Channel;
@@ -17,7 +44,7 @@ export type FollowUp = {
   timestamp: string;
   priority: "high" | "normal";
   source_url: string | null;
-  raw: any;
+  raw: FollowUpRaw;
 };
 
 const STORAGE_KEY = "execOs.followups.activeTab.v1";
@@ -38,7 +65,7 @@ export function FollowUpsWidget({
 }: {
   userId: string | undefined;
   userEmail: string | undefined;
-  onOpenEvent: (event: any) => void;
+  onOpenEvent: (event: CalendarRowLite) => void;
 }) {
   const [tab, setTab] = useState<Tab>(() => {
     if (typeof window === "undefined") return "all";
@@ -79,7 +106,7 @@ export function FollowUpsWidget({
 
       if (cancelled) return;
 
-      const emails: FollowUp[] = (emailRes.data ?? []).map((e: any) => ({
+      const emails: FollowUp[] = ((emailRes.data ?? []) as EmailRowLite[]).map((e) => ({
         id: `email:${e.id}`,
         channel: "email",
         sender: e.sender_name || e.sender_email || "Unknown",
@@ -90,13 +117,13 @@ export function FollowUpsWidget({
         raw: e,
       }));
 
-      const cal: FollowUp[] = (calRes.data ?? [])
+      const cal: FollowUp[] = ((calRes.data ?? []) as CalendarRowLite[])
         .filter(
-          (c: any) =>
+          (c) =>
             c.status === "needsAction" ||
-            (c.video_url && c.start_at && c.start_at <= in24h),
+            (!!c.video_url && !!c.start_at && c.start_at <= in24h),
         )
-        .map((c: any) => {
+        .map((c) => {
           const startsIn = new Date(c.start_at).getTime() - now.getTime();
           return {
             id: `calendar:${c.id}`,
@@ -156,7 +183,9 @@ export function FollowUpsWidget({
     if (f.channel === "email" && f.source_url) {
       window.location.href = f.source_url;
     } else if (f.channel === "calendar") {
-      onOpenEvent(f.raw);
+      // f.raw is guaranteed to be a CalendarRowLite because we only set
+      // channel="calendar" on calendar rows during the map above.
+      onOpenEvent(f.raw as CalendarRowLite);
     }
   }
 

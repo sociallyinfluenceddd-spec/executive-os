@@ -636,7 +636,7 @@ function TodayPage() {
             const dayStart = startOfDay(selectedDate);
             const dayEnd = addDays(dayStart, 1);
             const t = next.start_at ? new Date(next.start_at).getTime() : NaN;
-            if (!t || t < dayStart.getTime() || t >= dayEnd.getTime()) {
+            if (Number.isNaN(t) || t < dayStart.getTime() || t >= dayEnd.getTime()) {
               return cur.filter((r) => r.id !== next.id);
             }
             const idx = cur.findIndex((r) => r.id === next.id);
@@ -1256,7 +1256,7 @@ function TodayPage() {
             <FollowUpsWidget
               userId={user?.id}
               userEmail={user?.email}
-              onOpenEvent={(ev) => setSelectedEvent(ev)}
+              onOpenEvent={(ev) => setSelectedEvent(ev as CalendarEventRow)}
             />
           </Card>
         </div>
