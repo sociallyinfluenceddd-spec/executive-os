@@ -13,7 +13,9 @@ import { Route as TodayRouteImport } from './routes/today'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as CaptureRouteImport } from './routes/capture'
+import { Route as AdvisorsRouteImport } from './routes/advisors'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as ApiChatStreamRouteImport } from './routes/api/chat/stream'
 
 const TodayRoute = TodayRouteImport.update({
   id: '/today',
@@ -35,48 +37,88 @@ const CaptureRoute = CaptureRouteImport.update({
   path: '/capture',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdvisorsRoute = AdvisorsRouteImport.update({
+  id: '/advisors',
+  path: '/advisors',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiChatStreamRoute = ApiChatStreamRouteImport.update({
+  id: '/api/chat/stream',
+  path: '/api/chat/stream',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/advisors': typeof AdvisorsRoute
   '/capture': typeof CaptureRoute
   '/login': typeof LoginRoute
   '/settings': typeof SettingsRoute
   '/today': typeof TodayRoute
+  '/api/chat/stream': typeof ApiChatStreamRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/advisors': typeof AdvisorsRoute
   '/capture': typeof CaptureRoute
   '/login': typeof LoginRoute
   '/settings': typeof SettingsRoute
   '/today': typeof TodayRoute
+  '/api/chat/stream': typeof ApiChatStreamRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/advisors': typeof AdvisorsRoute
   '/capture': typeof CaptureRoute
   '/login': typeof LoginRoute
   '/settings': typeof SettingsRoute
   '/today': typeof TodayRoute
+  '/api/chat/stream': typeof ApiChatStreamRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/capture' | '/login' | '/settings' | '/today'
+  fullPaths:
+    | '/'
+    | '/advisors'
+    | '/capture'
+    | '/login'
+    | '/settings'
+    | '/today'
+    | '/api/chat/stream'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/capture' | '/login' | '/settings' | '/today'
-  id: '__root__' | '/' | '/capture' | '/login' | '/settings' | '/today'
+  to:
+    | '/'
+    | '/advisors'
+    | '/capture'
+    | '/login'
+    | '/settings'
+    | '/today'
+    | '/api/chat/stream'
+  id:
+    | '__root__'
+    | '/'
+    | '/advisors'
+    | '/capture'
+    | '/login'
+    | '/settings'
+    | '/today'
+    | '/api/chat/stream'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AdvisorsRoute: typeof AdvisorsRoute
   CaptureRoute: typeof CaptureRoute
   LoginRoute: typeof LoginRoute
   SettingsRoute: typeof SettingsRoute
   TodayRoute: typeof TodayRoute
+  ApiChatStreamRoute: typeof ApiChatStreamRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -109,6 +151,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CaptureRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/advisors': {
+      id: '/advisors'
+      path: '/advisors'
+      fullPath: '/advisors'
+      preLoaderRoute: typeof AdvisorsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -116,15 +165,24 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/chat/stream': {
+      id: '/api/chat/stream'
+      path: '/api/chat/stream'
+      fullPath: '/api/chat/stream'
+      preLoaderRoute: typeof ApiChatStreamRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AdvisorsRoute: AdvisorsRoute,
   CaptureRoute: CaptureRoute,
   LoginRoute: LoginRoute,
   SettingsRoute: SettingsRoute,
   TodayRoute: TodayRoute,
+  ApiChatStreamRoute: ApiChatStreamRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
