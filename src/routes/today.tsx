@@ -1149,6 +1149,9 @@ function Card({
   right,
   info = false,
   dragHandle = false,
+  lockId,
+  locked,
+  onToggleLock,
 }: {
   title: string;
   icon?: React.ComponentType<{ className?: string }>;
@@ -1157,6 +1160,9 @@ function Card({
   right?: React.ReactNode;
   info?: boolean;
   dragHandle?: boolean;
+  lockId?: WidgetId;
+  locked?: boolean;
+  onToggleLock?: (id: WidgetId) => void;
 }) {
   return (
     <section
