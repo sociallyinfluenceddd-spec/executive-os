@@ -97,3 +97,12 @@
 .react-grid-item > .react-resizable-handle::after {
   border-color: var(--color-muted-foreground);
 }
+
+/* Personalization: contrast-aware text on dark header/page backgrounds */
+.today-personalized-text,
+.today-personalized-text h1,
+.today-personalized-text h2,
+.today-personalized-text .text-foreground,
+.today-personalized-text .text-muted-foreground {
+  color: #ffffff !important;
+}
