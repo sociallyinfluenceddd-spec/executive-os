@@ -1138,6 +1138,7 @@ function Card({
   className = "",
   right,
   info = false,
+  dragHandle = false,
 }: {
   title: string;
   icon?: React.ComponentType<{ className?: string }>;
@@ -1145,18 +1146,23 @@ function Card({
   className?: string;
   right?: React.ReactNode;
   info?: boolean;
+  dragHandle?: boolean;
 }) {
   return (
     <section
       className={`rounded-xl border border-border bg-card p-4 sm:p-5 lg:p-6 ${className}`}
     >
-      <header className="flex items-center justify-between gap-3 mb-4">
+      <header
+        className={`flex items-center justify-between gap-3 mb-4 ${
+          dragHandle ? "widget-drag-handle cursor-grab active:cursor-grabbing" : ""
+        }`}
+      >
         <h2 className="inline-flex items-center gap-2 text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">
           {Icon && <Icon className="h-3.5 w-3.5" />}
           {title}
           {info && (
             <span
-              className="relative group inline-flex"
+              className="no-drag relative group inline-flex"
               tabIndex={0}
               aria-label="What is this?"
             >
@@ -1167,10 +1173,34 @@ function Card({
             </span>
           )}
         </h2>
-        {right}
+        {right && <div className="no-drag">{right}</div>}
       </header>
       {children}
     </section>
+  );
+}
+
+function WidgetChrome({
+  id,
+  locked,
+  onToggle,
+}: {
+  id: WidgetId;
+  locked: boolean;
+  onToggle: (id: WidgetId) => void;
+}) {
+  return (
+    <div className="no-drag absolute top-1.5 right-1.5 z-20 flex items-center gap-0.5 opacity-60 hover:opacity-100 transition">
+      <button
+        type="button"
+        onClick={() => onToggle(id)}
+        className="p-1.5 rounded hover:bg-muted text-muted-foreground"
+        aria-label={locked ? "Unlock widget" : "Lock widget"}
+        title={locked ? "Unlock widget" : "Lock widget"}
+      >
+        {locked ? <Lock className="h-3.5 w-3.5" /> : <Unlock className="h-3.5 w-3.5" />}
+      </button>
+    </div>
   );
 }
 
