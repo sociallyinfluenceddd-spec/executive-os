@@ -347,7 +347,7 @@ function TodayPage() {
       return next;
     });
   }, [locks]);
-  const onLayoutChange = useCallback((_layout: LayoutItem[], all: ResponsiveLayouts) => {
+  const onLayoutChange = useCallback((_layout: readonly LayoutItem[], all: ResponsiveLayouts) => {
     setLayouts(all);
     try { localStorage.setItem(LAYOUTS_KEY, JSON.stringify(all)); } catch {}
   }, []);
