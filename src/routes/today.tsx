@@ -773,7 +773,7 @@ function TodayPage() {
           <Card
             title="Calendar"
             icon={CalendarClock}
-            className="h-full overflow-auto pr-10"
+            className="h-full overflow-auto"
             dragHandle={!locks.calendar && !isMobileViewport}
             right={
               availableCalendars.length > 1 ? (
@@ -858,7 +858,7 @@ function TodayPage() {
           <Card
             title="Inbox"
             icon={Inbox}
-            className="h-full overflow-auto pr-10"
+            className="h-full overflow-auto"
             dragHandle={!locks.inbox && !isMobileViewport}
             right={
               <Select value={accountFilter} onValueChange={setAccountFilter}>
@@ -912,7 +912,7 @@ function TodayPage() {
             title="Money"
             icon={Banknote}
             info
-            className="h-full overflow-auto pr-10"
+            className="h-full overflow-auto"
             dragHandle={!locks.money && !isMobileViewport}
           >
             <EmptyState text="No lead data yet. Connecting Ideafetti DB…" />
@@ -925,7 +925,7 @@ function TodayPage() {
           <Card
             title="Timeline"
             icon={Activity}
-            className="h-full overflow-auto pr-10"
+            className="h-full overflow-auto"
             dragHandle={!locks.timeline && !isMobileViewport}
           >
             <DateNav
@@ -949,7 +949,7 @@ function TodayPage() {
             title="Content pulse"
             icon={Sparkles}
             info
-            className="h-full overflow-auto pr-10"
+            className="h-full overflow-auto"
             dragHandle={!locks.content && !isMobileViewport}
           >
             <EmptyState text="Syncing Ideafetti content data…" />
@@ -962,7 +962,7 @@ function TodayPage() {
           <Card
             title="Projects"
             icon={FolderKanban}
-            className="h-full overflow-auto pr-10"
+            className="h-full overflow-auto"
             dragHandle={!locks.projects && !isMobileViewport}
           >
             <ul className="space-y-3">
@@ -1008,7 +1008,7 @@ function TodayPage() {
           <Card
             title="Wellness"
             icon={TrendingUp}
-            className="h-full overflow-auto pr-10"
+            className="h-full overflow-auto"
             dragHandle={!locks.wellness && !isMobileViewport}
           >
             <div className="flex items-center gap-4 mb-3">
@@ -1041,7 +1041,7 @@ function TodayPage() {
           <Card
             title="Follow-ups"
             icon={MessageCircle}
-            className="h-full overflow-auto pr-10"
+            className="h-full overflow-auto"
             dragHandle={!locks.followups && !isMobileViewport}
           >
             {followUps.length === 0 ? (
@@ -1085,7 +1085,7 @@ function TodayPage() {
         <div key="bench" className="relative">
           <WidgetChrome id="bench" locked={!!locks.bench} onToggle={toggleLock} />
           <div
-            className={`h-full overflow-auto rounded-xl border border-border bg-card p-4 sm:p-5 lg:p-6 pr-10 ${
+            className={`h-full overflow-auto rounded-xl border border-border bg-card p-4 sm:p-5 lg:p-6 ${
               !locks.bench && !isMobileViewport ? "" : ""
             }`}
           >
