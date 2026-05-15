@@ -27,7 +27,7 @@ const TIMERS_KEY = "execOs.timers.v1";
 const ALARMS_KEY = "execOs.alarms.v1";
 const TAB_KEY = "execOs.timersAlarms.activeTab.v1";
 
-const PRESETS_MIN = [5, 15, 25, 50];
+const PRESETS_MIN = [5, 15, 30, 60];
 
 const NAVY = "#083D77";
 const ORANGE = "#E97451";
