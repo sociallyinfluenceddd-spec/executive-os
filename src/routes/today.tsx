@@ -20,6 +20,7 @@ import { WidgetLibrarySheet } from "@/components/WidgetLibrarySheet";
 import { TopPriorityWidget } from "@/components/widgets/top_priority";
 import { VoiceCaptureWidget } from "@/components/widgets/voice_capture";
 import { DoneTodayWidget } from "@/components/widgets/done_today";
+import { FollowUpsWidget } from "@/components/widgets/follow_ups";
 import {
   Select,
   SelectContent,
