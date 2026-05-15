@@ -29,6 +29,7 @@ export function AppShell({
   const items = [
     { to: "/today", label: "Today", icon: CalendarDays },
     { to: "/capture", label: "Capture", icon: Mic },
+    { to: "/advisors", label: "Advisors", icon: MessageSquare },
     { to: "/settings", label: "Settings", icon: SettingsIcon },
   ] as const;
 
