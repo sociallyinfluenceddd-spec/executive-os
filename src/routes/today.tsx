@@ -865,8 +865,8 @@ function TodayPage() {
             )}
           </div>
 
-          {/* Status pill (desktop) */}
-          <div className="hidden lg:flex lg:col-span-2 lg:justify-end">
+          {/* Status pill (desktop) + Library / Edit buttons */}
+          <div className="hidden lg:flex lg:col-span-2 lg:justify-end items-center gap-2">
             <button
               type="button"
               onClick={() => setStatusOpen((v) => !v)}
@@ -879,6 +879,50 @@ function TodayPage() {
               />
               {stale ? "Stale data" : "Data fresh"}
             </button>
+            <button
+              type="button"
+              onClick={() => setLibraryOpen(true)}
+              aria-label="Add widget"
+              title="Widget library"
+              className="inline-flex items-center justify-center h-8 w-8 rounded-full border border-border hover:bg-muted text-[color:var(--navy)]"
+            >
+              <Plus className="h-4 w-4" />
+            </button>
+            <button
+              type="button"
+              onClick={() => setEditMode((v) => !v)}
+              aria-label="Edit dashboard"
+              title={editMode ? "Done editing" : "Edit dashboard"}
+              className={`inline-flex items-center justify-center h-8 w-8 rounded-full border border-border transition ${
+                editMode
+                  ? "bg-[color:var(--navy)] text-white border-[color:var(--navy)]"
+                  : "hover:bg-muted text-[color:var(--navy)]"
+              }`}
+            >
+              <Pencil className="h-3.5 w-3.5" />
+            </button>
+          </div>
+          {/* Mobile + / edit buttons (shown next to clock pill row) */}
+          <div className="flex lg:hidden items-center gap-2 -mt-1">
+            <button
+              type="button"
+              onClick={() => setLibraryOpen(true)}
+              aria-label="Add widget"
+              className="inline-flex items-center justify-center h-9 w-9 rounded-full border border-border hover:bg-muted text-[color:var(--navy)]"
+            >
+              <Plus className="h-4 w-4" />
+            </button>
+            <button
+              type="button"
+              onClick={() => setEditMode((v) => !v)}
+              aria-label="Edit dashboard"
+              className={`inline-flex items-center justify-center h-9 w-9 rounded-full border border-border transition ${
+                editMode ? "bg-[color:var(--navy)] text-white border-[color:var(--navy)]" : "hover:bg-muted text-[color:var(--navy)]"
+              }`}
+            >
+              <Pencil className="h-3.5 w-3.5" />
+            </button>
+            <span className="text-xs text-muted-foreground">{editMode ? "Editing" : ""}</span>
           </div>
         </div>
         {statusOpen && (
