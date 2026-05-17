@@ -23,6 +23,7 @@ export const WIDGET_CATALOG: WidgetCatalogItem[] = [
   { id: "bench_whispers",name: "Bench Whispers", icon: "Sparkles",     description: "Proactive nudges from your advisors",         status: "connected" },
   { id: "timers_alarms", name: "Timers + alarms",icon: "AlarmClock",   description: "Countdown timers and alarms with sound",      status: "connected" },
   { id: "kitchen_recipes",name:"Kitchen + recipes",icon:"ChefHat",     description: "Shopping list, meals, recipes and tonight plan", status: "connected" },
+  { id: "workflows",     name: "Workflow",       icon: "Activity",     description: "Active phase + this week's tasks · Send to Claude / mark done inline", status: "connected" },
 ];
 
 export const ACTIVE_WIDGETS_KEY = "execOs.activeWidgets.v1";
@@ -33,6 +34,7 @@ export const ACTIVE_WIDGETS_KEY = "execOs.activeWidgets.v1";
 //   - done_today     — stub; floating "Done for today" button already covers
 // All of the above are still in the widget library and can be added.
 export const DEFAULT_ACTIVE_WIDGETS: string[] = [
+  "workflows",
   "money",
   "bench",
   "inbox",
@@ -51,6 +53,7 @@ export const DEFAULT_ACTIVE_WIDGETS: string[] = [
 // Bump AUTO_APPEND_KEY whenever entries are added so the migration fires once
 // more for users who already passed the previous key.
 export const AUTO_APPEND_WIDGETS: string[] = [
+  "workflows",
   "money",
   "projects",
   "content_pulse",
@@ -59,7 +62,7 @@ export const AUTO_APPEND_WIDGETS: string[] = [
   "timers_alarms",
   "kitchen_recipes",
 ];
-export const AUTO_APPEND_KEY = "execOs.activeWidgets.autoAppend.v5";
+export const AUTO_APPEND_KEY = "execOs.activeWidgets.autoAppend.v6";
 
 // Default grid sizes when a widget is freshly added via the library.
 // Full-width widgets get the timeline-style row.
@@ -75,6 +78,7 @@ export const DEFAULT_WIDGET_SIZE: Record<string, { w: number; h: number }> = {
   money: { w: 4, h: 8 },
   projects: { w: 6, h: 8 },
   content_pulse: { w: 6, h: 8 },
+  workflows: { w: 6, h: 10 },
 };
 
 export function defaultSizeFor(id: string): { w: number; h: number } {

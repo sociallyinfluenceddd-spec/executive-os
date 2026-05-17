@@ -31,6 +31,7 @@ import { KitchenRecipesWidget } from "@/components/widgets/kitchen_recipes";
 import { MoneyWidget } from "@/components/widgets/money";
 import { ProjectsWidget } from "@/components/widgets/projects";
 import { ContentPulseWidget } from "@/components/widgets/content_pulse";
+import { WorkflowsWidget } from "@/components/widgets/workflows";
 import { ACCOUNTS } from "@/config/accounts";
 import { relTime, whenLabel } from "@/lib/time";
 import {
@@ -97,13 +98,15 @@ type WidgetId =
   | "bench_whispers"
   | "timers_alarms"
   | "kitchen_recipes"
+  | "workflows"
   | "done_today";
 
 const LG_BASE: LayoutItem[] = [
   { i: "top_priority", x: 0, y: 0, w: 12, h: 3, minW: 4, minH: 2 },
-  { i: "calendar", x: 0, y: 3, w: 8, h: 6, minW: 3, minH: 4 },
-  { i: "inbox", x: 8, y: 3, w: 4, h: 6, minW: 3, minH: 4 },
-  { i: "money", x: 0, y: 9, w: 4, h: 6, minW: 3, minH: 4 },
+  { i: "workflows", x: 0, y: 3, w: 6, h: 10, minW: 4, minH: 6 },
+  { i: "calendar", x: 6, y: 3, w: 6, h: 6, minW: 3, minH: 4 },
+  { i: "inbox", x: 6, y: 9, w: 6, h: 4, minW: 3, minH: 4 },
+  { i: "money", x: 0, y: 13, w: 4, h: 6, minW: 3, minH: 4 },
   { i: "timeline", x: 0, y: 15, w: 12, h: 3, minW: 6, minH: 2 },
   { i: "content_pulse", x: 0, y: 19, w: 6, h: 5, minW: 3, minH: 4 },
   { i: "projects", x: 6, y: 19, w: 6, h: 5, minW: 3, minH: 4 },
@@ -117,9 +120,10 @@ const LG_BASE: LayoutItem[] = [
 
 const MD_BASE: LayoutItem[] = [
   { i: "top_priority", x: 0, y: 0, w: 8, h: 3, minW: 4, minH: 2 },
-  { i: "calendar", x: 0, y: 3, w: 8, h: 6, minW: 3, minH: 4 },
-  { i: "inbox", x: 0, y: 9, w: 4, h: 6, minW: 3, minH: 4 },
-  { i: "money", x: 4, y: 9, w: 4, h: 6, minW: 3, minH: 4 },
+  { i: "workflows", x: 0, y: 3, w: 8, h: 10, minW: 4, minH: 6 },
+  { i: "calendar", x: 0, y: 13, w: 8, h: 6, minW: 3, minH: 4 },
+  { i: "inbox", x: 0, y: 19, w: 4, h: 6, minW: 3, minH: 4 },
+  { i: "money", x: 4, y: 19, w: 4, h: 6, minW: 3, minH: 4 },
   { i: "timeline", x: 0, y: 15, w: 8, h: 3, minW: 4, minH: 2 },
   { i: "content_pulse", x: 0, y: 19, w: 4, h: 5, minW: 3, minH: 4 },
   { i: "projects", x: 4, y: 19, w: 4, h: 5, minW: 3, minH: 4 },
@@ -133,6 +137,7 @@ const MD_BASE: LayoutItem[] = [
 
 const MOBILE_ORDER: WidgetId[] = [
   "top_priority",
+  "workflows",
   "inbox",
   "calendar",
   "timeline",
@@ -196,7 +201,7 @@ function loadDashboard(): DashboardPersisted | null {
 // the current DEFAULT_WIDGET_SIZE. Won't shrink anything the user manually
 // enlarged. Bump SIZE_FLOOR_KEY whenever DEFAULT_WIDGET_SIZE changes so
 // existing users pick up the new floor on next load.
-const SIZE_FLOOR_KEY = "execOs.dashboard.sizeFloor.v5";
+const SIZE_FLOOR_KEY = "execOs.dashboard.sizeFloor.v6";
 
 // Floor migration: any layout entry whose w/h is below the catalog's
 // DEFAULT_WIDGET_SIZE gets bumped to that floor. Plus: if the entry looks
@@ -1289,6 +1294,25 @@ function TodayPage() {
         isResizable={!isMobileViewport}
         onLayoutChange={onLayoutChange}
       >
+        {/* WORKFLOWS — action layer: current phase + tasks + Send to Claude */}
+        {activeWidgets.includes("workflows") && (
+        <div key="workflows" className="relative">
+          <Card
+            title="Workflow"
+            icon={Activity}
+            className="h-full overflow-hidden"
+            dragHandle={!locks.workflows && !isMobileViewport}
+            lockId="workflows"
+            locked={!!locks.workflows}
+            onToggleLock={toggleLock}
+            editMode={editMode}
+            onRemove={removeWidget}
+          >
+            <WorkflowsWidget />
+          </Card>
+        </div>
+        )}
+
         {/* CALENDAR */}
         {activeWidgets.includes("calendar") && (
         <div key="calendar" className="relative">
