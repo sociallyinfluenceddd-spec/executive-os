@@ -308,24 +308,30 @@ function TimersPanel({
 
   return (
     <div className="space-y-3">
-      <div className="flex flex-wrap items-center gap-2">
-        <Input
-          value={label}
-          onChange={(e) => setLabel(e.target.value)}
-          placeholder="Label (optional)"
-          className="h-8 flex-1 min-w-[120px] text-sm"
-        />
-        <Input
-          value={mins}
-          onChange={(e) => setMins(e.target.value)}
-          placeholder="min"
-          inputMode="decimal"
-          type="number"
-          className="h-8 w-[70px] text-sm"
-        />
-        <Button size="sm" onClick={onAdd} className="h-8" style={{ backgroundColor: NAVY }}>
-          <Plus className="h-3.5 w-3.5" />
-        </Button>
+      {/* On narrow widths the label stacks above the min+add row.
+          @container ensures we look at the widget's width, not the page's. */}
+      <div className="@container">
+        <div className="space-y-2 @[280px]:space-y-0 @[280px]:flex @[280px]:items-center @[280px]:gap-2">
+          <Input
+            value={label}
+            onChange={(e) => setLabel(e.target.value)}
+            placeholder="Label (optional)"
+            className="h-8 w-full @[280px]:flex-1 text-sm"
+          />
+          <div className="flex items-center gap-2 @[280px]:contents">
+            <Input
+              value={mins}
+              onChange={(e) => setMins(e.target.value)}
+              placeholder="min"
+              inputMode="decimal"
+              type="number"
+              className="h-8 flex-1 @[280px]:flex-none @[280px]:w-[70px] text-sm"
+            />
+            <Button size="sm" onClick={onAdd} className="h-8 shrink-0" style={{ backgroundColor: NAVY }}>
+              <Plus className="h-3.5 w-3.5" />
+            </Button>
+          </div>
+        </div>
       </div>
 
       <div className="flex flex-wrap gap-1.5">
@@ -450,25 +456,27 @@ function AlarmsPanel({
 
   return (
     <div className="space-y-3">
-      <div className="rounded-lg border border-border p-3 space-y-2 bg-muted/20">
-        <div className="flex flex-wrap items-center gap-2">
+      <div className="rounded-lg border border-border p-3 space-y-2 bg-muted/20 @container">
+        <div className="space-y-2 @[280px]:space-y-0 @[280px]:flex @[280px]:items-center @[280px]:gap-2">
           <Input
             value={label}
             onChange={(e) => setLabel(e.target.value)}
             placeholder="Label (e.g. School pickup)"
-            className="h-8 flex-1 min-w-[140px] text-sm"
+            className="h-8 w-full @[280px]:flex-1 text-sm"
           />
-          <Input
-            type="time"
-            value={time}
-            onChange={(e) => setTime(e.target.value)}
-            className="h-8 w-[100px] text-sm"
-          />
-          <Button size="sm" onClick={addAlarm} className="h-8" style={{ backgroundColor: NAVY }}>
-            <Plus className="h-3.5 w-3.5" />
-          </Button>
+          <div className="flex items-center gap-2 @[280px]:contents">
+            <Input
+              type="time"
+              value={time}
+              onChange={(e) => setTime(e.target.value)}
+              className="h-8 flex-1 @[280px]:flex-none @[280px]:w-[100px] text-sm"
+            />
+            <Button size="sm" onClick={addAlarm} className="h-8 shrink-0" style={{ backgroundColor: NAVY }}>
+              <Plus className="h-3.5 w-3.5" />
+            </Button>
+          </div>
         </div>
-        <div className="flex gap-1">
+        <div className="flex flex-wrap gap-1">
           {DAY_LABELS.map((dl, idx) => {
             const on = days.includes(idx);
             return (

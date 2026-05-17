@@ -66,10 +66,15 @@ export function BenchWhispersWidget() {
 
   if (items.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center text-center py-8 text-sm text-muted-foreground gap-2">
-        <Sparkles className="h-5 w-5 opacity-60" />
-        <div>No whispers yet.</div>
-        <div className="text-xs">Your advisors will surface ideas here as they spot patterns.</div>
+      <div className="flex flex-col items-center justify-center text-center py-6 px-4 text-sm gap-2">
+        <Sparkles className="h-5 w-5 text-[color:var(--navy)] opacity-70" />
+        <div className="font-medium text-foreground">What goes here</div>
+        <div className="text-xs text-muted-foreground max-w-[36ch]">
+          One-line nudges your advisors (Maya, Cleo, Vee…) leave when they spot
+          a pattern in your dashboard — a stalled project, a content trend, a
+          decision worth revisiting. Tap a whisper to open a chat with that
+          advisor. Whispers turn on after the daily-suggestions job runs.
+        </div>
       </div>
     );
   }

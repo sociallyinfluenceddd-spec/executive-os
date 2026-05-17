@@ -682,9 +682,22 @@ function TonightTab({
 
   if (!dinner && prepTasks.length === 0) {
     return (
-      <div className="text-sm text-muted-foreground py-6 text-center space-y-2">
-        <div>🌙 Nothing planned for tonight.</div>
-        <div className="text-xs">Add a recipe in the Meals tab and set its date to today.</div>
+      <div className="py-6 px-4 space-y-3">
+        <div className="text-center space-y-1">
+          <div className="text-base">🌙 Nothing planned for tonight.</div>
+          <div className="text-xs text-muted-foreground">
+            Add a recipe in the Meals tab and set its date to today.
+          </div>
+        </div>
+        <div className="rounded-md border border-border bg-muted/30 p-3 text-xs text-muted-foreground space-y-1.5">
+          <div className="font-semibold text-foreground">How this widget gets data</div>
+          <ul className="list-disc list-inside space-y-1">
+            <li>Add recipes manually in the <strong>Meals</strong> tab.</li>
+            <li>Items pushed to <strong>Shopping</strong> from recipes appear grouped by category.</li>
+            <li>External tools (e.g. Cowork) can POST batches via the
+              {" "}<code className="px-1 py-0.5 rounded bg-background">ingest-kitchen</code> edge function once deployed.</li>
+          </ul>
+        </div>
       </div>
     );
   }

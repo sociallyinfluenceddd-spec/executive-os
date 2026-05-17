@@ -100,7 +100,7 @@ const LG_BASE: LayoutItem[] = [
   { i: "calendar", x: 0, y: 3, w: 8, h: 6, minW: 3, minH: 4 },
   { i: "inbox", x: 8, y: 3, w: 4, h: 6, minW: 3, minH: 4 },
   { i: "money", x: 0, y: 9, w: 4, h: 6, minW: 3, minH: 4 },
-  { i: "timeline", x: 0, y: 15, w: 12, h: 4, minW: 6, minH: 3 },
+  { i: "timeline", x: 0, y: 15, w: 12, h: 3, minW: 6, minH: 2 },
   { i: "content_pulse", x: 0, y: 19, w: 6, h: 5, minW: 3, minH: 4 },
   { i: "projects", x: 6, y: 19, w: 6, h: 5, minW: 3, minH: 4 },
   { i: "follow_ups", x: 0, y: 24, w: 12, h: 8, minW: 3, minH: 4 },
@@ -116,7 +116,7 @@ const MD_BASE: LayoutItem[] = [
   { i: "calendar", x: 0, y: 3, w: 8, h: 6, minW: 3, minH: 4 },
   { i: "inbox", x: 0, y: 9, w: 4, h: 6, minW: 3, minH: 4 },
   { i: "money", x: 4, y: 9, w: 4, h: 6, minW: 3, minH: 4 },
-  { i: "timeline", x: 0, y: 15, w: 8, h: 4, minW: 4, minH: 3 },
+  { i: "timeline", x: 0, y: 15, w: 8, h: 3, minW: 4, minH: 2 },
   { i: "content_pulse", x: 0, y: 19, w: 4, h: 5, minW: 3, minH: 4 },
   { i: "projects", x: 4, y: 19, w: 4, h: 5, minW: 3, minH: 4 },
   { i: "follow_ups", x: 0, y: 24, w: 8, h: 8, minW: 3, minH: 4 },
@@ -421,7 +421,14 @@ function TodayPage() {
         body: {},
       });
       if (error) {
-        toast.error(`Refresh failed: ${error.message}`);
+        // The edge function isn't deployed yet (waiting on Lovable org
+        // access). Show a softer message instead of a scary error.
+        const msg = error.message ?? "";
+        if (msg.includes("not found") || msg.includes("404") || msg.includes("Failed to send")) {
+          toast.info("Manual refresh isn't wired up yet. Calendars auto-sync daily at 5am.", { duration: 6000 });
+        } else {
+          toast.error(`Refresh failed: ${msg}`);
+        }
         return;
       }
       const results = (data?.results ?? []) as Array<{ ok: boolean; error?: string }>;
