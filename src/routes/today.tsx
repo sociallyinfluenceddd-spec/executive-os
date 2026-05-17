@@ -1777,83 +1777,102 @@ function Timeline({
   showNow: boolean;
   onSelect?: (e: CalendarEventRow) => void;
 }) {
-  const startH = 0;
-  const endH = 24;
+  // Default range covers most working/social hours. If a meeting falls outside
+  // this window we still render it (the band extends visually) so nothing is
+  // silently hidden, but the typical day fills the band without horizontal
+  // scrolling at any container width.
+  let startH = 6;
+  let endH = 23; // 11pm
+  // Expand the window if a meeting falls outside the default range.
+  meetings.forEach((m) => {
+    if (!m.start_at) return;
+    const s = new Date(m.start_at);
+    if (Number.isNaN(s.getTime())) return;
+    const sh = s.getHours() + s.getMinutes() / 60;
+    if (sh < startH) startH = Math.max(0, Math.floor(sh));
+    if (m.end_at) {
+      const e = new Date(m.end_at);
+      if (!Number.isNaN(e.getTime())) {
+        const eh = e.getHours() + e.getMinutes() / 60 + (e.getDate() !== s.getDate() ? 24 : 0);
+        if (eh > endH) endH = Math.min(24, Math.ceil(eh));
+      }
+    }
+  });
   const totalMin = (endH - startH) * 60;
   const nowMin = (now.getHours() - startH) * 60 + now.getMinutes();
-  const nowPct = Math.max(0, Math.min(100, (nowMin / totalMin) * 100));
+  const nowPct = (nowMin / totalMin) * 100;
 
-  const hours = [];
-  for (let h = startH; h <= endH; h += 3) hours.push(h);
+  // Pick a step size that yields ~6 labels regardless of range.
+  const step = (endH - startH) <= 12 ? 2 : 3;
+  const hours: number[] = [];
+  for (let h = startH; h <= endH; h += step) hours.push(h);
 
   return (
-    <div className="relative">
-      {/* Horizontal scroll wrapper for mobile */}
-      <div className="overflow-x-auto -mx-1 px-1 pt-5 pb-1">
-        <div className="relative min-w-[640px] sm:min-w-0">
-          {/* Hour grid */}
-          <div className="relative h-20 rounded-lg bg-muted/40 border border-border overflow-hidden">
-            {/* Hour ticks */}
-            {hours.map((h) => {
-              const pct = ((h - startH) / (endH - startH)) * 100;
-              const display = h === 24 ? 12 : h % 12 === 0 ? 12 : h % 12;
-              return (
-                <div
-                  key={h}
-                  className="absolute top-0 bottom-0 border-l border-border/60"
-                  style={{ left: `${pct}%` }}
-                >
-                  <span className="absolute -top-5 -translate-x-1/2 text-[10px] text-muted-foreground tabular-nums">
-                    {display}
-                    {h < 12 || h === 24 ? "a" : "p"}
-                  </span>
-                </div>
-              );
-            })}
+    <div className="relative w-full">
+      {/* Hour grid — no horizontal scroll, fits any width. Labels live INSIDE
+          the band at the bottom so they can't be clipped by overflow. */}
+      <div className="relative h-14 sm:h-16 rounded-lg bg-muted/40 border border-border overflow-hidden">
+        {/* Hour ticks + labels */}
+        {hours.map((h) => {
+          const pct = ((h - startH) / (endH - startH)) * 100;
+          const display = h === 24 ? 12 : h % 12 === 0 ? 12 : h % 12;
+          return (
+            <div
+              key={h}
+              className="absolute top-0 bottom-0 border-l border-border/60 pointer-events-none"
+              style={{ left: `${pct}%` }}
+            >
+              <span className="absolute bottom-0.5 left-1 text-[9px] text-muted-foreground tabular-nums leading-none">
+                {display}
+                {h < 12 || h === 24 ? "a" : "p"}
+              </span>
+            </div>
+          );
+        })}
 
-            {/* Meeting blocks */}
-            {meetings.map((m) => {
-              if (!m.start_at) return null;
-              const start = new Date(m.start_at);
-              const startMin = (start.getHours() - startH) * 60 + start.getMinutes();
-              let durMin = 60;
-              if (m.end_at) {
-                const end = new Date(m.end_at);
-                durMin = Math.max(15, (end.getTime() - start.getTime()) / 60000);
-              }
-              if (startMin < 0 || startMin > totalMin) return null;
-              const left = (startMin / totalMin) * 100;
-              const width = Math.max(1, (durMin / totalMin) * 100);
-              return (
-                <button
-                  type="button"
-                  key={m.id}
-                  onClick={() => onSelect?.(m)}
-                  className="absolute top-3 bottom-3 rounded-md bg-[color:var(--sage)]/40 border border-[color:var(--sage)] px-1.5 py-0.5 overflow-hidden text-left hover:bg-[color:var(--sage)]/60 transition-colors cursor-pointer"
-                  style={{ left: `${left}%`, width: `${width}%` }}
-                  title={m.title ?? ""}
-                >
-                  <span className="text-[10px] text-[color:var(--forest)] truncate block">
-                    {m.title || "Mtg"}
-                  </span>
-                </button>
-              );
-            })}
+        {/* Meeting blocks */}
+        {meetings.map((m) => {
+          if (!m.start_at) return null;
+          const start = new Date(m.start_at);
+          const startMin = (start.getHours() - startH) * 60 + start.getMinutes();
+          let durMin = 60;
+          if (m.end_at) {
+            const end = new Date(m.end_at);
+            durMin = Math.max(15, (end.getTime() - start.getTime()) / 60000);
+          }
+          if (startMin + durMin < 0 || startMin > totalMin) return null;
+          const clampedStart = Math.max(0, startMin);
+          const clampedEnd = Math.min(totalMin, startMin + durMin);
+          const left = (clampedStart / totalMin) * 100;
+          const width = Math.max(2, ((clampedEnd - clampedStart) / totalMin) * 100);
+          return (
+            <button
+              type="button"
+              key={m.id}
+              onClick={() => onSelect?.(m)}
+              className="absolute top-1.5 bottom-4 rounded-md bg-[color:var(--sage)]/40 border border-[color:var(--sage)] px-1 py-0.5 overflow-hidden text-left hover:bg-[color:var(--sage)]/60 transition-colors cursor-pointer"
+              style={{ left: `${left}%`, width: `${width}%` }}
+              title={m.title ?? ""}
+            >
+              <span className="text-[10px] text-[color:var(--forest)] truncate block leading-tight">
+                {m.title || "Mtg"}
+              </span>
+            </button>
+          );
+        })}
 
-            {/* Now line — anchored to the 24h grid, scrolls with it */}
-            {showNow && (
-              <div
-                className="absolute top-0 bottom-0 w-px bg-[color:var(--rose)] z-10"
-                style={{ left: `${nowPct}%` }}
-              >
-                <div className="absolute -top-1 -translate-x-1/2 h-2 w-2 rounded-full bg-[color:var(--rose)]" />
-              </div>
-            )}
+        {/* Now line */}
+        {showNow && nowPct >= 0 && nowPct <= 100 && (
+          <div
+            className="absolute top-0 bottom-0 w-px bg-[color:var(--rose)] z-10 pointer-events-none"
+            style={{ left: `${nowPct}%` }}
+          >
+            <div className="absolute -top-1 -translate-x-1/2 h-2 w-2 rounded-full bg-[color:var(--rose)]" />
           </div>
-        </div>
+        )}
       </div>
       {meetings.length === 0 && (
-        <p className="text-xs text-muted-foreground/70 italic text-center mt-3">
+        <p className="text-xs text-muted-foreground/70 italic text-center mt-2">
           Nothing on the calendar.
         </p>
       )}
