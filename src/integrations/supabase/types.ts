@@ -552,6 +552,42 @@ export type Database = {
         }
         Relationships: []
       }
+      exec_os_revenue: {
+        Row: {
+          amount_cents: number
+          created_at: string
+          currency: string
+          entry_date: string
+          external_id: string | null
+          id: string
+          notes: string | null
+          source: string
+          user_id: string
+        }
+        Insert: {
+          amount_cents: number
+          created_at?: string
+          currency?: string
+          entry_date: string
+          external_id?: string | null
+          id?: string
+          notes?: string | null
+          source: string
+          user_id: string
+        }
+        Update: {
+          amount_cents?: number
+          created_at?: string
+          currency?: string
+          entry_date?: string
+          external_id?: string | null
+          id?: string
+          notes?: string | null
+          source?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       exec_os_suggestions: {
         Row: {
           agent_id: string | null
