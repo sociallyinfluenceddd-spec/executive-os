@@ -18,6 +18,7 @@ import {
   DEFAULT_ACTIVE_WIDGETS,
   AUTO_APPEND_WIDGETS,
   AUTO_APPEND_KEY,
+  DEFAULT_WIDGET_SIZE,
   defaultSizeFor,
 } from "@/config/widgets";
 import { WidgetLibrarySheet } from "@/components/WidgetLibrarySheet";
@@ -188,10 +189,42 @@ function loadDashboard(): DashboardPersisted | null {
   }
 }
 
+// One-time migration that ensures saved widgets are at least as large as
+// the current DEFAULT_WIDGET_SIZE. Won't shrink anything the user manually
+// enlarged. Bump SIZE_FLOOR_KEY whenever DEFAULT_WIDGET_SIZE changes so
+// existing users pick up the new floor on next load.
+const SIZE_FLOOR_KEY = "execOs.dashboard.sizeFloor.v2";
+
+function applySizeFloor(arr: LayoutItem[] | undefined, cols: number): LayoutItem[] | undefined {
+  if (!arr) return arr;
+  return arr.map((l) => {
+    const def = DEFAULT_WIDGET_SIZE[l.i];
+    if (!def) return l;
+    const w = Math.max(l.w, Math.min(def.w, cols));
+    const h = Math.max(l.h, def.h);
+    return w === l.w && h === l.h ? l : { ...l, w, h };
+  });
+}
+
 function loadLayouts(): ResponsiveLayouts | null {
   const d = loadDashboard();
   if (!d) return null;
   if (!d.lg && !d.md && !d.sm) return null;
+
+  if (typeof window !== "undefined" && !localStorage.getItem(SIZE_FLOOR_KEY)) {
+    const next: DashboardPersisted = {
+      ...d,
+      lg: applySizeFloor(d.lg, 12),
+      md: applySizeFloor(d.md, 8),
+      sm: applySizeFloor(d.sm, 1),
+    };
+    try {
+      localStorage.setItem(DASHBOARD_KEY, JSON.stringify(next));
+      localStorage.setItem(SIZE_FLOOR_KEY, "1");
+    } catch {}
+    return { lg: next.lg, md: next.md, sm: next.sm } as ResponsiveLayouts;
+  }
+
   return { lg: d.lg, md: d.md, sm: d.sm } as ResponsiveLayouts;
 }
 

@@ -67,7 +67,7 @@ export const DEFAULT_WIDGET_SIZE: Record<string, { w: number; h: number }> = {
   done_today: { w: 4, h: 3 },
   voice_capture: { w: 4, h: 4 },
   bench: { w: 12, h: 4 },
-  bench_whispers: { w: 6, h: 7 },
+  bench_whispers: { w: 6, h: 8 },
   timers_alarms: { w: 6, h: 7 },
   kitchen_recipes: { w: 6, h: 8 },
 };
