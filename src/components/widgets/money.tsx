@@ -24,9 +24,11 @@ const NAVY = "#083D77";
 const FOREST = "#355834";
 const ORANGE = "#E97451";
 
+// Donna's actual revenue rails. Gumroad removed — she confirmed she doesn't
+// use it. DB check constraint still allows it (history), but the UI won't
+// surface it. Add new sources here when she expands her stack.
 type Source =
   | "stripe"
-  | "gumroad"
   | "cmo_retainer"
   | "tiktok"
   | "sponsorship"
@@ -36,7 +38,7 @@ type Source =
 type RevenueRow = {
   id: string;
   entry_date: string; // YYYY-MM-DD
-  source: Source;
+  source: Source | string; // DB may hold legacy values; treat unknown as "other" at render
   amount_cents: number;
   currency: string;
   notes: string | null;
@@ -45,7 +47,6 @@ type RevenueRow = {
 
 const SOURCE_LABEL: Record<Source, string> = {
   stripe: "Stripe",
-  gumroad: "Gumroad",
   cmo_retainer: "CMO Retainer",
   tiktok: "TikTok",
   sponsorship: "Sponsorship",
@@ -56,12 +57,17 @@ const SOURCE_LABEL: Record<Source, string> = {
 const SOURCE_ORDER: Source[] = [
   "cmo_retainer",
   "stripe",
-  "gumroad",
   "tiktok",
   "sponsorship",
   "manual",
   "other",
 ];
+
+// Defensive label lookup — if the DB returns a value we don't recognize
+// (e.g. a legacy 'gumroad' row), render "Other" instead of crashing.
+function sourceLabel(s: string): string {
+  return (SOURCE_LABEL as Record<string, string>)[s] ?? "Other";
+}
 
 function todayISO(): string {
   const d = new Date();
@@ -380,7 +386,7 @@ export function MoneyWidget() {
                   className="shrink-0 inline-block rounded px-1.5 py-0.5 text-[10px] font-medium"
                   style={{ background: "rgba(8,61,119,0.08)", color: NAVY }}
                 >
-                  {SOURCE_LABEL[r.source]}
+                  {sourceLabel(r.source)}
                 </span>
                 <span className="flex-1 truncate text-foreground">
                   {r.notes || <span className="text-muted-foreground italic">—</span>}
