@@ -13,6 +13,7 @@ import { Route as TodayRouteImport } from './routes/today'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as OpenRouteImport } from './routes/open'
 import { Route as LoginRouteImport } from './routes/login'
+import { Route as HubRouteImport } from './routes/hub'
 import { Route as CaptureRouteImport } from './routes/capture'
 import { Route as AdvisorsRouteImport } from './routes/advisors'
 import { Route as IndexRouteImport } from './routes/index'
@@ -36,6 +37,11 @@ const OpenRoute = OpenRouteImport.update({
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const HubRoute = HubRouteImport.update({
+  id: '/hub',
+  path: '/hub',
   getParentRoute: () => rootRouteImport,
 } as any)
 const CaptureRoute = CaptureRouteImport.update({
@@ -63,6 +69,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/advisors': typeof AdvisorsRoute
   '/capture': typeof CaptureRoute
+  '/hub': typeof HubRoute
   '/login': typeof LoginRoute
   '/open': typeof OpenRoute
   '/settings': typeof SettingsRoute
@@ -73,6 +80,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/advisors': typeof AdvisorsRoute
   '/capture': typeof CaptureRoute
+  '/hub': typeof HubRoute
   '/login': typeof LoginRoute
   '/open': typeof OpenRoute
   '/settings': typeof SettingsRoute
@@ -84,6 +92,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/advisors': typeof AdvisorsRoute
   '/capture': typeof CaptureRoute
+  '/hub': typeof HubRoute
   '/login': typeof LoginRoute
   '/open': typeof OpenRoute
   '/settings': typeof SettingsRoute
@@ -96,6 +105,7 @@ export interface FileRouteTypes {
     | '/'
     | '/advisors'
     | '/capture'
+    | '/hub'
     | '/login'
     | '/open'
     | '/settings'
@@ -106,6 +116,7 @@ export interface FileRouteTypes {
     | '/'
     | '/advisors'
     | '/capture'
+    | '/hub'
     | '/login'
     | '/open'
     | '/settings'
@@ -116,6 +127,7 @@ export interface FileRouteTypes {
     | '/'
     | '/advisors'
     | '/capture'
+    | '/hub'
     | '/login'
     | '/open'
     | '/settings'
@@ -127,6 +139,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AdvisorsRoute: typeof AdvisorsRoute
   CaptureRoute: typeof CaptureRoute
+  HubRoute: typeof HubRoute
   LoginRoute: typeof LoginRoute
   OpenRoute: typeof OpenRoute
   SettingsRoute: typeof SettingsRoute
@@ -164,6 +177,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LoginRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/hub': {
+      id: '/hub'
+      path: '/hub'
+      fullPath: '/hub'
+      preLoaderRoute: typeof HubRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/capture': {
       id: '/capture'
       path: '/capture'
@@ -199,6 +219,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AdvisorsRoute: AdvisorsRoute,
   CaptureRoute: CaptureRoute,
+  HubRoute: HubRoute,
   LoginRoute: LoginRoute,
   OpenRoute: OpenRoute,
   SettingsRoute: SettingsRoute,

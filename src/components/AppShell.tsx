@@ -1,6 +1,6 @@
 import { Link, useLocation, useNavigate } from "@tanstack/react-router";
 import { useEffect, type ReactNode } from "react";
-import { CalendarDays, Mic, Settings as SettingsIcon, MessageSquare } from "lucide-react";
+import { CalendarDays, Mic, Settings as SettingsIcon, MessageSquare, Compass } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 
 export function AppShell({
@@ -28,6 +28,7 @@ export function AppShell({
 
   const items = [
     { to: "/today", label: "Today", icon: CalendarDays },
+    { to: "/hub", label: "Hub", icon: Compass },
     { to: "/capture", label: "Capture", icon: Mic },
     { to: "/advisors", label: "Advisors", icon: MessageSquare },
     { to: "/settings", label: "Settings", icon: SettingsIcon },
@@ -41,7 +42,7 @@ export function AppShell({
     <div className="min-h-screen bg-background pb-24">
       <main className={containerClass}>{children}</main>
       <nav className="fixed bottom-0 inset-x-0 border-t border-border bg-card/95 backdrop-blur z-40">
-        <div className="mx-auto max-w-2xl grid grid-cols-4">
+        <div className="mx-auto max-w-2xl grid grid-cols-5">
           {items.map(({ to, label, icon: Icon }) => {
             const active = location.pathname.startsWith(to);
             return (
