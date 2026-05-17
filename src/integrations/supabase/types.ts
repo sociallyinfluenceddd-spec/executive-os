@@ -552,6 +552,45 @@ export type Database = {
         }
         Relationships: []
       }
+      exec_os_public_profile: {
+        Row: {
+          created_at: string
+          cta_label: string | null
+          cta_url: string | null
+          display_name: string
+          share_clients: boolean
+          share_content: boolean
+          share_revenue: boolean
+          tagline: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          cta_label?: string | null
+          cta_url?: string | null
+          display_name: string
+          share_clients?: boolean
+          share_content?: boolean
+          share_revenue?: boolean
+          tagline?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          cta_label?: string | null
+          cta_url?: string | null
+          display_name?: string
+          share_clients?: boolean
+          share_content?: boolean
+          share_revenue?: boolean
+          tagline?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       exec_os_revenue: {
         Row: {
           amount_cents: number
@@ -707,7 +746,15 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      public_revenue_monthly: {
+        Row: {
+          amount_cents: number | null
+          entries: number | null
+          month: string | null
+          user_id: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       [_ in never]: never
