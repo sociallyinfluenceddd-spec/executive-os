@@ -28,6 +28,9 @@ import { DoneTodayWidget } from "@/components/widgets/done_today";
 import { FollowUpsWidget } from "@/components/widgets/follow_ups";
 import { TimersAlarmsWidget } from "@/components/widgets/timers_alarms";
 import { KitchenRecipesWidget } from "@/components/widgets/kitchen_recipes";
+import { MoneyWidget } from "@/components/widgets/money";
+import { ProjectsWidget } from "@/components/widgets/projects";
+import { ContentPulseWidget } from "@/components/widgets/content_pulse";
 import { ACCOUNTS } from "@/config/accounts";
 import { relTime, whenLabel } from "@/lib/time";
 import {
@@ -193,16 +196,32 @@ function loadDashboard(): DashboardPersisted | null {
 // the current DEFAULT_WIDGET_SIZE. Won't shrink anything the user manually
 // enlarged. Bump SIZE_FLOOR_KEY whenever DEFAULT_WIDGET_SIZE changes so
 // existing users pick up the new floor on next load.
-const SIZE_FLOOR_KEY = "execOs.dashboard.sizeFloor.v2";
+const SIZE_FLOOR_KEY = "execOs.dashboard.sizeFloor.v5";
 
+// Floor migration: any layout entry whose w/h is below the catalog's
+// DEFAULT_WIDGET_SIZE gets bumped to that floor. Plus: if the entry looks
+// "auto-placed" (1x1 cell that react-grid-layout filled in for an active
+// widget with no saved layout — the projects/content_pulse bug from v4),
+// we also reposition it to the bottom so the user doesn't have to hunt for
+// it in the middle of the grid.
 function applySizeFloor(arr: LayoutItem[] | undefined, cols: number): LayoutItem[] | undefined {
   if (!arr) return arr;
+  // First pass: compute current maxY so we can stack auto-placed widgets after it.
+  let cursorY = arr.reduce((m, l) => Math.max(m, l.y + l.h), 0);
   return arr.map((l) => {
     const def = DEFAULT_WIDGET_SIZE[l.i];
     if (!def) return l;
-    const w = Math.max(l.w, Math.min(def.w, cols));
+    const wFloor = Math.min(def.w, cols);
+    const w = Math.max(l.w, wFloor);
     const h = Math.max(l.h, def.h);
-    return w === l.w && h === l.h ? l : { ...l, w, h };
+    const wasOrphan = cols > 1 && l.w <= 1 && l.h <= 1;
+    if (w === l.w && h === l.h && !wasOrphan) return l;
+    if (wasOrphan) {
+      const next = { ...l, w, h, x: 0, y: cursorY };
+      cursorY += h;
+      return next;
+    }
+    return { ...l, w, h };
   });
 }
 
@@ -381,6 +400,7 @@ type DailyRow = {
   energy_level: number | null;
   mood: string | null;
   top_priority: string | null;
+  top_priority_done: boolean | null;
   entry_date: string;
 };
 
@@ -452,6 +472,59 @@ function TodayPage() {
   const [calendarLoadedAt, setCalendarLoadedAt] = useState<number | null>(null);
   const [daily, setDaily] = useState<DailyRow | null>(null);
   const [dailyLoadedAt, setDailyLoadedAt] = useState<number | null>(null);
+  const [editingTopPriority, setEditingTopPriority] = useState(false);
+  const [topPriorityDraft, setTopPriorityDraft] = useState("");
+  const [todayRevenueCents, setTodayRevenueCents] = useState<number | null>(null);
+
+  const upsertDailyToday = useCallback(
+    async (patch: Partial<Omit<DailyRow, "entry_date">>) => {
+      if (!user) return;
+      const entry_date = new Date().toISOString().slice(0, 10);
+      // Optimistic local update so the UI updates instantly.
+      setDaily((cur) => ({
+        entry_date,
+        energy_level: cur?.energy_level ?? null,
+        mood: cur?.mood ?? null,
+        top_priority: cur?.top_priority ?? null,
+        top_priority_done: cur?.top_priority_done ?? false,
+        ...patch,
+      }));
+      // Cast to any until Supabase types are regenerated to include
+      // top_priority_done (added by migration 20260517150000_top_priority_done.sql).
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { error } = await (supabase as any)
+        .from("exec_os_daily")
+        .upsert(
+          { user_id: user.id, entry_date, ...patch },
+          { onConflict: "user_id,entry_date" },
+        );
+      if (error) {
+        toast.error("Couldn't save", { description: error.message });
+      } else {
+        setDailyLoadedAt(Date.now());
+      }
+    },
+    [user],
+  );
+
+  const startEditTopPriority = useCallback(() => {
+    setTopPriorityDraft(daily?.top_priority ?? "");
+    setEditingTopPriority(true);
+  }, [daily?.top_priority]);
+
+  const commitTopPriority = useCallback(() => {
+    const next = topPriorityDraft.trim() || null;
+    if (next !== (daily?.top_priority ?? null)) {
+      // Setting a new priority resets the done state — different priority, fresh check.
+      void upsertDailyToday({ top_priority: next, top_priority_done: false });
+    }
+    setEditingTopPriority(false);
+  }, [topPriorityDraft, daily?.top_priority, upsertDailyToday]);
+
+  const toggleTopPriorityDone = useCallback(() => {
+    if (!daily?.top_priority) return;
+    void upsertDailyToday({ top_priority_done: !daily.top_priority_done });
+  }, [daily?.top_priority, daily?.top_priority_done, upsertDailyToday]);
   const [energySeries, setEnergySeries] = useState<(number | null)[]>([]);
   const [loggedDays, setLoggedDays] = useState(0);
   const [accountFilter, setAccountFilter] = useState<string>("all");
@@ -562,6 +635,34 @@ function TodayPage() {
   const [libraryOpen, setLibraryOpen] = useState(false);
   useEffect(() => { saveActiveWidgets(activeWidgets); }, [activeWidgets]);
 
+  // Sync: any active widget that doesn't have a layout entry in lg/md/sm
+  // gets one appended at the bottom (maxY) with its DEFAULT_WIDGET_SIZE.
+  // Without this, react-grid-layout would assign 1×1 cells to orphaned IDs
+  // (which is what happened to projects/content_pulse on first load after
+  // auto-append shipped them as new defaults).
+  useEffect(() => {
+    setLayouts((cur) => {
+      if (!cur) return cur;
+      let changed = false;
+      const next: ResponsiveLayouts = { ...cur };
+      (["lg", "md", "sm"] as const).forEach((bp) => {
+        const arr = next[bp] ? [...next[bp]!] : [];
+        const cols = bp === "lg" ? 12 : bp === "md" ? 8 : 1;
+        const have = new Set(arr.map((l) => l.i));
+        activeWidgets.forEach((id) => {
+          if (have.has(id)) return;
+          const size = defaultSizeFor(id);
+          const maxY = arr.reduce((m, l) => Math.max(m, l.y + l.h), 0);
+          const w = bp === "sm" ? 1 : Math.min(size.w, cols);
+          arr.push({ i: id, x: 0, y: maxY, w, h: size.h, minW: 1, minH: 2 });
+          changed = true;
+        });
+        if (changed) next[bp] = arr;
+      });
+      return changed ? next : cur;
+    });
+  }, [activeWidgets]);
+
   const addWidget = useCallback((id: string) => {
     setActiveWidgets((cur) => (cur.includes(id) ? cur : [...cur, id]));
     // New widgets default to locked, matching the dashboard-wide default.
@@ -630,23 +731,36 @@ function TodayPage() {
     const sevenAgo = new Date();
     sevenAgo.setDate(sevenAgo.getDate() - 6);
     const sevenAgoStr = sevenAgo.toISOString().slice(0, 10);
+    const todayStr = new Date().toISOString().slice(0, 10);
 
     const dayStart = startOfDay(selectedDate);
     const dayEnd = addDays(dayStart, 1);
 
-    const [emailsRes, dailyRes, weekRes, calRes] = await Promise.all([
+    // Today's revenue rows for the header tile — silently ignore the
+    // "table doesn't exist" error so this doesn't break the dashboard if
+    // exec_os_revenue hasn't been migrated yet.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const revenuePromise = (supabase as any)
+      .from("exec_os_revenue")
+      .select("amount_cents")
+      .eq("user_id", user.id)
+      .eq("entry_date", todayStr);
+
+    const [emailsRes, dailyRes, weekRes, calRes, revRes] = await Promise.all([
       supabase
         .from("exec_os_emails")
         .select(
           "id,account,kind,sender_name,sender_email,subject,snippet,received_at,scheduled_at,attendees,video_url,status",
         )
         .eq("user_id", user.id),
+      // Today's daily row only — pills must reflect TODAY, not the most-recent
+      // row ever written (which was a long-running bug that froze pills on
+      // onboarding day's data).
       supabase
         .from("exec_os_daily")
-        .select("energy_level,mood,top_priority,entry_date")
+        .select("energy_level,mood,top_priority,top_priority_done,entry_date")
         .eq("user_id", user.id)
-        .order("entry_date", { ascending: false })
-        .limit(1)
+        .eq("entry_date", todayStr)
         .maybeSingle(),
       supabase
         .from("exec_os_daily")
@@ -663,14 +777,23 @@ function TodayPage() {
         .gte("start_at", dayStart.toISOString())
         .lt("start_at", dayEnd.toISOString())
         .order("start_at", { ascending: true }),
+      revenuePromise,
     ]);
 
     setEmails((emailsRes.data as EmailRow[]) ?? []);
     setEmailsLoadedAt(Date.now());
-    setDaily((dailyRes.data as DailyRow) ?? null);
+    setDaily((dailyRes.data as unknown as DailyRow) ?? null);
     setDailyLoadedAt(Date.now());
     setCalendarEvents((calRes.data as CalendarEventRow[]) ?? []);
     setCalendarLoadedAt(Date.now());
+    // Sum today's revenue. Swallow "table missing" silently — header tile
+    // gracefully degrades to $0 until the migration lands.
+    if (revRes && !revRes.error) {
+      const rows = (revRes.data ?? []) as { amount_cents: number }[];
+      setTodayRevenueCents(rows.reduce((s, r) => s + (r.amount_cents ?? 0), 0));
+    } else {
+      setTodayRevenueCents(null);
+    }
 
     // Build 7-day series ending today
     const rows = (weekRes.data ?? []) as { entry_date: string; energy_level: number | null }[];
@@ -839,9 +962,9 @@ function TodayPage() {
   const sources: { name: string; ts: number | null; live: boolean }[] = [
     { name: "Inbox (exec_os_emails)", ts: emailsLoadedAt, live: true },
     { name: "Pulse (exec_os_daily)", ts: dailyLoadedAt, live: true },
-    { name: "Money (Ideafetti DB)", ts: null, live: false },
+    { name: "Money (exec_os_revenue)", ts: emailsLoadedAt, live: true },
     { name: "Calendar (exec_os_calendar_events)", ts: calendarLoadedAt, live: true },
-    { name: "Content Pulse (Ideafetti)", ts: null, live: false },
+    { name: "Content Pulse (exec_os_content)", ts: emailsLoadedAt, live: true },
   ];
   const stale = sources.some((s) => s.live && s.ts && Date.now() - s.ts > 3600_000);
 
@@ -946,37 +1069,110 @@ function TodayPage() {
             </button>
           </div>
 
-          {/* Energy + mood */}
-          <div className="lg:col-span-3 flex items-center gap-2 flex-wrap">
-            <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-[color:var(--yellow)]/15 border border-[color:var(--yellow)]/30 text-xs">
-              <span className="text-base leading-none">{energy.emoji}</span>
-              <span className="text-foreground font-medium">{energy.label}</span>
-            </span>
-            {daily?.mood ? (
-              <span className="px-2.5 py-1.5 rounded-full bg-muted text-xs text-foreground">
-                {daily.mood}
-              </span>
-            ) : (
-              <span className="text-xs text-muted-foreground">No mood</span>
-            )}
+          {/* TODAY REVENUE — live from exec_os_revenue */}
+          <Link
+            to="/today"
+            className="lg:col-span-2 group block min-w-0"
+            title="Click MONEY widget below to log revenue"
+          >
+            <div className="text-[10px] uppercase tracking-wider text-muted-foreground">
+              Revenue today
+            </div>
+            <div className="flex items-baseline gap-2">
+              <div className="text-xl lg:text-2xl font-semibold tabular-nums text-foreground group-hover:text-[color:var(--navy)] transition-colors">
+                {todayRevenueCents === null
+                  ? "—"
+                  : (todayRevenueCents / 100).toLocaleString("en-US", {
+                      style: "currency",
+                      currency: "USD",
+                      maximumFractionDigits: todayRevenueCents % 100 === 0 ? 0 : 2,
+                    })}
+              </div>
+              {todayRevenueCents !== null && todayRevenueCents > 0 && (
+                <span className="text-xs text-[color:var(--forest)]">
+                  ▲ logged
+                </span>
+              )}
+            </div>
+          </Link>
+
+          {/* TOP PRIORITY — click text to edit, click checkbox to mark done */}
+          <div className="lg:col-span-3 min-w-0">
+            <div className="text-[10px] uppercase tracking-wider text-muted-foreground">
+              Top priority · today
+            </div>
+            <div className="flex items-center gap-2">
+              {daily?.top_priority && (
+                <button
+                  type="button"
+                  onClick={toggleTopPriorityDone}
+                  aria-label={daily.top_priority_done ? "Mark as not done" : "Mark as done"}
+                  title={daily.top_priority_done ? "Done. Tap to undo." : "Tap when complete."}
+                  className={`shrink-0 h-5 w-5 rounded border-2 flex items-center justify-center transition-colors ${
+                    daily.top_priority_done
+                      ? "bg-[color:var(--forest)] border-[color:var(--forest)] text-white"
+                      : "border-border hover:border-[color:var(--navy)]"
+                  }`}
+                >
+                  {daily.top_priority_done && (
+                    <svg className="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                      <polyline points="20 6 9 17 4 12" />
+                    </svg>
+                  )}
+                </button>
+              )}
+              {editingTopPriority ? (
+                <input
+                  type="text"
+                  autoFocus
+                  value={topPriorityDraft}
+                  onChange={(e) => setTopPriorityDraft(e.target.value)}
+                  onBlur={commitTopPriority}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") commitTopPriority();
+                    if (e.key === "Escape") setEditingTopPriority(false);
+                  }}
+                  placeholder="What matters most today?"
+                  maxLength={120}
+                  className="flex-1 text-sm font-medium text-foreground bg-transparent border-b border-[color:var(--navy)] outline-none py-0.5"
+                />
+              ) : (
+                <button
+                  type="button"
+                  onClick={startEditTopPriority}
+                  className={`flex-1 text-sm font-medium text-left transition-colors truncate ${
+                    daily?.top_priority_done
+                      ? "text-muted-foreground line-through"
+                      : "text-foreground hover:text-[color:var(--navy)]"
+                  }`}
+                  title="Click to edit today's top priority"
+                >
+                  {daily?.top_priority || (
+                    <span className="text-muted-foreground inline-flex items-center gap-1">
+                      + set top priority <ArrowRight className="h-3 w-3" />
+                    </span>
+                  )}
+                </button>
+              )}
+            </div>
           </div>
 
-          {/* Top priority */}
-          <div className="lg:col-span-4 min-w-0">
+          {/* NEXT EVENT — live from today's calendar */}
+          <div className="lg:col-span-2 min-w-0 hidden lg:block">
             <div className="text-[10px] uppercase tracking-wider text-muted-foreground">
-              Top priority
+              Next up
             </div>
-            {daily?.top_priority ? (
-              <p className="text-sm font-medium text-foreground truncate">
-                {daily.top_priority}
-              </p>
+            {nextMeeting && nextMeetingMinutes != null ? (
+              <div className="min-w-0">
+                <div className="text-sm font-medium text-foreground truncate">
+                  {nextMeeting.title || "(untitled)"}
+                </div>
+                <div className="text-[11px] text-muted-foreground">
+                  in {nextMeetingMinutes < 60 ? `${nextMeetingMinutes}m` : `${Math.round(nextMeetingMinutes / 60 * 10) / 10}h`}
+                </div>
+              </div>
             ) : (
-              <Link
-                to="/capture"
-                className="text-sm text-[color:var(--navy)] hover:underline inline-flex items-center gap-1"
-              >
-                Set in Capture <ArrowRight className="h-3 w-3" />
-              </Link>
+              <div className="text-sm text-muted-foreground italic">Clear</div>
             )}
           </div>
 
@@ -1264,8 +1460,7 @@ function TodayPage() {
           <Card
             title="Money"
             icon={Banknote}
-            info
-            className="h-full overflow-auto"
+            className="h-full overflow-hidden"
             dragHandle={!locks.money && !isMobileViewport}
             lockId="money"
             locked={!!locks.money}
@@ -1273,10 +1468,7 @@ function TodayPage() {
             editMode={editMode}
             onRemove={removeWidget}
           >
-            <NeedsSetup
-              title="Money widget needs a backing source"
-              body="Lead pipeline + revenue come from Ideafetti. The connector isn’t wired yet — this widget will populate once it is."
-            />
+            <MoneyWidget />
           </Card>
         </div>
         )}
@@ -1316,8 +1508,7 @@ function TodayPage() {
           <Card
             title="Content pulse"
             icon={Sparkles}
-            info
-            className="h-full overflow-auto"
+            className="h-full overflow-hidden"
             dragHandle={!locks.content_pulse && !isMobileViewport}
             lockId="content_pulse"
             locked={!!locks.content_pulse}
@@ -1325,10 +1516,7 @@ function TodayPage() {
             editMode={editMode}
             onRemove={removeWidget}
           >
-            <NeedsSetup
-              title="Content pulse needs a backing source"
-              body="Content metrics come from Ideafetti. The connector isn’t wired yet — this widget will populate once it is."
-            />
+            <ContentPulseWidget />
           </Card>
         </div>
         )}
@@ -1339,7 +1527,7 @@ function TodayPage() {
           <Card
             title="Projects"
             icon={FolderKanban}
-            className="h-full overflow-auto"
+            className="h-full overflow-hidden"
             dragHandle={!locks.projects && !isMobileViewport}
             lockId="projects"
             locked={!!locks.projects}
@@ -1347,10 +1535,7 @@ function TodayPage() {
             editMode={editMode}
             onRemove={removeWidget}
           >
-            <NeedsSetup
-              title="Projects needs a backing source"
-              body="This widget used to show placeholder data. Wire it to an exec_os_projects table or your Ideafetti DB to see real progress here."
-            />
+            <ProjectsWidget />
           </Card>
         </div>
         )}
