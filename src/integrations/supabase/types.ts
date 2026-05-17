@@ -292,6 +292,48 @@ export type Database = {
         }
         Relationships: []
       }
+      exec_os_content: {
+        Row: {
+          created_at: string
+          entry_date: string
+          external_id: string | null
+          id: string
+          kind: string
+          notes: string | null
+          platform: string
+          title: string | null
+          url: string | null
+          user_id: string
+          views: number | null
+        }
+        Insert: {
+          created_at?: string
+          entry_date: string
+          external_id?: string | null
+          id?: string
+          kind: string
+          notes?: string | null
+          platform: string
+          title?: string | null
+          url?: string | null
+          user_id: string
+          views?: number | null
+        }
+        Update: {
+          created_at?: string
+          entry_date?: string
+          external_id?: string | null
+          id?: string
+          kind?: string
+          notes?: string | null
+          platform?: string
+          title?: string | null
+          url?: string | null
+          user_id?: string
+          views?: number | null
+        }
+        Relationships: []
+      }
       exec_os_daily: {
         Row: {
           blockers: string | null
@@ -547,6 +589,45 @@ export type Database = {
           id?: string
           tags?: string[]
           title?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      exec_os_projects: {
+        Row: {
+          created_at: string
+          deadline: string | null
+          id: string
+          name: string
+          notes: string | null
+          progress: number
+          sort_order: number
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          deadline?: string | null
+          id?: string
+          name: string
+          notes?: string | null
+          progress?: number
+          sort_order?: number
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          deadline?: string | null
+          id?: string
+          name?: string
+          notes?: string | null
+          progress?: number
+          sort_order?: number
+          status?: string
           updated_at?: string
           user_id?: string
         }
