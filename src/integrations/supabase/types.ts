@@ -292,6 +292,48 @@ export type Database = {
         }
         Relationships: []
       }
+      exec_os_content: {
+        Row: {
+          created_at: string
+          entry_date: string
+          external_id: string | null
+          id: string
+          kind: string
+          notes: string | null
+          platform: string
+          title: string | null
+          url: string | null
+          user_id: string
+          views: number | null
+        }
+        Insert: {
+          created_at?: string
+          entry_date: string
+          external_id?: string | null
+          id?: string
+          kind: string
+          notes?: string | null
+          platform: string
+          title?: string | null
+          url?: string | null
+          user_id: string
+          views?: number | null
+        }
+        Update: {
+          created_at?: string
+          entry_date?: string
+          external_id?: string | null
+          id?: string
+          kind?: string
+          notes?: string | null
+          platform?: string
+          title?: string | null
+          url?: string | null
+          user_id?: string
+          views?: number | null
+        }
+        Relationships: []
+      }
       exec_os_daily: {
         Row: {
           blockers: string | null
@@ -436,6 +478,89 @@ export type Database = {
         }
         Relationships: []
       }
+      exec_os_kitchen_recipes: {
+        Row: {
+          created_at: string
+          id: string
+          ingredients: Json
+          meal_type: string
+          name: string
+          prep_notes: string | null
+          scheduled_for: string | null
+          source: string | null
+          steps: Json
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          ingredients?: Json
+          meal_type: string
+          name: string
+          prep_notes?: string | null
+          scheduled_for?: string | null
+          source?: string | null
+          steps?: Json
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          ingredients?: Json
+          meal_type?: string
+          name?: string
+          prep_notes?: string | null
+          scheduled_for?: string | null
+          source?: string | null
+          steps?: Json
+          user_id?: string
+        }
+        Relationships: []
+      }
+      exec_os_kitchen_shopping: {
+        Row: {
+          category: string
+          checked: boolean
+          created_at: string
+          id: string
+          item: string
+          qty: string | null
+          recipe_id: string | null
+          source: string | null
+          user_id: string
+        }
+        Insert: {
+          category?: string
+          checked?: boolean
+          created_at?: string
+          id?: string
+          item: string
+          qty?: string | null
+          recipe_id?: string | null
+          source?: string | null
+          user_id: string
+        }
+        Update: {
+          category?: string
+          checked?: boolean
+          created_at?: string
+          id?: string
+          item?: string
+          qty?: string | null
+          recipe_id?: string | null
+          source?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "exec_os_kitchen_shopping_recipe_id_fkey"
+            columns: ["recipe_id"]
+            isOneToOne: false
+            referencedRelation: "exec_os_kitchen_recipes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       exec_os_notes: {
         Row: {
           agent_id: string | null
@@ -465,6 +590,120 @@ export type Database = {
           tags?: string[]
           title?: string | null
           updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      exec_os_projects: {
+        Row: {
+          created_at: string
+          deadline: string | null
+          id: string
+          name: string
+          notes: string | null
+          progress: number
+          sort_order: number
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          deadline?: string | null
+          id?: string
+          name: string
+          notes?: string | null
+          progress?: number
+          sort_order?: number
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          deadline?: string | null
+          id?: string
+          name?: string
+          notes?: string | null
+          progress?: number
+          sort_order?: number
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      exec_os_public_profile: {
+        Row: {
+          created_at: string
+          cta_label: string | null
+          cta_url: string | null
+          display_name: string
+          share_clients: boolean
+          share_content: boolean
+          share_revenue: boolean
+          tagline: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          cta_label?: string | null
+          cta_url?: string | null
+          display_name: string
+          share_clients?: boolean
+          share_content?: boolean
+          share_revenue?: boolean
+          tagline?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          cta_label?: string | null
+          cta_url?: string | null
+          display_name?: string
+          share_clients?: boolean
+          share_content?: boolean
+          share_revenue?: boolean
+          tagline?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      exec_os_revenue: {
+        Row: {
+          amount_cents: number
+          created_at: string
+          currency: string
+          entry_date: string
+          external_id: string | null
+          id: string
+          notes: string | null
+          source: string
+          user_id: string
+        }
+        Insert: {
+          amount_cents: number
+          created_at?: string
+          currency?: string
+          entry_date: string
+          external_id?: string | null
+          id?: string
+          notes?: string | null
+          source: string
+          user_id: string
+        }
+        Update: {
+          amount_cents?: number
+          created_at?: string
+          currency?: string
+          entry_date?: string
+          external_id?: string | null
+          id?: string
+          notes?: string | null
+          source?: string
           user_id?: string
         }
         Relationships: []
@@ -588,7 +827,15 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      public_revenue_monthly: {
+        Row: {
+          amount_cents: number | null
+          entries: number | null
+          month: string | null
+          user_id: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       [_ in never]: never
