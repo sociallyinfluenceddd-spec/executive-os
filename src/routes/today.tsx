@@ -223,8 +223,37 @@ function saveActiveWidgets(ids: string[]) {
   if (typeof window === "undefined") return;
   try { localStorage.setItem(ACTIVE_WIDGETS_KEY, JSON.stringify(ids)); } catch {}
 }
+// Default-lock migration: widgets used to default to unlocked, which made
+// the dashboard feel like a draggable construction zone on every load.
+// Donna asked for locked-by-default with explicit unlock when she wants to
+// rearrange. This runs once per user.
+const DEFAULT_LOCKS_KEY = "execOs.defaultLocks.v1";
+
+function defaultAllLocked(activeIds: string[]): Record<string, boolean> {
+  return Object.fromEntries(activeIds.map((id) => [id, true]));
+}
+
 function loadLocks(): Record<string, boolean> {
-  return loadDashboard()?.locked ?? {};
+  if (typeof window === "undefined") return {};
+  const saved = loadDashboard()?.locked;
+  if (!localStorage.getItem(DEFAULT_LOCKS_KEY)) {
+    // One-time: replace whatever's there with all-locked. The locks map
+    // pre-migration was almost always empty (= all unlocked).
+    try { localStorage.setItem(DEFAULT_LOCKS_KEY, "1"); } catch {}
+    // Use the union of currently-active widgets + defaults so the migration
+    // catches whatever the user actually has on screen right now.
+    const active = (() => {
+      try {
+        const raw = localStorage.getItem(ACTIVE_WIDGETS_KEY);
+        const parsed = raw ? (JSON.parse(raw) as string[]) : null;
+        return Array.isArray(parsed) ? parsed : DEFAULT_ACTIVE_WIDGETS;
+      } catch {
+        return DEFAULT_ACTIVE_WIDGETS;
+      }
+    })();
+    return defaultAllLocked(active);
+  }
+  return saved ?? {};
 }
 function saveDashboard(layouts: ResponsiveLayouts, locked: Record<string, boolean>) {
   if (typeof window === "undefined") return;
@@ -502,6 +531,9 @@ function TodayPage() {
 
   const addWidget = useCallback((id: string) => {
     setActiveWidgets((cur) => (cur.includes(id) ? cur : [...cur, id]));
+    // New widgets default to locked, matching the dashboard-wide default.
+    // User can unlock from the widget header if they want to move/resize.
+    setLocks((cur) => (cur[id] === undefined ? { ...cur, [id]: true } : cur));
     setLayouts((cur) => {
       const size = defaultSizeFor(id);
       const next: ResponsiveLayouts = { ...cur };
