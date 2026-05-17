@@ -436,6 +436,89 @@ export type Database = {
         }
         Relationships: []
       }
+      exec_os_kitchen_recipes: {
+        Row: {
+          created_at: string
+          id: string
+          ingredients: Json
+          meal_type: string
+          name: string
+          prep_notes: string | null
+          scheduled_for: string | null
+          source: string | null
+          steps: Json
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          ingredients?: Json
+          meal_type: string
+          name: string
+          prep_notes?: string | null
+          scheduled_for?: string | null
+          source?: string | null
+          steps?: Json
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          ingredients?: Json
+          meal_type?: string
+          name?: string
+          prep_notes?: string | null
+          scheduled_for?: string | null
+          source?: string | null
+          steps?: Json
+          user_id?: string
+        }
+        Relationships: []
+      }
+      exec_os_kitchen_shopping: {
+        Row: {
+          category: string
+          checked: boolean
+          created_at: string
+          id: string
+          item: string
+          qty: string | null
+          recipe_id: string | null
+          source: string | null
+          user_id: string
+        }
+        Insert: {
+          category?: string
+          checked?: boolean
+          created_at?: string
+          id?: string
+          item: string
+          qty?: string | null
+          recipe_id?: string | null
+          source?: string | null
+          user_id: string
+        }
+        Update: {
+          category?: string
+          checked?: boolean
+          created_at?: string
+          id?: string
+          item?: string
+          qty?: string | null
+          recipe_id?: string | null
+          source?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "exec_os_kitchen_shopping_recipe_id_fkey"
+            columns: ["recipe_id"]
+            isOneToOne: false
+            referencedRelation: "exec_os_kitchen_recipes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       exec_os_notes: {
         Row: {
           agent_id: string | null
