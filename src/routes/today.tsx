@@ -101,38 +101,52 @@ type WidgetId =
   | "workflows"
   | "done_today";
 
+// Clean non-overlapping layout. y values stack cleanly so react-grid-layout
+// doesn't auto-shift things into the next free row creating huge gaps.
+// Top of screen — Workflow + Calendar/Inbox stack (the action layer).
+// Then Timeline strip. Then Money/Projects/ContentPulse trio. Then
+// Follow-ups + Bench Whispers row. Then Bench (advisors). Then
+// Timers + Kitchen. Voice/Done/TopPriority kept for users who re-enable.
+// Heights right-sized to fit each widget's DEFAULT content (empty / day-one
+// state) without internal scroll. Widgets with overflow-auto on their list
+// container only scroll once Donna adds enough rows to warrant it.
+// rowHeight = 40px, margin = 16px between rows. Pixel height of h=N is
+// (N*40) + ((N-1)*16). Reference: h=4 ≈ 208px, h=5 ≈ 264px, h=6 ≈ 320px,
+// h=7 ≈ 376px, h=8 ≈ 432px.
 const LG_BASE: LayoutItem[] = [
-  { i: "top_priority", x: 0, y: 0, w: 12, h: 3, minW: 4, minH: 2 },
-  { i: "workflows", x: 0, y: 3, w: 6, h: 10, minW: 4, minH: 6 },
-  { i: "calendar", x: 6, y: 3, w: 6, h: 6, minW: 3, minH: 4 },
-  { i: "inbox", x: 6, y: 9, w: 6, h: 4, minW: 3, minH: 4 },
-  { i: "money", x: 0, y: 13, w: 4, h: 6, minW: 3, minH: 4 },
-  { i: "timeline", x: 0, y: 15, w: 12, h: 3, minW: 6, minH: 2 },
-  { i: "content_pulse", x: 0, y: 19, w: 6, h: 5, minW: 3, minH: 4 },
-  { i: "projects", x: 6, y: 19, w: 6, h: 5, minW: 3, minH: 4 },
-  { i: "follow_ups", x: 0, y: 24, w: 12, h: 8, minW: 3, minH: 4 },
-  { i: "bench", x: 0, y: 29, w: 12, h: 6, minW: 6, minH: 5 },
-  { i: "timers_alarms", x: 0, y: 35, w: 6, h: 7, minW: 3, minH: 5 },
-  { i: "kitchen_recipes", x: 6, y: 35, w: 6, h: 8, minW: 3, minH: 6 },
-  { i: "voice_capture", x: 0, y: 43, w: 4, h: 4, minW: 3, minH: 3 },
-  { i: "done_today", x: 4, y: 43, w: 4, h: 3, minW: 3, minH: 2 },
+  { i: "workflows",       x: 0,  y: 0,  w: 6,  h: 8, minW: 4, minH: 6 },
+  { i: "calendar",        x: 6,  y: 0,  w: 6,  h: 5, minW: 3, minH: 4 },
+  { i: "inbox",           x: 6,  y: 5,  w: 6,  h: 3, minW: 3, minH: 3 },
+  { i: "timeline",        x: 0,  y: 8,  w: 12, h: 4, minW: 6, minH: 3 },
+  { i: "money",           x: 0,  y: 12, w: 4,  h: 5, minW: 3, minH: 4 },
+  { i: "projects",        x: 4,  y: 12, w: 4,  h: 5, minW: 3, minH: 4 },
+  { i: "content_pulse",   x: 8,  y: 12, w: 4,  h: 5, minW: 3, minH: 4 },
+  { i: "follow_ups",      x: 0,  y: 17, w: 6,  h: 5, minW: 3, minH: 4 },
+  { i: "bench_whispers",  x: 6,  y: 17, w: 6,  h: 5, minW: 3, minH: 4 },
+  { i: "bench",           x: 0,  y: 22, w: 12, h: 4, minW: 6, minH: 4 },
+  { i: "timers_alarms",   x: 0,  y: 26, w: 6,  h: 5, minW: 3, minH: 4 },
+  { i: "kitchen_recipes", x: 6,  y: 26, w: 6,  h: 6, minW: 3, minH: 5 },
+  { i: "top_priority",    x: 0,  y: 32, w: 12, h: 3, minW: 4, minH: 2 },
+  { i: "voice_capture",   x: 0,  y: 35, w: 4,  h: 4, minW: 3, minH: 3 },
+  { i: "done_today",      x: 4,  y: 35, w: 4,  h: 3, minW: 3, minH: 2 },
 ];
 
 const MD_BASE: LayoutItem[] = [
-  { i: "top_priority", x: 0, y: 0, w: 8, h: 3, minW: 4, minH: 2 },
-  { i: "workflows", x: 0, y: 3, w: 8, h: 10, minW: 4, minH: 6 },
-  { i: "calendar", x: 0, y: 13, w: 8, h: 6, minW: 3, minH: 4 },
-  { i: "inbox", x: 0, y: 19, w: 4, h: 6, minW: 3, minH: 4 },
-  { i: "money", x: 4, y: 19, w: 4, h: 6, minW: 3, minH: 4 },
-  { i: "timeline", x: 0, y: 15, w: 8, h: 3, minW: 4, minH: 2 },
-  { i: "content_pulse", x: 0, y: 19, w: 4, h: 5, minW: 3, minH: 4 },
-  { i: "projects", x: 4, y: 19, w: 4, h: 5, minW: 3, minH: 4 },
-  { i: "follow_ups", x: 0, y: 24, w: 8, h: 8, minW: 3, minH: 4 },
-  { i: "bench", x: 0, y: 29, w: 8, h: 6, minW: 4, minH: 5 },
-  { i: "timers_alarms", x: 0, y: 35, w: 4, h: 7, minW: 3, minH: 5 },
-  { i: "kitchen_recipes", x: 4, y: 35, w: 4, h: 8, minW: 3, minH: 6 },
-  { i: "voice_capture", x: 0, y: 43, w: 4, h: 4, minW: 3, minH: 3 },
-  { i: "done_today", x: 4, y: 43, w: 4, h: 3, minW: 3, minH: 2 },
+  { i: "workflows",       x: 0,  y: 0,  w: 8,  h: 8, minW: 4, minH: 6 },
+  { i: "calendar",        x: 0,  y: 8,  w: 8,  h: 5, minW: 3, minH: 4 },
+  { i: "inbox",           x: 0,  y: 13, w: 8,  h: 3, minW: 3, minH: 3 },
+  { i: "timeline",        x: 0,  y: 16, w: 8,  h: 4, minW: 4, minH: 3 },
+  { i: "money",           x: 0,  y: 20, w: 4,  h: 5, minW: 3, minH: 4 },
+  { i: "projects",        x: 4,  y: 20, w: 4,  h: 5, minW: 3, minH: 4 },
+  { i: "content_pulse",   x: 0,  y: 25, w: 4,  h: 5, minW: 3, minH: 4 },
+  { i: "follow_ups",      x: 4,  y: 25, w: 4,  h: 5, minW: 3, minH: 4 },
+  { i: "bench_whispers",  x: 0,  y: 30, w: 8,  h: 5, minW: 3, minH: 4 },
+  { i: "bench",           x: 0,  y: 35, w: 8,  h: 4, minW: 4, minH: 4 },
+  { i: "timers_alarms",   x: 0,  y: 39, w: 4,  h: 5, minW: 3, minH: 4 },
+  { i: "kitchen_recipes", x: 4,  y: 39, w: 4,  h: 6, minW: 3, minH: 5 },
+  { i: "top_priority",    x: 0,  y: 45, w: 8,  h: 3, minW: 4, minH: 2 },
+  { i: "voice_capture",   x: 0,  y: 48, w: 4,  h: 4, minW: 3, minH: 3 },
+  { i: "done_today",      x: 4,  y: 48, w: 4,  h: 3, minW: 3, minH: 2 },
 ];
 
 const MOBILE_ORDER: WidgetId[] = [
@@ -177,7 +191,10 @@ function buildLayouts(locks: Record<string, boolean>): ResponsiveLayouts {
   };
 }
 
-const DASHBOARD_KEY = "execOs.dashboardLayout.v1";
+// Bumped to v3 on 2026-05-18 — second-pass refit after Donna flagged
+// timeline rendering with content clipped at h=3. Wiping again so the
+// new clean heights apply on next load.
+const DASHBOARD_KEY = "execOs.dashboardLayout.v3";
 
 type DashboardPersisted = {
   lg?: LayoutItem[];
@@ -624,6 +641,20 @@ function TodayPage() {
   const toggleLock = useCallback((id: WidgetId) => {
     setLocks((cur) => ({ ...cur, [id]: !cur[id] }));
   }, []);
+  // If any active widget is currently UNLOCKED, the next press locks
+  // everything. If all are locked, the next press unlocks everything.
+  // Reads activeWidgets via the activeWidgetsRef declared further down so it
+  // doesn't need to live in the dependency list.
+  const toggleAllLocks = useCallback(() => {
+    setLocks((cur) => {
+      const ids = activeWidgetsRef.current;
+      const anyUnlocked = ids.some((id) => !cur[id]);
+      const next: Record<string, boolean> = { ...cur };
+      ids.forEach((id) => { next[id] = anyUnlocked; });
+      toast.success(anyUnlocked ? "All widgets locked" : "All widgets unlocked");
+      return next;
+    });
+  }, []);
   const resetLayout = useCallback(() => {
     const ok = typeof window !== "undefined"
       ? window.confirm("Reset dashboard layout? This will undo all drag, resize, and lock customizations.")
@@ -639,6 +670,14 @@ function TodayPage() {
   const [editMode, setEditMode] = useState(false);
   const [libraryOpen, setLibraryOpen] = useState(false);
   useEffect(() => { saveActiveWidgets(activeWidgets); }, [activeWidgets]);
+  // Derived: are all currently-active widgets locked? Drives the toolbar
+  // toggle's icon (LockOpen → "lock all", Lock → "unlock all"). The
+  // activeWidgetsRef sync happens further down (same ref reused by
+  // removeWidget); no need to duplicate.
+  const allLocked = useMemo(
+    () => activeWidgets.length > 0 && activeWidgets.every((id) => !!locks[id]),
+    [activeWidgets, locks],
+  );
 
   // Sync: any active widget that doesn't have a layout entry in lg/md/sm
   // gets one appended at the bottom (maxY) with its DEFAULT_WIDGET_SIZE.
@@ -1206,6 +1245,19 @@ function TodayPage() {
             </button>
             <button
               type="button"
+              onClick={toggleAllLocks}
+              aria-label={allLocked ? "Unlock all widgets" : "Lock all widgets"}
+              title={allLocked ? "Unlock all widgets" : "Lock all widgets"}
+              className={`inline-flex items-center justify-center h-8 w-8 rounded-full border border-border transition ${
+                allLocked
+                  ? "bg-[color:var(--sage)]/20 text-[color:var(--forest)] border-[color:var(--sage)]"
+                  : "hover:bg-muted text-[color:var(--navy)]"
+              }`}
+            >
+              {allLocked ? <Lock className="h-3.5 w-3.5" /> : <LockOpen className="h-3.5 w-3.5" />}
+            </button>
+            <button
+              type="button"
               onClick={() => setEditMode((v) => !v)}
               aria-label="Edit dashboard"
               title={editMode ? "Done editing" : "Edit dashboard"}
@@ -1227,6 +1279,18 @@ function TodayPage() {
               className="inline-flex items-center justify-center h-9 w-9 rounded-full border border-border hover:bg-muted text-[color:var(--navy)]"
             >
               <Plus className="h-4 w-4" />
+            </button>
+            <button
+              type="button"
+              onClick={toggleAllLocks}
+              aria-label={allLocked ? "Unlock all widgets" : "Lock all widgets"}
+              className={`inline-flex items-center justify-center h-9 w-9 rounded-full border border-border transition ${
+                allLocked
+                  ? "bg-[color:var(--sage)]/20 text-[color:var(--forest)] border-[color:var(--sage)]"
+                  : "hover:bg-muted text-[color:var(--navy)]"
+              }`}
+            >
+              {allLocked ? <Lock className="h-3.5 w-3.5" /> : <LockOpen className="h-3.5 w-3.5" />}
             </button>
             <button
               type="button"

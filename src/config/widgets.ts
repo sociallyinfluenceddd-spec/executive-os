@@ -66,19 +66,22 @@ export const AUTO_APPEND_KEY = "execOs.activeWidgets.autoAppend.v6";
 
 // Default grid sizes when a widget is freshly added via the library.
 // Full-width widgets get the timeline-style row.
+// Sized to fit each widget's DEFAULT empty-state content without scroll.
+// applySizeFloor in today.tsx bumps any stored layout entry below these
+// dimensions back up to this floor (matches LG_BASE in today.tsx).
 export const DEFAULT_WIDGET_SIZE: Record<string, { w: number; h: number }> = {
-  timeline: { w: 12, h: 4 },
-  top_priority: { w: 12, h: 3 },
-  done_today: { w: 4, h: 3 },
-  voice_capture: { w: 4, h: 4 },
-  bench: { w: 12, h: 4 },
-  bench_whispers: { w: 6, h: 8 },
-  timers_alarms: { w: 6, h: 7 },
-  kitchen_recipes: { w: 6, h: 8 },
-  money: { w: 4, h: 8 },
-  projects: { w: 6, h: 8 },
-  content_pulse: { w: 6, h: 8 },
-  workflows: { w: 6, h: 10 },
+  timeline:        { w: 12, h: 4 },
+  top_priority:    { w: 12, h: 3 },
+  done_today:      { w: 4,  h: 3 },
+  voice_capture:   { w: 4,  h: 4 },
+  bench:           { w: 12, h: 4 },
+  bench_whispers:  { w: 6,  h: 5 },
+  timers_alarms:   { w: 6,  h: 5 },
+  kitchen_recipes: { w: 6,  h: 6 },
+  money:           { w: 4,  h: 5 },
+  projects:        { w: 4,  h: 5 },
+  content_pulse:   { w: 4,  h: 5 },
+  workflows:       { w: 6,  h: 8 },
 };
 
 export function defaultSizeFor(id: string): { w: number; h: number } {
