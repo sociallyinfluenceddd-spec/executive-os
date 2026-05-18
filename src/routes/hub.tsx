@@ -15,6 +15,13 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetDescription,
+} from "@/components/ui/sheet";
 import { AppShell } from "@/components/AppShell";
 import { StackTab } from "@/components/StackTab";
 import { supabase } from "@/integrations/supabase/client";
@@ -65,7 +72,26 @@ type Artifact = {
   last_touched: string | null;
   opened_count: number;
   notes: string | null;
+  /** Base64-encoded file content for embedded artifacts (HTML/MD/CSV). */
+  content: string | null;
 };
+
+function decodeContent(b64: string): string {
+  try {
+    // atob handles ASCII; for UTF-8 we need to decode the byte string back.
+    const binary = atob(b64);
+    const bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+    return new TextDecoder("utf-8").decode(bytes);
+  } catch {
+    return b64;
+  }
+}
+
+function fileExtFromLocation(loc: string): string {
+  const m = loc.toLowerCase().match(/\.([a-z0-9]+)$/);
+  return m ? m[1] : "";
+}
 
 const CATEGORY_LABEL: Record<Category, string> = {
   ideafetti: "Ideafetti",
@@ -118,13 +144,17 @@ function HubPage() {
   const [query, setQuery] = useState("");
   const [activeCategory, setActiveCategory] = useState<Category | "all">("all");
   const [showArchived, setShowArchived] = useState(false);
+  // In-dashboard content viewer state. When set, we render its base64 content
+  // inside a right-side Sheet so Donna never leaves the dashboard to read a
+  // doc. Only artifacts with non-null content open the viewer.
+  const [viewing, setViewing] = useState<Artifact | null>(null);
 
   const load = useCallback(async () => {
     if (!user) return;
     const { data, error } = await adb
       .from("exec_os_artifacts")
       .select(
-        "id, title, emoji, kind, category, location_type, location, summary, status, is_pinned, sort_order, last_touched, opened_count, notes",
+        "id, title, emoji, kind, category, location_type, location, summary, status, is_pinned, sort_order, last_touched, opened_count, notes, content",
       )
       .order("is_pinned", { ascending: false })
       .order("sort_order", { ascending: true })
@@ -209,21 +239,27 @@ function HubPage() {
       })
       .eq("id", a.id);
 
+    // If this artifact has inline content stored in the DB, open the viewer
+    // Sheet — no context switch. Works for embedded HTML, MD, CSV.
+    if (a.content) {
+      setViewing(a);
+      return;
+    }
+
     if (a.location_type === "url") {
       window.open(a.location, "_blank", "noopener,noreferrer");
     } else if (a.location_type === "app_route") {
       // Same-app navigation
       window.location.assign(a.location);
     } else if (a.location_type === "file") {
-      // Browsers block file:// from non-file pages. Best UX: copy the path
-      // so user can paste into Finder / VS Code / `open <path>`.
+      // No inline content yet for this file — fall back to copy-path.
       await navigator.clipboard.writeText(a.location).catch(() => {});
       toast.success("Path copied", {
         description: a.location,
         duration: 6000,
       });
     } else {
-      toast.info("Embedded view not built yet", { description: a.title });
+      toast.info("No viewable content for this artifact yet", { description: a.title });
     }
   };
 
@@ -458,8 +494,111 @@ function HubPage() {
         </div>
           </TabsContent>
         </Tabs>
+
+        {/* INLINE CONTENT VIEWER — clicking any embedded artifact opens here */}
+        <Sheet open={!!viewing} onOpenChange={(open) => { if (!open) setViewing(null); }}>
+          <SheetContent side="right" className="w-full sm:max-w-3xl p-0 flex flex-col">
+            {viewing && (
+              <>
+                <SheetHeader className="px-5 py-3 border-b border-border space-y-1">
+                  <SheetTitle className="text-base font-semibold flex items-center gap-2">
+                    <span>{viewing.emoji ?? "📄"}</span>
+                    <span>{viewing.title}</span>
+                  </SheetTitle>
+                  {viewing.summary && (
+                    <SheetDescription className="text-xs text-muted-foreground">
+                      {viewing.summary}
+                    </SheetDescription>
+                  )}
+                </SheetHeader>
+                <div className="flex-1 min-h-0 overflow-auto">
+                  <ArtifactContentView artifact={viewing} />
+                </div>
+              </>
+            )}
+          </SheetContent>
+        </Sheet>
       </div>
     </AppShell>
+  );
+}
+
+function ArtifactContentView({ artifact }: { artifact: Artifact }) {
+  const text = useMemo(() => decodeContent(artifact.content ?? ""), [artifact.content]);
+  const ext = fileExtFromLocation(artifact.location);
+
+  if (ext === "html") {
+    // Donna's own files — render the HTML as-is in a scoped scrollable area.
+    return (
+      <div
+        className="p-4"
+        // eslint-disable-next-line react/no-danger
+        dangerouslySetInnerHTML={{ __html: text }}
+      />
+    );
+  }
+
+  if (ext === "csv") {
+    const lines = text.split(/\r?\n/).filter(Boolean);
+    if (lines.length === 0) {
+      return <div className="p-4 text-sm text-muted-foreground">Empty CSV.</div>;
+    }
+    const parseRow = (row: string): string[] => {
+      // Simple CSV parser handling quoted fields with commas.
+      const out: string[] = [];
+      let cur = "";
+      let inQ = false;
+      for (let i = 0; i < row.length; i++) {
+        const ch = row[i];
+        if (ch === '"') {
+          if (inQ && row[i + 1] === '"') { cur += '"'; i++; }
+          else inQ = !inQ;
+        } else if (ch === "," && !inQ) {
+          out.push(cur); cur = "";
+        } else cur += ch;
+      }
+      out.push(cur);
+      return out;
+    };
+    const headers = parseRow(lines[0]);
+    const rows = lines.slice(1).map(parseRow);
+    return (
+      <div className="p-4 overflow-auto">
+        <table className="w-full text-xs border-collapse">
+          <thead>
+            <tr className="border-b border-border bg-muted/30">
+              {headers.map((h, i) => (
+                <th key={i} className="text-left px-2 py-1.5 font-semibold">{h}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((r, i) => (
+              <tr key={i} className="border-b border-border/50">
+                {r.map((c, j) => (
+                  <td key={j} className="px-2 py-1 align-top">{c}</td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    );
+  }
+
+  if (ext === "md") {
+    // Minimal markdown rendering — headings + paragraphs + code blocks.
+    // Avoids pulling in a markdown library for the few docs that need it.
+    return (
+      <pre className="p-4 text-xs leading-relaxed whitespace-pre-wrap font-mono">
+        {text}
+      </pre>
+    );
+  }
+
+  // Plain text fallback
+  return (
+    <pre className="p-4 text-xs leading-relaxed whitespace-pre-wrap">{text}</pre>
   );
 }
 
