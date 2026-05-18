@@ -14,7 +14,9 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { AppShell } from "@/components/AppShell";
+import { StackTab } from "@/components/StackTab";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
@@ -310,9 +312,22 @@ function HubPage() {
             Where everything lives.
           </h1>
           <p className="text-sm text-muted-foreground mt-1">
-            One room for every doc, dashboard, tool, and workflow. Click an artifact to open or copy its path.
+            Docs are the artifacts you've made. Stack is the services you use — what each one does, why you keep it, what it costs.
           </p>
         </div>
+
+        {/* TOP-LEVEL TABS: Docs (artifacts) vs Stack (tools) */}
+        <Tabs defaultValue="docs" className="space-y-4">
+          <TabsList className="grid w-full grid-cols-2 max-w-md">
+            <TabsTrigger value="docs">Docs</TabsTrigger>
+            <TabsTrigger value="stack">Stack</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="stack" className="space-y-4 m-0">
+            <StackTab />
+          </TabsContent>
+
+          <TabsContent value="docs" className="space-y-5 m-0">
 
         {/* SEARCH */}
         <div className="flex items-center gap-2">
@@ -441,6 +456,8 @@ function HubPage() {
             Add artifact
           </Button>
         </div>
+          </TabsContent>
+        </Tabs>
       </div>
     </AppShell>
   );
