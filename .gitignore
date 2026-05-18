@@ -30,3 +30,7 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Local env — keys live here (Anthropic, Supabase, etc.) — never commit
+.env
+.env.local
