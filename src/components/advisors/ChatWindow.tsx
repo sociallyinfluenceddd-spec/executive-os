@@ -43,10 +43,26 @@ export function ChatWindow({
   const [streaming, setStreaming] = useState(false);
   const [loadingHistory, setLoadingHistory] = useState(true);
   const scrollerRef = useRef<HTMLDivElement>(null);
+  // Threads we just minted in this session — when the streamAdvisorReply
+  // emits {type:"thread"} mid-send, onThreadCreated bubbles the new id up
+  // to the URL/parent, which re-renders us with a new threadId prop. Without
+  // this guard, the history-load effect below would call setMessages([]) and
+  // wipe the optimistic user+assistant bubbles before the SSE stream
+  // finishes — making it look like the advisor never responded. The bug
+  // affected every advisor on the /advisors "New conversation" path.
+  const justCreatedThreadsRef = useRef<Set<string>>(new Set());
 
-  // Load history when thread changes
+  // Load history when thread changes. Skip the load (and the setMessages
+  // wipe) when threadId is one we just created — its messages are already
+  // optimistically in local state and will be streamed in.
   useEffect(() => {
     if (!user) return;
+    if (threadId && justCreatedThreadsRef.current.has(threadId)) {
+      // We created this thread ourselves moments ago. Local state is the
+      // truth — don't clobber it with an empty DB read.
+      setLoadingHistory(false);
+      return;
+    }
     setLoadingHistory(true);
     setMessages([]);
     if (!threadId) {
@@ -115,6 +131,10 @@ export function ChatWindow({
         })) {
           if (ev.type === "thread") {
             activeThreadId = ev.threadId;
+            // Remember this thread so the history-load effect skips its
+            // setMessages([]) wipe when the parent re-renders us with the
+            // new threadId prop.
+            justCreatedThreadsRef.current.add(ev.threadId);
             onThreadCreated(ev.threadId);
           } else if (ev.type === "text") {
             setMessages((prev) =>

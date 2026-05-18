@@ -697,7 +697,12 @@ function ArtifactCard({
               onClick={() => onOpen(a)}
               className="ml-1 inline-flex items-center gap-1 text-[10px] font-medium text-[color:var(--navy)] hover:underline"
             >
-              {a.location_type === "url" ? (
+              {/* Label reflects what clicking the card will actually do.
+                  Content-loaded artifacts open the inline viewer; everything
+                  else falls back to URL/route/copy-path as before. */}
+              {a.content ? (
+                <>View →</>
+              ) : a.location_type === "url" ? (
                 <>
                   Open <ExternalLink className="h-2.5 w-2.5" />
                 </>
