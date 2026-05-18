@@ -259,17 +259,18 @@ export function WorkflowsWidget() {
       return;
     }
     setChatTask(task);
-    // Look up an existing non-archived thread for this (agent, task) pair.
-    // If found, ChatWindow will load its history. If not, threadId stays
-    // null and ChatWindow creates a fresh thread on first message; we then
-    // patch it with task_id in the onThreadCreated callback below.
+    // Look up an existing non-archived thread for this (agent, task) pair
+    // that has actually been used (has a message). Skipping empty threads
+    // means re-opening a chat where the user previously closed without
+    // sending still pre-fills the composer with claude_prompt.
     const { data } = await wdb
       .from("exec_os_agent_threads")
       .select("id")
       .eq("agent_id", executor.id)
       .eq("task_id", task.id)
       .eq("archived", false)
-      .order("last_message_at", { ascending: false, nullsFirst: false })
+      .not("last_message_at", "is", null)
+      .order("last_message_at", { ascending: false })
       .limit(1)
       .maybeSingle();
     setChatThreadId(data?.id ?? null);

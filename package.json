@@ -4,7 +4,7 @@
   "sideEffects": false,
   "type": "module",
   "scripts": {
-    "dev": "vite dev",
+    "dev": "env -u ANTHROPIC_API_KEY -u ANTHROPIC_BASE_URL node --env-file-if-exists=.dev.vars --env-file-if-exists=.env node_modules/.bin/vite dev",
     "build": "vite build",
     "build:dev": "vite build --mode development",
     "preview": "vite preview",
