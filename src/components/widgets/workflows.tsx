@@ -7,12 +7,23 @@ import {
   Clock,
   AlertCircle,
   Sparkles,
+  Copy,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetDescription,
+} from "@/components/ui/sheet";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
+import { ensureAdvisorsSeeded } from "@/lib/advisor-seed";
+import { ChatWindow } from "@/components/advisors/ChatWindow";
+import type { ModelTier } from "@/config/advisors";
 
 // Workflow tables aren't in generated types yet — added by migration
 // 20260517170000_workflows.sql. Untyped alias until types regenerate.
@@ -84,6 +95,12 @@ function todayISO(): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
 
+type ExecutorAgent = {
+  id: string;
+  name: string;
+  model_tier: ModelTier;
+};
+
 export function WorkflowsWidget() {
   const { user } = useAuth();
   const [workflow, setWorkflow] = useState<WorkflowRow | null | undefined>(undefined);
@@ -91,6 +108,41 @@ export function WorkflowsWidget() {
   const [tasks, setTasks] = useState<TaskRow[]>([]);
   const [setupNeeded, setSetupNeeded] = useState(false);
   const [expandedTaskId, setExpandedTaskId] = useState<string | null>(null);
+
+  // Chat-with-task state. Selected task drives the sheet's title + initial
+  // message; we mint a fresh threadId for each open so each task gets its
+  // own conversation history that won't bleed across tasks.
+  const [chatTask, setChatTask] = useState<TaskRow | null>(null);
+  const [chatThreadId, setChatThreadId] = useState<string | null>(null);
+  const [executor, setExecutor] = useState<ExecutorAgent | null>(null);
+
+  // Load Maya (the Ideafetti Co-founder advisor) as the executor. She has
+  // the right system prompt for ship-the-build tasks. Seeds the advisors
+  // table first if it hasn't been touched yet.
+  useEffect(() => {
+    if (!user) return;
+    let cancelled = false;
+    (async () => {
+      await ensureAdvisorsSeeded(user.id);
+      const { data } = await supabase
+        .from("exec_os_agents")
+        .select("id, name, model_tier")
+        .eq("user_id", user.id)
+        .eq("enabled", true)
+        .ilike("name", "maya")
+        .limit(1)
+        .maybeSingle();
+      if (cancelled) return;
+      if (data) {
+        setExecutor({
+          id: data.id,
+          name: data.name,
+          model_tier: (data.model_tier ?? "opus") as ModelTier,
+        });
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [user]);
 
   const load = useCallback(async () => {
     if (!user) return;
@@ -188,18 +240,65 @@ export function WorkflowsWidget() {
   const totalDone = tasks.filter((t) => t.status === "done").length;
   const totalActive = tasks.length;
 
-  const sendToClaude = useCallback(async (task: TaskRow) => {
+  // Opens the in-dashboard chat sheet with this task's claude_prompt
+  // pre-filled. Donna reviews/edits then presses Enter — no clipboard hop,
+  // no app switch. Each task has ONE persistent thread (linked via
+  // exec_os_agent_threads.task_id) so re-opening picks up the prior history
+  // instead of starting fresh.
+  const openTaskChat = useCallback(async (task: TaskRow) => {
     if (!task.claude_prompt) {
       toast.error("No Claude prompt set for this task", {
         description: "Edit the task to add one.",
       });
       return;
     }
+    if (!executor) {
+      toast.error("Executor not ready", {
+        description: "Maya hasn't finished loading. Try again in a moment.",
+      });
+      return;
+    }
+    setChatTask(task);
+    // Look up an existing non-archived thread for this (agent, task) pair.
+    // If found, ChatWindow will load its history. If not, threadId stays
+    // null and ChatWindow creates a fresh thread on first message; we then
+    // patch it with task_id in the onThreadCreated callback below.
+    const { data } = await wdb
+      .from("exec_os_agent_threads")
+      .select("id")
+      .eq("agent_id", executor.id)
+      .eq("task_id", task.id)
+      .eq("archived", false)
+      .order("last_message_at", { ascending: false, nullsFirst: false })
+      .limit(1)
+      .maybeSingle();
+    setChatThreadId(data?.id ?? null);
+  }, [executor]);
+
+  // Called by ChatWindow when a brand-new thread is created on first send.
+  // We back-fill task_id + a recognizable title so this thread is reused
+  // next time and shows up under Maya in the Advisors page.
+  const handleThreadCreated = useCallback(
+    async (threadId: string) => {
+      setChatThreadId(threadId);
+      if (!chatTask) return;
+      await wdb
+        .from("exec_os_agent_threads")
+        .update({
+          task_id: chatTask.id,
+          title: chatTask.title.slice(0, 80),
+        })
+        .eq("id", threadId);
+    },
+    [chatTask],
+  );
+
+  // Fallback: copy the prompt to clipboard (for users who prefer running
+  // Claude Code locally instead of in the dashboard).
+  const copyPromptToClipboard = useCallback(async (task: TaskRow) => {
+    if (!task.claude_prompt) return;
     await navigator.clipboard.writeText(task.claude_prompt).catch(() => {});
-    toast.success("Prompt copied", {
-      description: "Paste into your Claude Code terminal (Cmd+V, Enter).",
-      duration: 5000,
-    });
+    toast.success("Prompt copied to clipboard");
   }, []);
 
   const markDone = useCallback(
@@ -455,18 +554,31 @@ export function WorkflowsWidget() {
                       </div>
                     )}
                     {/* Action buttons */}
-                    <div className="flex gap-2 pt-1">
+                    <div className="flex gap-2 pt-1 items-center">
                       {task.claude_prompt && (
-                        <Button
-                          type="button"
-                          size="sm"
-                          onClick={() => void sendToClaude(task)}
-                          className="no-drag h-7 text-[11px] gap-1"
-                          style={{ background: "#7C3AED", color: "white" }}
-                        >
-                          <Terminal className="h-3 w-3" />
-                          Send to Claude
-                        </Button>
+                        <>
+                          <Button
+                            type="button"
+                            size="sm"
+                            onClick={() => openTaskChat(task)}
+                            className="no-drag h-7 text-[11px] gap-1"
+                            style={{ background: "#7C3AED", color: "white" }}
+                          >
+                            <Terminal className="h-3 w-3" />
+                            Run with Claude
+                          </Button>
+                          <Button
+                            type="button"
+                            size="icon"
+                            variant="ghost"
+                            onClick={() => void copyPromptToClipboard(task)}
+                            title="Copy prompt to clipboard"
+                            aria-label="Copy prompt to clipboard"
+                            className="no-drag h-7 w-7"
+                          >
+                            <Copy className="h-3 w-3" />
+                          </Button>
+                        </>
                       )}
                       <Button
                         type="button"
@@ -496,6 +608,57 @@ export function WorkflowsWidget() {
           Tap title to expand · Tap box to complete
         </span>
       </div>
+
+      {/* CHAT SHEET — opens when "Run with Claude" is tapped on a task.
+          Reuses the advisor ChatWindow so we inherit streaming, tool use,
+          cost capping, and persistence. The task's claude_prompt is
+          pre-filled in the composer so Donna can review then press Enter. */}
+      <Sheet
+        open={!!chatTask && !!executor}
+        onOpenChange={(open) => {
+          if (!open) {
+            setChatTask(null);
+            setChatThreadId(null);
+          }
+        }}
+      >
+        <SheetContent
+          side="right"
+          className="w-full sm:max-w-2xl p-0 flex flex-col"
+        >
+          {chatTask && executor && (
+            <>
+              <SheetHeader className="px-4 py-3 border-b border-border space-y-1">
+                <SheetTitle className="text-sm font-semibold leading-tight pr-8">
+                  {chatTask.title}
+                </SheetTitle>
+                <SheetDescription className="text-[11px] text-muted-foreground">
+                  Running with {executor.name} ·{" "}
+                  <span className="font-mono">{executor.model_tier}</span>
+                  {chatTask.done_when && (
+                    <>
+                      {" "}· Done when: <span className="text-foreground">{chatTask.done_when}</span>
+                    </>
+                  )}
+                </SheetDescription>
+              </SheetHeader>
+              <div className="flex-1 min-h-0">
+                <ChatWindow
+                  agentId={executor.id}
+                  agentName={executor.name}
+                  agentTier={executor.model_tier}
+                  threadId={chatThreadId}
+                  onThreadCreated={handleThreadCreated}
+                  // Only pre-fill the prompt when starting from scratch. If
+                  // an existing thread is loaded, the history speaks for
+                  // itself — don't shove the prompt back into the composer.
+                  initialMessage={chatThreadId ? undefined : chatTask.claude_prompt ?? ""}
+                />
+              </div>
+            </>
+          )}
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }

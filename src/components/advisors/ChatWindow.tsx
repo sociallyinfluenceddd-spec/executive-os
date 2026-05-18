@@ -24,6 +24,10 @@ interface ChatWindowProps {
   agentTier: ModelTier;
   threadId: string | null;
   onThreadCreated: (threadId: string) => void;
+  /** Pre-fill the composer's textarea on mount. Used by the Workflows widget
+   *  to drop a task's claude_prompt into the chat so Donna can review then
+   *  press Enter — no clipboard hop. */
+  initialMessage?: string;
 }
 
 export function ChatWindow({
@@ -32,6 +36,7 @@ export function ChatWindow({
   agentTier,
   threadId,
   onThreadCreated,
+  initialMessage,
 }: ChatWindowProps) {
   const { user } = useAuth();
   const [messages, setMessages] = useState<UIMessage[]>([]);
@@ -257,7 +262,12 @@ export function ChatWindow({
         </div>
       </div>
 
-      <Composer agentTier={agentTier} disabled={streaming} onSend={handleSend} />
+      <Composer
+        agentTier={agentTier}
+        disabled={streaming}
+        onSend={handleSend}
+        initialMessage={initialMessage}
+      />
     </div>
   );
 }

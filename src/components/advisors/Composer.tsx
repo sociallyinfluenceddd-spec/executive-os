@@ -27,6 +27,9 @@ export interface ComposerProps {
   agentTier: ModelTier;
   disabled: boolean;
   onSend: (message: string, opts: { boostToOpus: boolean; attachments: File[] }) => void;
+  /** Optional pre-fill (e.g. workflow task's claude_prompt). Populates the
+   *  textarea on mount so the user can review/edit before pressing Enter. */
+  initialMessage?: string;
 }
 
 const TIER_LABEL: Record<ModelTier, string> = {
@@ -35,8 +38,14 @@ const TIER_LABEL: Record<ModelTier, string> = {
   haiku: "Haiku",
 };
 
-export function Composer({ agentTier, disabled, onSend }: ComposerProps) {
-  const [text, setText] = useState("");
+export function Composer({ agentTier, disabled, onSend, initialMessage }: ComposerProps) {
+  const [text, setText] = useState(initialMessage ?? "");
+  // If initialMessage changes (e.g. user re-opens the chat sheet for a
+  // different task), refresh the textarea once. Only fires when the value
+  // actually changes, not on every render.
+  useEffect(() => {
+    if (initialMessage != null) setText(initialMessage);
+  }, [initialMessage]);
   const [attachments, setAttachments] = useState<File[]>([]);
   const [boost, setBoost] = useState(false);
   const [slashOpen, setSlashOpen] = useState(false);
