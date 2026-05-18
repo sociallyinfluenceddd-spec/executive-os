@@ -181,6 +181,201 @@ export const ADVISOR_TOOLS: ToolDef[] = [
       return { suggestion: data };
     },
   },
+
+  // ============================================================
+  // EXECUTOR TOOLS — Maya / advisor can actually change state
+  // ============================================================
+
+  {
+    name: "mark_workflow_task_done",
+    description:
+      "Mark a workflow task as done. Use when the user confirms a task is complete OR when you (the advisor) have just executed the task's claude_prompt successfully. Sets status=done and completed_at=now.",
+    input_schema: {
+      type: "object",
+      properties: {
+        task_id: { type: "string", description: "UUID of the exec_os_workflow_tasks row" },
+      },
+      required: ["task_id"],
+    },
+    execute: async (input, { supabase }) => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const db = supabase as any;
+      const { data, error } = await db
+        .from("exec_os_workflow_tasks")
+        .update({ status: "done", completed_at: new Date().toISOString() })
+        .eq("id", String(input.task_id))
+        .select("id, title, status, completed_at")
+        .single();
+      if (error) throw new Error(error.message);
+      return { task: data };
+    },
+  },
+
+  {
+    name: "update_workflow_task",
+    description:
+      "Update a workflow task's status, blocker, or notes. Use to mark in_progress when you start work, blocked when you hit a dependency, etc.",
+    input_schema: {
+      type: "object",
+      properties: {
+        task_id: { type: "string" },
+        status: { type: "string", enum: ["pending", "in_progress", "done", "blocked", "skipped"] },
+        blocker: { type: "string", description: "If blocked, the reason." },
+      },
+      required: ["task_id"],
+    },
+    execute: async (input, { supabase }) => {
+      const patch: Record<string, unknown> = {};
+      if (typeof input.status === "string") patch.status = input.status;
+      if (typeof input.blocker === "string") patch.blocker = input.blocker || null;
+      if (input.status === "done") patch.completed_at = new Date().toISOString();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const db = supabase as any;
+      const { data, error } = await db
+        .from("exec_os_workflow_tasks")
+        .update(patch)
+        .eq("id", String(input.task_id))
+        .select("id, title, status, blocker, completed_at")
+        .single();
+      if (error) throw new Error(error.message);
+      return { task: data };
+    },
+  },
+
+  {
+    name: "log_revenue",
+    description:
+      "Log a revenue entry to the Money widget. Use when the user mentions money landed or you observed a payment in another tool.",
+    input_schema: {
+      type: "object",
+      properties: {
+        amount_cents: { type: "number", description: "Amount in cents (e.g. 7500 = $75.00)" },
+        source: {
+          type: "string",
+          enum: ["stripe", "cmo_retainer", "tiktok", "sponsorship", "manual", "other"],
+        },
+        entry_date: { type: "string", description: "ISO date (YYYY-MM-DD). Defaults to today." },
+        notes: { type: "string" },
+      },
+      required: ["amount_cents", "source"],
+    },
+    execute: async (input, { supabase, userId }) => {
+      const today = new Date().toISOString().slice(0, 10);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const db = supabase as any;
+      const { data, error } = await db
+        .from("exec_os_revenue")
+        .insert({
+          user_id: userId,
+          amount_cents: Math.max(0, Math.round(Number(input.amount_cents) || 0)),
+          source: String(input.source),
+          entry_date: typeof input.entry_date === "string" ? input.entry_date : today,
+          notes: typeof input.notes === "string" ? input.notes : null,
+        })
+        .select("id, amount_cents, source, entry_date")
+        .single();
+      if (error) throw new Error(error.message);
+      return { entry: data };
+    },
+  },
+
+  {
+    name: "add_artifact",
+    description:
+      "Add an artifact (doc, dashboard, tool, workflow, migration, spec, note, data) to the Hub registry. Use when the user wants something findable later.",
+    input_schema: {
+      type: "object",
+      properties: {
+        title: { type: "string" },
+        emoji: { type: "string" },
+        kind: {
+          type: "string",
+          enum: ["workflow", "doc", "dashboard", "tool", "migration", "spec", "note", "data"],
+        },
+        category: {
+          type: "string",
+          enum: ["ideafetti", "exec_os", "cmo_business", "socially_influenceddd", "research", "strategy", "tools"],
+        },
+        location_type: { type: "string", enum: ["url", "file", "embedded", "app_route"] },
+        location: { type: "string", description: "URL, file path, or app route" },
+        summary: { type: "string" },
+      },
+      required: ["title", "kind", "category", "location_type", "location"],
+    },
+    execute: async (input, { supabase, userId }) => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const db = supabase as any;
+      const { data, error } = await db
+        .from("exec_os_artifacts")
+        .insert({
+          user_id: userId,
+          title: String(input.title).slice(0, 200),
+          emoji: typeof input.emoji === "string" ? input.emoji.slice(0, 8) : null,
+          kind: String(input.kind),
+          category: String(input.category),
+          location_type: String(input.location_type),
+          location: String(input.location),
+          summary: typeof input.summary === "string" ? input.summary.slice(0, 500) : null,
+        })
+        .select("id, title, kind, category")
+        .single();
+      if (error) throw new Error(error.message);
+      return { artifact: data };
+    },
+  },
+
+  {
+    name: "supabase_execute_sql",
+    description:
+      "Run arbitrary SQL against one of Donna's Supabase projects via the Management API. Use for: applying migrations, running ad-hoc queries, enabling RLS, creating policies, etc. Project refs Donna uses: 'nsbqluctvubfqrhznhre' (Ideafetti / Idea Bank), 'yjepmihkvvqbgrqfsfzs' (executive-os). Returns the result rows or error. Pair with mark_workflow_task_done when the SQL closes out a workflow task.",
+    input_schema: {
+      type: "object",
+      properties: {
+        project_ref: {
+          type: "string",
+          description: "Supabase project ref (e.g. 'nsbqluctvubfqrhznhre')",
+        },
+        query: { type: "string", description: "Raw SQL to execute" },
+        description: {
+          type: "string",
+          description: "One-sentence reason for this SQL (logged for audit)",
+        },
+      },
+      required: ["project_ref", "query"],
+    },
+    execute: async (input) => {
+      const pat = process.env.SUPABASE_PAT;
+      if (!pat) {
+        throw new Error(
+          "SUPABASE_PAT not configured. Add it to .dev.vars to enable Maya's executor tools.",
+        );
+      }
+      const projectRef = String(input.project_ref);
+      if (!/^[a-z0-9]{20}$/.test(projectRef)) {
+        throw new Error(`Invalid project_ref: ${projectRef}`);
+      }
+      const res = await fetch(
+        `https://api.supabase.com/v1/projects/${projectRef}/database/query`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${pat}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ query: String(input.query) }),
+        },
+      );
+      const text = await res.text();
+      if (!res.ok) {
+        throw new Error(`Supabase Management API ${res.status}: ${text.slice(0, 500)}`);
+      }
+      try {
+        return { rows: JSON.parse(text), description: input.description ?? null };
+      } catch {
+        return { raw: text.slice(0, 4000), description: input.description ?? null };
+      }
+    },
+  },
 ];
 
 export const ANTHROPIC_TOOLS = ADVISOR_TOOLS.map((t) => ({
