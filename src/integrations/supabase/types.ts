@@ -83,6 +83,7 @@ export type Database = {
           created_at: string
           id: string
           last_message_at: string | null
+          task_id: string | null
           title: string | null
           updated_at: string
           user_id: string
@@ -93,6 +94,7 @@ export type Database = {
           created_at?: string
           id?: string
           last_message_at?: string | null
+          task_id?: string | null
           title?: string | null
           updated_at?: string
           user_id: string
@@ -103,11 +105,20 @@ export type Database = {
           created_at?: string
           id?: string
           last_message_at?: string | null
+          task_id?: string | null
           title?: string | null
           updated_at?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "exec_os_agent_threads_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "exec_os_workflow_tasks"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       exec_os_agents: {
         Row: {
@@ -117,6 +128,7 @@ export type Database = {
           enabled: boolean
           focus_data: Json
           id: string
+          kind: string
           model_tier: string
           name: string
           order_index: number
@@ -132,6 +144,7 @@ export type Database = {
           enabled?: boolean
           focus_data?: Json
           id?: string
+          kind?: string
           model_tier?: string
           name: string
           order_index: number
@@ -147,6 +160,7 @@ export type Database = {
           enabled?: boolean
           focus_data?: Json
           id?: string
+          kind?: string
           model_tier?: string
           name?: string
           order_index?: number
@@ -192,6 +206,69 @@ export type Database = {
           model?: string
           output_tokens?: number
           tier?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      exec_os_artifacts: {
+        Row: {
+          category: string
+          content: string | null
+          created_at: string
+          emoji: string | null
+          id: string
+          is_pinned: boolean
+          kind: string
+          last_touched: string | null
+          location: string
+          location_type: string
+          notes: string | null
+          opened_count: number
+          sort_order: number
+          status: string
+          summary: string | null
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          category: string
+          content?: string | null
+          created_at?: string
+          emoji?: string | null
+          id?: string
+          is_pinned?: boolean
+          kind: string
+          last_touched?: string | null
+          location: string
+          location_type: string
+          notes?: string | null
+          opened_count?: number
+          sort_order?: number
+          status?: string
+          summary?: string | null
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          category?: string
+          content?: string | null
+          created_at?: string
+          emoji?: string | null
+          id?: string
+          is_pinned?: boolean
+          kind?: string
+          last_touched?: string | null
+          location?: string
+          location_type?: string
+          notes?: string | null
+          opened_count?: number
+          sort_order?: number
+          status?: string
+          summary?: string | null
+          title?: string
+          updated_at?: string
           user_id?: string
         }
         Relationships: []
@@ -777,6 +854,69 @@ export type Database = {
         }
         Relationships: []
       }
+      exec_os_tools: {
+        Row: {
+          category: string
+          created_at: string
+          emoji: string | null
+          id: string
+          last_used_at: string | null
+          name: string
+          next_renewal_at: string | null
+          priority: number | null
+          purpose: string | null
+          status: string | null
+          subscription_cost_cents: number | null
+          subscription_cycle: string | null
+          subscription_status: string | null
+          updated_at: string
+          url: string | null
+          usage_notes: string | null
+          user_id: string
+          why_kept: string | null
+        }
+        Insert: {
+          category?: string
+          created_at?: string
+          emoji?: string | null
+          id?: string
+          last_used_at?: string | null
+          name: string
+          next_renewal_at?: string | null
+          priority?: number | null
+          purpose?: string | null
+          status?: string | null
+          subscription_cost_cents?: number | null
+          subscription_cycle?: string | null
+          subscription_status?: string | null
+          updated_at?: string
+          url?: string | null
+          usage_notes?: string | null
+          user_id: string
+          why_kept?: string | null
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          emoji?: string | null
+          id?: string
+          last_used_at?: string | null
+          name?: string
+          next_renewal_at?: string | null
+          priority?: number | null
+          purpose?: string | null
+          status?: string | null
+          subscription_cost_cents?: number | null
+          subscription_cycle?: string | null
+          subscription_status?: string | null
+          updated_at?: string
+          url?: string | null
+          usage_notes?: string | null
+          user_id?: string
+          why_kept?: string | null
+        }
+        Relationships: []
+      }
       exec_os_weekly_summaries: {
         Row: {
           created_at: string
@@ -801,6 +941,173 @@ export type Database = {
           summary?: string | null
           user_id?: string
           week_start?: string
+        }
+        Relationships: []
+      }
+      exec_os_workflow_phases: {
+        Row: {
+          created_at: string
+          ends_at: string | null
+          goal: string | null
+          id: string
+          name: string
+          sort_order: number
+          starts_at: string | null
+          status: string
+          user_id: string
+          workflow_id: string
+        }
+        Insert: {
+          created_at?: string
+          ends_at?: string | null
+          goal?: string | null
+          id?: string
+          name: string
+          sort_order: number
+          starts_at?: string | null
+          status?: string
+          user_id: string
+          workflow_id: string
+        }
+        Update: {
+          created_at?: string
+          ends_at?: string | null
+          goal?: string | null
+          id?: string
+          name?: string
+          sort_order?: number
+          starts_at?: string | null
+          status?: string
+          user_id?: string
+          workflow_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "exec_os_workflow_phases_workflow_id_fkey"
+            columns: ["workflow_id"]
+            isOneToOne: false
+            referencedRelation: "exec_os_workflows"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      exec_os_workflow_tasks: {
+        Row: {
+          blocker: string | null
+          claude_prompt: string | null
+          completed_at: string | null
+          created_at: string
+          description: string | null
+          dollar_lever: string | null
+          done_when: string | null
+          id: string
+          owner: string
+          phase_id: string
+          sort_order: number
+          status: string
+          time_estimate: string | null
+          title: string
+          updated_at: string
+          user_id: string
+          workflow_id: string
+        }
+        Insert: {
+          blocker?: string | null
+          claude_prompt?: string | null
+          completed_at?: string | null
+          created_at?: string
+          description?: string | null
+          dollar_lever?: string | null
+          done_when?: string | null
+          id?: string
+          owner?: string
+          phase_id: string
+          sort_order: number
+          status?: string
+          time_estimate?: string | null
+          title: string
+          updated_at?: string
+          user_id: string
+          workflow_id: string
+        }
+        Update: {
+          blocker?: string | null
+          claude_prompt?: string | null
+          completed_at?: string | null
+          created_at?: string
+          description?: string | null
+          dollar_lever?: string | null
+          done_when?: string | null
+          id?: string
+          owner?: string
+          phase_id?: string
+          sort_order?: number
+          status?: string
+          time_estimate?: string | null
+          title?: string
+          updated_at?: string
+          user_id?: string
+          workflow_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "exec_os_workflow_tasks_phase_id_fkey"
+            columns: ["phase_id"]
+            isOneToOne: false
+            referencedRelation: "exec_os_workflow_phases"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "exec_os_workflow_tasks_workflow_id_fkey"
+            columns: ["workflow_id"]
+            isOneToOne: false
+            referencedRelation: "exec_os_workflows"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      exec_os_workflows: {
+        Row: {
+          category: string
+          created_at: string
+          emoji: string | null
+          ends_at: string | null
+          forcing_function: string | null
+          id: string
+          name: string
+          sort_order: number
+          starts_at: string | null
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          category: string
+          created_at?: string
+          emoji?: string | null
+          ends_at?: string | null
+          forcing_function?: string | null
+          id?: string
+          name: string
+          sort_order?: number
+          starts_at?: string | null
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          emoji?: string | null
+          ends_at?: string | null
+          forcing_function?: string | null
+          id?: string
+          name?: string
+          sort_order?: number
+          starts_at?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string
         }
         Relationships: []
       }
