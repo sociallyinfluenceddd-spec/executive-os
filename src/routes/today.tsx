@@ -40,6 +40,7 @@ import { WorkflowsWidget } from "@/components/widgets/workflows";
 import { ACCOUNTS } from "@/config/accounts";
 import { relTime, whenLabel } from "@/lib/time";
 import { fetchCalendarEvents } from "@/lib/google-calendar";
+import { refreshGmail } from "@/lib/google-gmail";
 import {
   Select,
   SelectContent,
@@ -866,6 +867,26 @@ function TodayPage() {
       .order("completed_at", { ascending: false })
       .limit(1)
       .maybeSingle();
+
+    // Kick off Gmail refresh in parallel with everything else. The edge
+    // function upserts to exec_os_emails by external_id, so even if it's
+    // still running when we read the table below, the previous refresh's
+    // rows are still there. On the NEXT load they're current. This avoids
+    // a 1–3s blocking wait on every load.
+    //
+    // The promise is fire-and-forget on this load — we don't await it before
+    // the table read. The realtime channel below will push the new rows in
+    // once they land.
+    refreshGmail()
+      .then((r) => {
+        if (!r.ok && r.errorCode && r.errorCode !== "not_connected") {
+          // Don't spam the user with toasts for "not connected" — Settings
+          // page surfaces that. But scope_missing / refresh_failed deserve a
+          // one-time notice so Donna knows to fix it.
+          console.warn("Gmail refresh failed:", r.errorCode, r.error);
+        }
+      })
+      .catch((e) => console.warn("Gmail refresh threw:", e));
 
     const [emailsRes, dailyRes, weekRes, calRes, revRes, lastDoneRes] = await Promise.all([
       supabase
