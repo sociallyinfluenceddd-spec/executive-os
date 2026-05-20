@@ -1,0 +1,657 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Executive Founder OS Dashboard — Market Research</title>
+<style>
+  :root {
+    --navy: #083D77;
+    --navy-deep: #05264A;
+    --sage: #A4B494;
+    --forest: #355834;
+    --yellow: #FFC100;
+    --rose: #DB9C96;
+    --orange: #E97451;
+    --cream: #F5F2EC;
+    --ink: #1A1A1A;
+    --muted: #6B6B6B;
+    --rule: #D9D4C9;
+    --cadet: #CADCFC;
+    --cherry: #B85042;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body {
+    background: #2a2a2a; color: var(--ink);
+    font-family: Calibri, -apple-system, "Helvetica Neue", Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  .deck-shell { padding: 32px 16px 64px; max-width: 1380px; margin: 0 auto; }
+  .deck-header {
+    color: #ddd; font-size: 13px; text-align: center;
+    margin-bottom: 18px; letter-spacing: 1px;
+  }
+  .deck-header a { color: var(--yellow); text-decoration: none; }
+
+  .slide {
+    width: 100%;
+    aspect-ratio: 13.3 / 7.5;
+    background: var(--cream);
+    margin: 0 auto 28px;
+    position: relative;
+    overflow: hidden;
+    border-radius: 4px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.35);
+    container-type: inline-size;
+    font-size: 1cqw;
+  }
+  .slide.dark { background: var(--navy); color: white; }
+
+  .thread {
+    position: absolute; left: 3.76%; top: 7.3%;
+    width: 0.6%; height: 6%; background: var(--yellow);
+  }
+  .kicker {
+    position: absolute; left: 5.26%; top: 7.3%;
+    font-size: 0.85em; color: var(--yellow); font-weight: 700;
+    letter-spacing: 0.25em;
+  }
+  .slide-title {
+    position: absolute; left: 5.26%; top: 12%;
+    font-family: Cambria, Georgia, serif;
+    font-size: 2.4em; font-weight: 700; color: var(--navy);
+  }
+  .slide.dark .slide-title { color: white; }
+  .subtitle {
+    position: absolute; left: 5.26%; top: 22%;
+    font-style: italic; color: var(--muted); font-size: 1em;
+  }
+  .slide.dark .subtitle { color: var(--sage); }
+
+  .footer {
+    position: absolute; bottom: 4.5%; left: 5.26%; right: 5.26%;
+    display: flex; justify-content: space-between;
+    font-size: 0.7em; color: var(--muted);
+  }
+  .slide.dark .footer { color: var(--sage); }
+
+  .slide-no {
+    position: absolute; top: 14px; right: 18px;
+    background: rgba(0,0,0,0.5); color: white;
+    padding: 4px 10px; border-radius: 12px;
+    font-size: 11px; letter-spacing: 1px; z-index: 5;
+  }
+
+  /* ---------- Slide 1 — Title ---------- */
+  .s1-right {
+    position: absolute; right: 0; top: 0; bottom: 0;
+    width: 28.5%; background: var(--sage);
+    padding: 5% 4%; color: var(--navy);
+  }
+  .s1-right::before {
+    content: ""; position: absolute; left: 0; top: 0; bottom: 0;
+    width: 1.5%; background: var(--yellow);
+  }
+  .s1-kicker { color: var(--yellow); font-weight: 700; letter-spacing: 0.4em; font-size: 0.95em; margin: 8% 0 0 4.5%; }
+  .s1-title {
+    color: white; font-family: Cambria, serif; font-weight: 700;
+    font-size: 3.8em; line-height: 1.05; margin: 0.5em 0 0 4.5%; max-width: 60%;
+  }
+  .s1-sub {
+    color: var(--cadet); font-family: Cambria, serif; font-style: italic;
+    font-size: 1.7em; margin: 0.6em 0 0 4.5%; max-width: 60%;
+  }
+  .s1-stats { display: flex; gap: 4%; margin: 4em 0 0 4.5%; max-width: 60%; }
+  .s1-stat { flex: 1; }
+  .s1-stat .num { color: var(--yellow); font-family: Cambria, serif; font-size: 4.5em; font-weight: 700; line-height: 1; }
+  .s1-stat .label { color: var(--cadet); font-size: 0.9em; margin-top: 0.3em; }
+  .s1-right .small { font-size: 0.78em; letter-spacing: 0.3em; }
+  .s1-right .name { font-family: Cambria, serif; font-size: 2.6em; font-weight: 700; margin: 0.2em 0; }
+  .s1-right .role { font-style: italic; font-size: 0.9em; }
+
+  /* ---------- Reusable card ---------- */
+  .card { background: white; border: 1px solid var(--rule); position: absolute; }
+  .card.accent-top { border-top: 4px solid var(--navy); }
+  .card.accent-left { border-left: 6px solid var(--yellow); }
+
+  /* ---------- Slide 2 — Brief ---------- */
+  .lede { position: absolute; left: 5.26%; right: 5.26%; top: 26%; font-size: 1.1em; line-height: 1.5; }
+  .brief-cards { position: absolute; left: 5.26%; right: 5.26%; top: 44%; display: flex; gap: 1.5%; }
+  .brief-card { flex: 1; background: white; border: 1px solid var(--rule); border-top: 5px solid var(--navy); padding: 24px 22px 22px; }
+  .brief-card .big { color: var(--navy); font-family: Cambria, serif; font-size: 5.6em; font-weight: 700; line-height: 1; }
+  .brief-card .head { color: var(--navy); font-family: Cambria, serif; font-weight: 700; margin-top: 8px; font-size: 1em; }
+  .brief-card .sub { color: var(--muted); font-size: 0.78em; margin-top: 8px; line-height: 1.4; }
+
+  /* ---------- Slide 3 — Methodology ---------- */
+  .step { position: absolute; left: 5.26%; right: 5.26%; display: flex; gap: 20px; height: 14%; }
+  .step-num { background: var(--navy); color: var(--yellow); width: 7.5%; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-family: Cambria, serif; font-weight: 700; font-size: 2em; }
+  .step-content { flex: 1; }
+  .step-title { color: var(--navy); font-family: Cambria, serif; font-weight: 700; font-size: 1.25em; }
+  .step-body { color: var(--ink); font-size: 0.92em; line-height: 1.4; margin-top: 4px; }
+
+  /* ---------- Slide 4 — Judging Matrix ---------- */
+  .dim-grid { position: absolute; left: 5.26%; right: 5.26%; top: 34%; display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; gap: 2%; height: 56%; }
+  .dim { background: white; border: 1px solid var(--rule); padding: 22px 26px; position: relative; }
+  .dim::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 8px; }
+  .dim.d0::before { background: var(--navy); }
+  .dim.d1::before { background: var(--forest); }
+  .dim.d2::before { background: var(--orange); }
+  .dim.d3::before { background: var(--rose); }
+  .dim-head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 14px; }
+  .dim-title { color: var(--navy); font-family: Cambria, serif; font-weight: 700; font-size: 1.3em; }
+  .dim-weight { font-family: Cambria, serif; font-weight: 700; font-size: 1.3em; }
+  .dim.d0 .dim-weight { color: var(--navy); }
+  .dim.d1 .dim-weight { color: var(--forest); }
+  .dim.d2 .dim-weight { color: var(--orange); }
+  .dim.d3 .dim-weight { color: var(--rose); }
+  .dim-body { font-size: 0.95em; line-height: 1.5; }
+
+  /* ---------- Slide 5 — Longlist ---------- */
+  .longlist { position: absolute; left: 5.26%; right: 5.26%; top: 27%; bottom: 8%; display: flex; gap: 1.5%; }
+  .ll-col { flex: 1; background: white; border: 1px solid var(--rule); display: flex; flex-direction: column; }
+  .ll-head { color: white; padding: 12px 16px; display: flex; justify-content: space-between; align-items: center; }
+  .ll-head.c0 { background: var(--navy); }
+  .ll-head.c1 { background: var(--forest); }
+  .ll-head.c2 { background: var(--orange); }
+  .ll-head h3 { font-family: Cambria, serif; font-size: 1.0em; }
+  .ll-head .count { color: var(--yellow); font-family: Cambria, serif; font-weight: 700; font-size: 1.4em; }
+  .ll-list { padding: 12px 14px; font-size: 0.78em; line-height: 1.6; flex: 1; }
+  .ll-list li { list-style: none; }
+
+  /* ---------- Slide 6 — Score distribution ---------- */
+  .dist { position: absolute; left: 7.5%; right: 5.26%; top: 38%; }
+  .dist-row { display: flex; align-items: center; gap: 10px; height: 32px; margin-bottom: 7px; font-size: 0.85em; }
+  .dist-range { width: 80px; font-weight: 700; }
+  .dist-bar-wrap { width: 540px; height: 22px; background: transparent; }
+  .dist-bar { height: 100%; }
+  .dist-count { width: 40px; font-weight: 700; }
+  .dist-label { font-style: italic; color: var(--muted); font-size: 0.85em; }
+  .dist-note { position: absolute; left: 7.5%; right: 5.26%; bottom: 11%; color: var(--navy); font-style: italic; font-size: 0.85em; }
+
+  /* ---------- Slide 7 — Leaderboard (dark) ---------- */
+  .lb { position: absolute; left: 5.26%; right: 5.26%; top: 33%; }
+  .lb-row { display: flex; align-items: center; gap: 16px; margin-bottom: 14px; }
+  .lb-rank { width: 56px; height: 56px; background: var(--yellow); color: var(--navy); display: flex; align-items: center; justify-content: center; font-family: Cambria, serif; font-weight: 700; font-size: 2em; flex-shrink: 0; }
+  .lb-name { flex: 1; }
+  .lb-name h3 { color: white; font-family: Cambria, serif; font-size: 1.3em; font-weight: 700; }
+  .lb-name .meta { color: var(--sage); font-style: italic; font-size: 0.78em; margin-top: 4px; }
+  .lb-hl { width: 30%; color: var(--cadet); font-size: 0.78em; line-height: 1.4; }
+  .lb-score { width: 90px; text-align: right; }
+  .lb-score .n { color: var(--yellow); font-family: Cambria, serif; font-weight: 700; font-size: 1.7em; }
+  .lb-score .d { color: var(--sage); font-size: 0.7em; }
+
+  /* ---------- Slides 8-12 — Deep dives ---------- */
+  .dd-score-box { position: absolute; right: 5.26%; top: 7%; width: 11%; height: 17%; background: var(--navy); color: white; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+  .dd-score-box .n { color: var(--yellow); font-family: Cambria, serif; font-weight: 700; font-size: 2.8em; line-height: 1; }
+  .dd-score-box .lbl { font-size: 0.6em; letter-spacing: 0.2em; margin-top: 6px; }
+  .dd-left { position: absolute; left: 5.26%; top: 31%; width: 47%; }
+  .dd-section { color: var(--navy); font-weight: 700; letter-spacing: 0.25em; font-size: 0.75em; margin-bottom: 10px; }
+  .dd-bar-row { display: flex; align-items: center; gap: 12px; height: 30px; margin-bottom: 8px; font-size: 0.88em; }
+  .dd-bar-label { width: 90px; }
+  .dd-bar-track { flex: 1; height: 14px; background: #E8E3D6; position: relative; }
+  .dd-bar-fill { position: absolute; left: 0; top: 0; height: 100%; }
+  .dd-bar-val { width: 40px; font-weight: 700; }
+  .dd-evidence { margin-top: 24px; }
+  .dd-evidence ul { list-style: none; padding-left: 0; }
+  .dd-evidence li { font-size: 0.82em; padding-left: 18px; position: relative; margin-bottom: 6px; line-height: 1.4; }
+  .dd-evidence li::before { content: "■"; color: var(--yellow); position: absolute; left: 0; }
+  .dd-right { position: absolute; right: 5.26%; top: 31%; width: 41%; bottom: 8%; background: white; border: 1px solid var(--rule); border-left: 6px solid var(--yellow); padding: 18px 22px; display: flex; flex-direction: column; }
+  .dd-why-title { color: var(--navy); font-family: Cambria, serif; font-weight: 700; font-size: 1.3em; margin: 6px 0 10px; }
+  .dd-why-body { color: var(--ink); font-size: 0.9em; line-height: 1.5; flex: 1; }
+  .dd-steal { background: rgba(255, 193, 0, 0.35); border: 1px solid var(--yellow); padding: 10px 12px; margin-top: 10px; }
+  .dd-steal .lbl { color: var(--navy); font-weight: 700; letter-spacing: 0.25em; font-size: 0.65em; margin-bottom: 4px; }
+  .dd-steal .txt { color: var(--navy); font-style: italic; font-size: 0.82em; line-height: 1.4; }
+
+  /* ---------- Slide 13 — Bottom 5 ---------- */
+  .bot { position: absolute; left: 5.26%; right: 5.26%; top: 35%; bottom: 13%; }
+  .bot-row { display: flex; align-items: center; background: white; border: 1px solid var(--rule); border-left: 5px solid var(--cherry); margin-bottom: 10px; padding: 10px 16px; height: 14%; }
+  .bot-name { width: 30%; }
+  .bot-name h4 { color: var(--navy); font-family: Cambria, serif; font-weight: 700; font-size: 1em; }
+  .bot-name .cat { color: var(--muted); font-style: italic; font-size: 0.75em; margin-top: 3px; }
+  .bot-fail { flex: 1; font-size: 0.85em; padding: 0 16px; }
+  .bot-score { color: var(--cherry); font-family: Cambria, serif; font-weight: 700; font-size: 1.4em; }
+  .bot-note { position: absolute; left: 5.26%; right: 5.26%; bottom: 8%; color: var(--navy); font-style: italic; font-size: 0.85em; }
+
+  /* ---------- Slide 14 — 7 Principles (dark) ---------- */
+  .pr-grid { position: absolute; left: 5.26%; right: 5.26%; top: 32%; bottom: 8%; display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr 1fr 0.7fr; gap: 14px; }
+  .pr { display: flex; gap: 12px; }
+  .pr.full { grid-column: 1 / -1; }
+  .pr-num { width: 48px; height: 48px; background: var(--yellow); color: var(--navy); display: flex; align-items: center; justify-content: center; font-family: Cambria, serif; font-weight: 700; font-size: 1.3em; flex-shrink: 0; }
+  .pr-body h4 { color: white; font-family: Cambria, serif; font-weight: 700; font-size: 1em; }
+  .pr-body p { color: var(--cadet); font-size: 0.78em; line-height: 1.4; margin-top: 4px; }
+
+  /* ---------- Slide 15 — Translation ---------- */
+  .tr { position: absolute; left: 5.26%; right: 5.26%; top: 35%; }
+  .tr-row { display: flex; align-items: center; padding: 10px 16px; min-height: 38px; font-size: 0.85em; border: 1px solid var(--rule); }
+  .tr-row.alt { background: #EEEAE0; }
+  .tr-key { color: var(--navy); font-family: Cambria, serif; font-weight: 700; width: 16%; }
+  .tr-val { flex: 1; line-height: 1.4; }
+
+  /* ---------- Slide 16 — Phase 1 / 2 ---------- */
+  .phases { position: absolute; left: 5.26%; right: 5.26%; top: 36%; bottom: 8%; display: flex; gap: 2%; }
+  .phase { flex: 1; background: white; border: 1px solid var(--rule); display: flex; flex-direction: column; }
+  .phase-head { color: white; padding: 8px 14px; font-family: Cambria, serif; font-weight: 700; letter-spacing: 0.2em; font-size: 0.85em; }
+  .phase-head.p1 { background: var(--navy); color: var(--yellow); }
+  .phase-head.p2 { background: var(--sage); color: var(--navy); }
+  .phase-list { padding: 14px 16px; flex: 1; }
+  .phase-list ol { list-style: none; counter-reset: phase; }
+  .phase-list li { counter-increment: phase; padding: 4px 0 4px 24px; position: relative; font-size: 0.78em; line-height: 1.45; }
+  .phase-list li::before { content: counter(phase) "."; position: absolute; left: 0; font-family: Cambria, serif; font-weight: 700; }
+  .phase.p1 .phase-list li::before { color: var(--yellow); }
+  .phase.p2 .phase-list li::before { color: var(--navy); }
+
+  /* ---------- Slide 17 — Sources ---------- */
+  .src { position: absolute; left: 5.26%; right: 5.26%; top: 35%; display: grid; grid-template-columns: 1fr 1fr; gap: 28px; font-size: 0.78em; line-height: 1.55; }
+  .src div { color: var(--ink); }
+  .src-note { position: absolute; left: 5.26%; right: 5.26%; bottom: 11%; background: rgba(255,193,0,0.35); border: 1px solid var(--yellow); padding: 10px 14px; color: var(--navy); font-style: italic; font-size: 0.85em; }
+</style>
+</head>
+<body>
+
+<div class="deck-shell">
+  <div class="deck-header">
+    Executive Founder OS Dashboard · Market Research · May 2026 · Donna · <span style="color:#FFC100;">Scroll to view all 17 slides</span>
+  </div>
+
+  <!-- SLIDE 1 -->
+  <div class="slide dark">
+    <div class="slide-no">1 / 17</div>
+    <div class="s1-kicker">MARKET RESEARCH · MAY 2026</div>
+    <h1 class="s1-title">Executive Founder OS Dashboard</h1>
+    <div class="s1-sub">What the winners do — and the losers don't.</div>
+    <div class="s1-stats">
+      <div class="s1-stat"><div class="num">58</div><div class="label">dashboards reviewed</div></div>
+      <div class="s1-stat"><div class="num">3</div><div class="label">categories scanned</div></div>
+      <div class="s1-stat"><div class="num">4</div><div class="label">scoring dimensions</div></div>
+    </div>
+    <div class="s1-right">
+      <div class="small">PREPARED FOR</div>
+      <div class="name">Donna</div>
+      <div class="role">Founder, Socially Influenceddd</div>
+    </div>
+  </div>
+
+  <!-- SLIDE 2 -->
+  <div class="slide">
+    <div class="slide-no">2 / 17</div>
+    <div class="thread"></div>
+    <div class="kicker">01</div>
+    <h2 class="slide-title">The Brief</h2>
+    <p class="lede" style="top:30%;">You're building an executive founder OS dashboard. Before we write a single component, we asked: who has already done this well — and what makes the best ones win? This deck answers both.</p>
+    <div class="brief-cards">
+      <div class="brief-card">
+        <div class="big">58</div>
+        <div class="head">Dashboards across the entire market</div>
+        <div class="sub">Notion templates, SaaS products, and custom-coded builds — surfaced from Gumroad, G2, Crunchbase, HN, Reddit, GitHub.</div>
+      </div>
+      <div class="brief-card">
+        <div class="big">4</div>
+        <div class="head">Dimensions in the judging matrix</div>
+        <div class="sub">Revenue, social proof, feature depth, design — weighted equally. No vibes, just evidence.</div>
+      </div>
+      <div class="brief-card">
+        <div class="big">7</div>
+        <div class="head">Principles to steal for your build</div>
+        <div class="sub">Patterns the top 5 share that the bottom 5 don't. The reusable design DNA.</div>
+      </div>
+    </div>
+    <div class="footer"><span>Executive Founder OS Dashboard · May 2026</span><span>2 / 17</span></div>
+  </div>
+
+  <!-- SLIDE 3 -->
+  <div class="slide">
+    <div class="slide-no">3 / 17</div>
+    <div class="thread"></div>
+    <div class="kicker">02 · METHODOLOGY</div>
+    <h2 class="slide-title">How we ran the research</h2>
+    <div class="step" style="top:28%;">
+      <div class="step-num">01</div>
+      <div class="step-content"><div class="step-title">Scan the market</div><div class="step-body">Three parallel scouts swept Gumroad, Notion Marketplace, G2, Crunchbase, Hacker News, GitHub, Reddit, IndieHackers. Goal: every dashboard with public proof of life.</div></div>
+    </div>
+    <div class="step" style="top:45%;">
+      <div class="step-num">02</div>
+      <div class="step-content"><div class="step-title">Verify with numbers</div><div class="step-body">No vibes. Every entry has a real signal — Gumroad sales, ARR, funding, G2 review count, GitHub stars, HN points. Gaps flagged "no public number."</div></div>
+    </div>
+    <div class="step" style="top:62%;">
+      <div class="step-num">03</div>
+      <div class="step-content"><div class="step-title">Score 1–10 × 4 axes</div><div class="step-body">Revenue/traction · Social proof · Feature completeness · Design quality. Equal 25% weights. Final score = weighted average.</div></div>
+    </div>
+    <div class="step" style="top:79%;">
+      <div class="step-num">04</div>
+      <div class="step-content"><div class="step-title">Cliff analysis</div><div class="step-body">Top 5 vs bottom 5. What patterns appear in the winners that are absent in the losers? Those patterns become your build's design DNA.</div></div>
+    </div>
+    <div class="footer"><span>Executive Founder OS Dashboard · May 2026</span><span>3 / 17</span></div>
+  </div>
+
+  <!-- SLIDE 4 -->
+  <div class="slide">
+    <div class="slide-no">4 / 17</div>
+    <div class="thread"></div>
+    <div class="kicker">03 · SCORING RUBRIC</div>
+    <h2 class="slide-title">The judging matrix</h2>
+    <p class="subtitle" style="top:26%;">Four dimensions, equally weighted. Every dashboard scored 1–10 against each.</p>
+    <div class="dim-grid">
+      <div class="dim d0">
+        <div class="dim-head"><div class="dim-title">Revenue / Traction</div><div class="dim-weight">25%</div></div>
+        <div class="dim-body">Gumroad sales count · ARR · funding raised · customer count · marketplace rank. The market votes with money.</div>
+      </div>
+      <div class="dim d1">
+        <div class="dim-head"><div class="dim-title">Social Proof + Virality</div><div class="dim-weight">25%</div></div>
+        <div class="dim-body">G2 / Capterra rating × review count · HN points · Reddit upvotes · GitHub stars · creator audience size. Reach × intensity.</div>
+      </div>
+      <div class="dim d2">
+        <div class="dim-head"><div class="dim-title">Feature Completeness</div><div class="dim-weight">25%</div></div>
+        <div class="dim-body">Coverage across clients · finance · projects · team · KPIs · personal/habits · integrations. How much of the founder's life it covers.</div>
+      </div>
+      <div class="dim d3">
+        <div class="dim-head"><div class="dim-title">Design + UX Quality</div><div class="dim-weight">25%</div></div>
+        <div class="dim-body">Visual polish · information hierarchy · daily-use friction · screenshot legibility. Qualitative — the eye test you can defend.</div>
+      </div>
+    </div>
+    <div class="footer"><span>Executive Founder OS Dashboard · May 2026</span><span>4 / 17</span></div>
+  </div>
+
+  <!-- SLIDE 5 -->
+  <div class="slide">
+    <div class="slide-no">5 / 17</div>
+    <div class="thread"></div>
+    <div class="kicker">04 · MARKET SCAN</div>
+    <h2 class="slide-title">The longlist — 58 dashboards, 3 categories</h2>
+    <div class="longlist">
+      <div class="ll-col">
+        <div class="ll-head c0"><h3>Notion / Airtable Templates</h3><div class="count">18</div></div>
+        <ul class="ll-list">
+          <li>Ultimate Brain — Thomas Frank</li><li>Creator's Companion — Thomas Frank</li><li>Second Brain — Easlo</li><li>Freelance OS — Easlo</li><li>Notion Startup OS — Ali</li><li>Small Business OS — Notion Everything</li><li>Business OS — Landmark Labs</li><li>PPV Life OS — August Bradley</li><li>Notion Mastery — Marie Poulin</li><li>CEO Dashboard — heyismail</li><li>Entrepreneur OS — MH Systems</li><li>Founder OS Planner — Creative Koala</li><li>Founder OS Dashboard — Eden</li><li>The Sunday CEO Dashboard</li><li>The CEO Starter Kit — flowstudio</li><li>Bootstrapper OS — Ali Azimi</li><li>Solopreneur OS — Digital Velocity</li><li>Productive CEO OS — Diana Lunzer</li>
+        </ul>
+      </div>
+      <div class="ll-col">
+        <div class="ll-head c1"><h3>SaaS Founder Dashboards</h3><div class="count">20</div></div>
+        <ul class="ll-list">
+          <li>Mosaic.tech</li><li>Runway (runway.com)</li><li>Causal (now Lucanet)</li><li>Equals</li><li>ChartMogul</li><li>Baremetrics</li><li>ProfitWell Metrics (Paddle)</li><li>Geckoboard</li><li>Databox</li><li>Klipfolio</li><li>Domo</li><li>Slingshot</li><li>Cyfe</li><li>Numerics (Cynapse)</li><li>Plecto</li><li>Jirav</li><li>Abacum</li><li>Drivetrain</li><li>Calliper</li><li>Glew</li>
+        </ul>
+      </div>
+      <div class="ll-col">
+        <div class="ll-head c2"><h3>Custom-Coded Personal OS</h3><div class="count">20</div></div>
+        <ul class="ll-list">
+          <li>HPI — Karlicoss</li><li>FxLifeSheet — Felix Krause</li><li>AprilZero — Anand Sharma</li><li>Reportr (2013)</li><li>PMS — Volmarg</li><li>Glow</li><li>Conjure (shut down)</li><li>Glance</li><li>Homepage (gethomepage)</li><li>Dashy</li><li>Homarr</li><li>Julian Lehr — julian.digital</li><li>Quantified Awesome — Sacha Chua</li><li>Feltron Annual Reports</li><li>AppWatch</li><li>Mission Control — builderz</li><li>apple-health-grafana</li><li>Buffer / Open-Startups</li><li>Nomad List Open — Pieter Levels</li><li>DataFast — Marc Lou</li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer"><span>Executive Founder OS Dashboard · May 2026</span><span>5 / 17</span></div>
+  </div>
+
+  <!-- SLIDE 6 -->
+  <div class="slide">
+    <div class="slide-no">6 / 17</div>
+    <div class="thread"></div>
+    <div class="kicker">05 · THE SCOREBOARD</div>
+    <h2 class="slide-title">Score distribution — the cliffs are real</h2>
+    <p class="lede" style="top:26%;">Of 58 dashboards, 5 score ≥ 8.5 (the top tier), 11 sit between 6.5–8.5, and 30 fall below 5.5. The gap between "good" and "forgettable" is steep — and it's not random.</p>
+    <div class="dist">
+      <div class="dist-row"><div class="dist-range">9.0+</div><div class="dist-bar-wrap"><div class="dist-bar" style="background:var(--yellow);width:9%;"></div></div><div class="dist-count">1</div><div class="dist-label">Category-defining</div></div>
+      <div class="dist-row"><div class="dist-range">8.5–8.9</div><div class="dist-bar-wrap"><div class="dist-bar" style="background:var(--navy);width:36%;"></div></div><div class="dist-count">4</div><div class="dist-label">Top tier</div></div>
+      <div class="dist-row"><div class="dist-range">8.0–8.4</div><div class="dist-bar-wrap"><div class="dist-bar" style="background:var(--navy);width:54%;"></div></div><div class="dist-count">6</div><div class="dist-label">Strong</div></div>
+      <div class="dist-row"><div class="dist-range">7.0–7.9</div><div class="dist-bar-wrap"><div class="dist-bar" style="background:var(--forest);width:91%;"></div></div><div class="dist-count">10</div><div class="dist-label">Solid</div></div>
+      <div class="dist-row"><div class="dist-range">6.0–6.9</div><div class="dist-bar-wrap"><div class="dist-bar" style="background:var(--sage);width:73%;"></div></div><div class="dist-count">8</div><div class="dist-label">Adequate</div></div>
+      <div class="dist-row"><div class="dist-range">5.0–5.9</div><div class="dist-bar-wrap"><div class="dist-bar" style="background:var(--rose);width:73%;"></div></div><div class="dist-count">8</div><div class="dist-label">Below average</div></div>
+      <div class="dist-row"><div class="dist-range">4.0–4.9</div><div class="dist-bar-wrap"><div class="dist-bar" style="background:var(--orange);width:100%;"></div></div><div class="dist-count">11</div><div class="dist-label">Underperforming</div></div>
+      <div class="dist-row"><div class="dist-range">≤ 3.9</div><div class="dist-bar-wrap"><div class="dist-bar" style="background:#B85042;width:91%;"></div></div><div class="dist-count">10</div><div class="dist-label">Failure pattern</div></div>
+    </div>
+    <p class="dist-note">↑ The two cliffs: 8.5→8.0 (top tier separates from strong), and 4.9→3.9 (the failure zone). What lives on each side becomes the analysis.</p>
+    <div class="footer"><span>Executive Founder OS Dashboard · May 2026</span><span>6 / 17</span></div>
+  </div>
+
+  <!-- SLIDE 7 — LEADERBOARD -->
+  <div class="slide dark">
+    <div class="slide-no">7 / 17</div>
+    <div class="thread"></div>
+    <div class="kicker">06 · LEADERBOARD</div>
+    <h2 class="slide-title">The Top 5</h2>
+    <p class="subtitle" style="top:23%;">Highest weighted scores across all four dimensions. Each gets a deep dive on the next five slides.</p>
+    <div class="lb">
+      <div class="lb-row"><div class="lb-rank">1</div><div class="lb-name"><h3>Ultimate Brain</h3><div class="meta">Thomas Frank · Notion Template</div></div><div class="lb-hl">40k+ paying users · $2.1M in 2 years · the category benchmark</div><div class="lb-score"><div class="n">9.00</div><div class="d">/ 10</div></div></div>
+      <div class="lb-row"><div class="lb-rank">2</div><div class="lb-name"><h3>Domo</h3><div class="meta">Domo Inc. (NASDAQ: DOMO) · SaaS · Enterprise BI</div></div><div class="lb-hl">Only public company explicitly marketing "CEO dashboard" · $320M+ ARR</div><div class="lb-score"><div class="n">8.50</div><div class="d">/ 10</div></div></div>
+      <div class="lb-row"><div class="lb-rank">3</div><div class="lb-name"><h3>ProfitWell Metrics</h3><div class="meta">Paddle (acq. $200M) · SaaS · Free metrics</div></div><div class="lb-hl">30k customers on the free tier · the bottom-of-funnel killer</div><div class="lb-score"><div class="n">8.50</div><div class="d">/ 10</div></div></div>
+      <div class="lb-row"><div class="lb-rank">4</div><div class="lb-name"><h3>Abacum</h3><div class="meta">YC + Scale VP · SaaS · AI-native FP&amp;A</div></div><div class="lb-hl">2025's hottest fundraise in the category · $90M total · AI-first</div><div class="lb-score"><div class="n">8.50</div><div class="d">/ 10</div></div></div>
+      <div class="lb-row"><div class="lb-rank">5</div><div class="lb-name"><h3>Notion Startup OS</h3><div class="meta">Ali (notionstartup.com) · Notion Template</div></div><div class="lb-hl">1,625+ paying founders · 62 templates · 104 databases</div><div class="lb-score"><div class="n">8.25</div><div class="d">/ 10</div></div></div>
+    </div>
+    <div class="footer"><span>Executive Founder OS Dashboard · May 2026</span><span>7 / 17</span></div>
+  </div>
+
+</div>
+
+<script>
+// Inject Top 5 deep-dive slides programmatically — same structure, different data
+const dd = [
+  { rank: 1, page: 8, score: "9.00", name: "Ultimate Brain — Thomas Frank", sub: "Notion Template · thomasjfrank.com/brain · $79–$129",
+    subs: [9, 10, 9, 8],
+    ev: ["40,000+ paying users on the sales page", "$2.1M revenue in two years (Starter Story)", "Creator audience: 2.9M YouTube subs · 175M views", "Bundle (with Creator's Companion) outsells solo 3:1"],
+    whyT: "It's the only template with a creator-as-distribution moat.",
+    why: "Thomas Frank doesn't sell a template — he sells the trust of 175M YouTube views funneling people who already know his methodology into the buy. PARA + GTD + lightweight CRM in one home dashboard. The product is good. The distribution is what makes it #1.",
+    steal: "Don't ship a dashboard. Ship a dashboard + the educational content that makes people understand why they need it." },
+  { rank: 2, page: 9, score: "8.50", name: "Domo", sub: "SaaS · domo.com/roles/ceo · Public (NASDAQ: DOMO)",
+    subs: [10, 9, 10, 5],
+    ev: ["$320M+ ARR · publicly traded company", "1,907 reviews aggregated · 87% satisfaction", "1,000+ data connectors out-of-the-box", "Has a dedicated /roles/ceo landing page — no one else does"],
+    whyT: "It owns the words 'CEO dashboard' on the open internet.",
+    why: "Domo's UI is dated, dense, and looks like 2018. It still beats every prettier competitor because it ranks for the exact search terms a CEO types and has the integration breadth to back it up. Boring + complete + SEO-dominant > pretty + niche.",
+    steal: "Claim the keyword. If you want to be the 'executive founder OS,' own that phrase on Google and YouTube before you optimize pixels." },
+  { rank: 3, page: 10, score: "8.50", name: "ProfitWell Metrics (by Paddle)", sub: "SaaS · paddle.com/profitwell-metrics · Free forever",
+    subs: [10, 9, 8, 7],
+    ev: ["30,000+ customers across the product line", "$200M acquisition by Paddle in 2022", "Benchmarks against 34,000+ subscription companies", "Patrick Campbell's content engine drove top-of-funnel for a decade"],
+    whyT: "Free metrics are the loss leader; benchmarks are the moat.",
+    why: "ProfitWell killed Baremetrics' low end by giving the core dashboard away forever, then upselling Retain (dunning) and Recognized (revenue recognition). The benchmark dataset — your MRR vs. 34k peers — is the thing competitors can't copy. Network-effect feature.",
+    steal: "Build one feature that gets more valuable as more users join. Benchmarks. Anonymized norms. Community-scored anything. That's your moat." },
+  { rank: 4, page: 11, score: "8.50", name: "Abacum", sub: "SaaS · abacum.ai · $40K–$150K Year-1 TCO",
+    subs: [9, 8, 9, 8],
+    ev: ["$60M Series B June 2025 · ~$90M total raised", "Backers: YC, Scale Venture Partners, Atomico, Creandum", "Positioned 3–5× cheaper than Pigment (the enterprise incumbent)", "Marketed as 'AI-native FP&A' — rebuilt for LLM era"],
+    whyT: "The 'AI-native rebuild' positioning won the 2025 fundraise.",
+    why: "While Klipfolio, Cyfe, and Geckoboard sat on their feature lists, Abacum rebuilt the FP&A engine on LLMs and raised $60M on the rebuild. The category opens every 7–10 years for an architectural reset. Right now is one of those windows.",
+    steal: "If a category has been quiet for 5+ years, an AI-native rebuild beats incumbents on talent and capital. You don't need new features — you need a new substrate." },
+  { rank: 5, page: 12, score: "8.25", name: "Notion Startup OS — Ali", sub: "Notion Template · notionstartup.com · $79–$149",
+    subs: [7, 8, 10, 8],
+    ev: ["1,625+ paying founders · 1,600+ customers", "62+ templates · 104+ databases in one workspace", "Includes Pitch Deck Creator, BMC, Lean Canvas, OKRs, ROI Calculator", "Named testimonials from startup co-founders + 17k founders helped"],
+    whyT: "It's the most founder-feature-complete template ever shipped.",
+    why: "Most 'founder OS' templates are PARA + a CRM. Ali built actual founder artifacts — the pitch deck, the business model canvas, the team alignment map, the ROI calculator. The template doesn't help you stay organized; it helps you do the founder job. Different value prop.",
+    steal: "Don't build 'a dashboard.' Build the artifacts a founder ships — pitch decks, hiring plans, board updates, OKRs. The dashboard is just where they live." }
+];
+
+const colors = ["#083D77", "#355834", "#E97451", "#DB9C96"];
+const labels = ["Revenue", "Social Proof", "Features", "Design"];
+const shell = document.querySelector(".deck-shell");
+
+dd.forEach(d => {
+  const html = `
+    <div class="slide">
+      <div class="slide-no">${d.page} / 17</div>
+      <div class="thread"></div>
+      <div class="kicker">#${d.rank} · TOP 5 DEEP DIVE</div>
+      <h2 class="slide-title">${d.name}</h2>
+      <p class="subtitle" style="top:25%;">${d.sub}</p>
+      <div class="dd-score-box">
+        <div class="n">${d.score}</div>
+        <div class="lbl">WEIGHTED SCORE</div>
+      </div>
+      <div class="dd-left">
+        <div class="dd-section">DIMENSIONAL SCORES</div>
+        ${d.subs.map((v, i) => `
+          <div class="dd-bar-row">
+            <div class="dd-bar-label">${labels[i]}</div>
+            <div class="dd-bar-track"><div class="dd-bar-fill" style="background:${colors[i]};width:${v*10}%;"></div></div>
+            <div class="dd-bar-val">${v}/10</div>
+          </div>
+        `).join("")}
+        <div class="dd-evidence">
+          <div class="dd-section">KEY EVIDENCE</div>
+          <ul>${d.ev.map(e => `<li>${e}</li>`).join("")}</ul>
+        </div>
+      </div>
+      <div class="dd-right">
+        <div class="dd-section">WHY IT WINS</div>
+        <div class="dd-why-title">${d.whyT}</div>
+        <div class="dd-why-body">${d.why}</div>
+        <div class="dd-steal">
+          <div class="lbl">STEAL THIS</div>
+          <div class="txt">${d.steal}</div>
+        </div>
+      </div>
+      <div class="footer"><span>Executive Founder OS Dashboard · May 2026</span><span>${d.page} / 17</span></div>
+    </div>`;
+  shell.insertAdjacentHTML("beforeend", html);
+});
+
+// SLIDE 13 - Bottom 5
+const bottom = [
+  { name: "Reportr", score: "2.50", cat: "Custom (2013 Show HN)", fail: "Abandoned 2013 build. No maintenance, no community, no narrative." },
+  { name: "The CEO Starter Kit — flowstudio", score: "3.25", cat: "Notion Template (free)", fail: "Generic name. No public sales. Feature list is one sentence. Indistinguishable from 50 others." },
+  { name: "AppWatch", score: "3.50", cat: "Custom · IndieHackers", fail: "Niche aggregator (app store stats) with no live link, no audience, no specific buyer." },
+  { name: "Founder OS Dashboard — Eden", score: "3.50", cat: "Notion Template (free)", fail: "5★ from 9 ratings. Sample size too small to mean anything; no creator brand to compensate." },
+  { name: "Mission Control — builderz-labs", score: "3.50", cat: "Custom · GitHub (Mar 2026)", fail: "Brand new. No traction yet. Promising but currently signal-free." }
+];
+shell.insertAdjacentHTML("beforeend", `
+  <div class="slide">
+    <div class="slide-no">13 / 17</div>
+    <div class="thread"></div>
+    <div class="kicker">07 · THE CAUTIONARY TALES</div>
+    <h2 class="slide-title">What failure looks like — Bottom 5</h2>
+    <p class="lede" style="top:26%;">Five entries scored ≤ 3.75. Every one fails the same way: generic positioning, zero public proof, no narrative hook, and a dashboard that solves nothing specific.</p>
+    <div class="bot">
+      ${bottom.map(b => `
+        <div class="bot-row">
+          <div class="bot-name"><h4>${b.name}</h4><div class="cat">${b.cat}</div></div>
+          <div class="bot-fail">${b.fail}</div>
+          <div class="bot-score">${b.score}</div>
+        </div>`).join("")}
+    </div>
+    <p class="bot-note">The common thread: they're all describable in 4 words and indistinguishable from each other. Specificity is the survival mechanism.</p>
+    <div class="footer"><span>Executive Founder OS Dashboard · May 2026</span><span>13 / 17</span></div>
+  </div>`);
+
+// SLIDE 14 - 7 Principles
+const pr = [
+  { n: "01", t: "Persona, not 'everyone'", b: "ChartMogul = B2B SaaS. Glew = e-comm. Notion Startup OS = early-stage founders. Losers say 'for entrepreneurs.' Winners name the buyer." },
+  { n: "02", t: "Command center on the home view", b: "Top 5 open with finance + clients + KPIs in one dense dashboard. Bottom 5 open with a feature list. The first screen is the product." },
+  { n: "03", t: "Money is the lead view", b: "Revenue / cash / MRR / burn — front and center. Tasks and projects come second. Founders open the app to see if they made money today." },
+  { n: "04", t: "Friction-free data capture", b: "Stripe, banking, ERP, calendar, CRM — auto-sync. Winners never ask you to type a number. Manual-entry dashboards die within 8 weeks." },
+  { n: "05", t: "Public proof loop", b: "Named customer logos (Snowflake, Razorpay), review counts (Domo: 1,907), creator audience (Frank: 2.9M YT). Proof compounds; losers have none of it." },
+  { n: "06", t: "One narrative hook in the copy", b: "'Anti-spreadsheet' (Runway). 'Know your profit daily' (ChartMogul). 'AI-native FP&A' (Abacum). The loser headline is 'all-in-one business OS.'" },
+  { n: "07", t: "Free anchor → paid bundle funnel", b: "ProfitWell free metrics. Frank's free YouTube. Notion Marketplace free → Gumroad bundles. The funnel runs from $0 to premium — not flat-priced." }
+];
+shell.insertAdjacentHTML("beforeend", `
+  <div class="slide dark">
+    <div class="slide-no">14 / 17</div>
+    <div class="thread"></div>
+    <div class="kicker">08 · THE GOLD</div>
+    <h2 class="slide-title">Seven principles to steal</h2>
+    <p class="subtitle" style="top:23%;">What every top-5 dashboard has, and every bottom-5 dashboard doesn't.</p>
+    <div class="pr-grid">
+      ${pr.slice(0,6).map(p => `
+        <div class="pr"><div class="pr-num">${p.n}</div><div class="pr-body"><h4>${p.t}</h4><p>${p.b}</p></div></div>
+      `).join("")}
+      <div class="pr full"><div class="pr-num">${pr[6].n}</div><div class="pr-body"><h4>${pr[6].t}</h4><p>${pr[6].b}</p></div></div>
+    </div>
+    <div class="footer"><span>Executive Founder OS Dashboard · May 2026</span><span>14 / 17</span></div>
+  </div>`);
+
+// SLIDE 15 - Translation
+const tr = [
+  ["Persona", "You're the buyer: ND founder running multiple revenue streams (TikTok, Ideafetti, $7.5k CMO retainers). Build for THAT founder, not 'founders.'"],
+  ["Home view", "Single-page command center on /. Three zones: Money (top), Today (middle), Pipeline (bottom). Everything else is one click."],
+  ["Money first", "Top of home view = today's revenue across Stripe, Gumroad, Make automations, CMO retainers. One number, color-coded vs. yesterday."],
+  ["Capture", "Auto-sync from: Supabase (Ideafetti DB), Stripe, Gmail (CMO leads), Calendar (Donna's day), TikTok analytics. No manual entry past month 1."],
+  ["Proof loop", "Public-facing /open page (Pieter Levels style) — share your numbers as marketing for your CMO offer. Dashboard becomes the lead magnet."],
+  ["Narrative hook", "Pick one: 'The OS for ND founders.' Or 'AUDHD-native command center.' Whatever it is — make it specific and ownable."],
+  ["Free → paid", "Free template version on Gumroad/Notion (funnel into Socially Influenceddd). Paid hosted version = the SaaS you charge for."]
+];
+shell.insertAdjacentHTML("beforeend", `
+  <div class="slide">
+    <div class="slide-no">15 / 17</div>
+    <div class="thread"></div>
+    <div class="kicker">09 · TRANSLATION</div>
+    <h2 class="slide-title">What this means for your build</h2>
+    <p class="subtitle" style="top:26%;">Your executive-os Vite+Supabase repo translated through the 7 principles. Each row turns a principle into a build instruction.</p>
+    <div class="tr">
+      ${tr.map((r, i) => `<div class="tr-row ${i % 2 === 1 ? 'alt' : ''}"><div class="tr-key">${r[0]}</div><div class="tr-val">${r[1]}</div></div>`).join("")}
+    </div>
+    <div class="footer"><span>Executive Founder OS Dashboard · May 2026</span><span>15 / 17</span></div>
+  </div>`);
+
+// SLIDE 16 - Feature stack
+const phase1 = [
+  "Daily revenue tile — Stripe + Gumroad + manual income, color-coded vs. 7-day rolling avg",
+  "Cash runway tile — current balance ÷ burn rate, weekly auto-refresh",
+  "Today's clients — CMO retainers in active state, last touch date, next action",
+  "Content engine — TikTok scheduled / published / draft counts, link to script vault",
+  "Ideafetti metrics — signups, idea generations, top-of-funnel from Supabase",
+  "One-click Sunday Review — auto-generated weekly snapshot to email or PDF",
+  "Public /open page — shareable read-only version of selected metrics"
+];
+const phase2 = [
+  "Benchmark feature — anonymized ND-founder norms (the ProfitWell moat play)",
+  "AI weekly digest — Claude summarizes the week, prescribes next week's focus",
+  "Hire/delegate tracker — what tasks went to which AI/contractor + ROI per task",
+  "Pitch deck + BMC artifacts — the Ali / Notion Startup OS angle",
+  "Pipeline board — CMO leads from LinkedIn → discovery → proposal → close",
+  "Habits / energy tracker — capture-light (one tap) AUDHD-aware self check-in",
+  "Slack/Discord integration — push daily revenue + alerts to a private channel"
+];
+shell.insertAdjacentHTML("beforeend", `
+  <div class="slide">
+    <div class="slide-no">16 / 17</div>
+    <div class="thread"></div>
+    <div class="kicker">10 · BUILD PRIORITIES</div>
+    <h2 class="slide-title">Recommended feature stack — Phase 1</h2>
+    <p class="subtitle" style="top:26%;">Ranked by founder-OS impact, weighted by the top-5 patterns. Phase 1 ships in 4–6 weeks; everything else is Phase 2+.</p>
+    <div class="phases">
+      <div class="phase p1">
+        <div class="phase-head p1">PHASE 1 — MUST SHIP</div>
+        <div class="phase-list"><ol>${phase1.map(p => `<li>${p}</li>`).join("")}</ol></div>
+      </div>
+      <div class="phase p2">
+        <div class="phase-head p2">PHASE 2 — AFTER IT STICKS</div>
+        <div class="phase-list"><ol>${phase2.map(p => `<li>${p}</li>`).join("")}</ol></div>
+      </div>
+    </div>
+    <div class="footer"><span>Executive Founder OS Dashboard · May 2026</span><span>16 / 17</span></div>
+  </div>`);
+
+// SLIDE 17 - Sources
+const srcL = [
+  "Thomas Frank — thomasjfrank.com/brain (40k users, $2.1M / Starter Story)",
+  "Easlo — easlo.gumroad.com ($500–600k/yr storefront)",
+  "Notion Startup OS — notionstartup.com (1,625+ founders)",
+  "Small Business OS — notioneverything.com (4.8★ × 733 reviews)",
+  "Landmark Business OS — landmarklabs.co (20k businesses)",
+  "Domo — domo.com (NASDAQ: DOMO, ~$320M ARR)",
+  "Runway — runway.com ($33.5M raised, TechCrunch)",
+  "ChartMogul — getlatka.com (~$10M ARR profitable)",
+  "ProfitWell — paddle.com (acquired $200M, PRNewswire)",
+  "Abacum — crunchbase.com (Series B $60M, June 2025)"
+];
+const srcR = [
+  "Glance — github.com/glanceapp/glance (34.2k stars)",
+  "Homepage — github.com/gethomepage/homepage (30.1k stars)",
+  "Dashy — github.com/Lissy93/dashy (25.2k stars)",
+  "HPI — github.com/karlicoss/HPI (1.6k stars, HN 478pts)",
+  "FxLifeSheet — github.com/KrauseFx/FxLifeSheet (1.3k stars)",
+  "AprilZero — aprilzero.com (FastCo, Dribbble, Wired)",
+  "Feltron Reports — feltron.com (MoMA collection)",
+  "Nomad List Open — nomadlist.com/open ($5.3M ARR, Levels)",
+  "DataFast — newsletter.marclou.com (~$20.5k MRR)",
+  "Mosaic — mosaic.tech (HiBob acquisition $35M, Feb 2025)"
+];
+shell.insertAdjacentHTML("beforeend", `
+  <div class="slide">
+    <div class="slide-no">17 / 17</div>
+    <div class="thread"></div>
+    <div class="kicker">11 · APPENDIX</div>
+    <h2 class="slide-title">Sources & methodology notes</h2>
+    <p class="subtitle" style="top:26%;">Every score traces back to a public number. Full scoring matrix lives in /founder-os-research/scoring-matrix.csv.</p>
+    <div class="src">
+      <div>${srcL.map(s => "• " + s).join("<br>")}</div>
+      <div>${srcR.map(s => "• " + s).join("<br>")}</div>
+    </div>
+    <div class="src-note">Caveat: marketplace star ratings on tiny samples (under 30 reviews) were down-weighted. Where no public number existed, that dimension scored ≤ 5.</div>
+    <div class="footer"><span>Executive Founder OS Dashboard · May 2026</span><span>17 / 17</span></div>
+  </div>`);
+</script>
+</body>
+</html>

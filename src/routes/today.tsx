@@ -27,6 +27,7 @@ import { VoiceCaptureWidget } from "@/components/widgets/voice_capture";
 import { DoneTodayWidget } from "@/components/widgets/done_today";
 import { FollowUpsWidget } from "@/components/widgets/follow_ups";
 import { TimersAlarmsWidget } from "@/components/widgets/timers_alarms";
+import { TimersAlarmsMenu } from "@/components/header/TimersAlarmsMenu";
 import { KitchenRecipesWidget } from "@/components/widgets/kitchen_recipes";
 import { MoneyWidget } from "@/components/widgets/money";
 import { ProjectsWidget } from "@/components/widgets/projects";
@@ -34,6 +35,7 @@ import { ContentPulseWidget } from "@/components/widgets/content_pulse";
 import { WorkflowsWidget } from "@/components/widgets/workflows";
 import { ACCOUNTS } from "@/config/accounts";
 import { relTime, whenLabel } from "@/lib/time";
+import { fetchCalendarEvents } from "@/lib/google-calendar";
 import {
   Select,
   SelectContent,
@@ -99,6 +101,7 @@ type WidgetId =
   | "timers_alarms"
   | "kitchen_recipes"
   | "workflows"
+  | "workflows_exec_os"
   | "done_today";
 
 // Clean non-overlapping layout. y values stack cleanly so react-grid-layout
@@ -114,47 +117,50 @@ type WidgetId =
 // (N*40) + ((N-1)*16). Reference: h=4 ≈ 208px, h=5 ≈ 264px, h=6 ≈ 320px,
 // h=7 ≈ 376px, h=8 ≈ 432px.
 const LG_BASE: LayoutItem[] = [
-  { i: "workflows",       x: 0,  y: 0,  w: 6,  h: 8, minW: 4, minH: 6 },
-  { i: "calendar",        x: 6,  y: 0,  w: 6,  h: 5, minW: 3, minH: 4 },
-  { i: "inbox",           x: 6,  y: 5,  w: 6,  h: 3, minW: 3, minH: 3 },
-  { i: "timeline",        x: 0,  y: 8,  w: 12, h: 4, minW: 6, minH: 3 },
-  { i: "money",           x: 0,  y: 12, w: 4,  h: 5, minW: 3, minH: 4 },
-  { i: "projects",        x: 4,  y: 12, w: 4,  h: 5, minW: 3, minH: 4 },
-  { i: "content_pulse",   x: 8,  y: 12, w: 4,  h: 5, minW: 3, minH: 4 },
-  { i: "follow_ups",      x: 0,  y: 17, w: 6,  h: 5, minW: 3, minH: 4 },
-  { i: "bench_whispers",  x: 6,  y: 17, w: 6,  h: 5, minW: 3, minH: 4 },
-  { i: "bench",           x: 0,  y: 22, w: 12, h: 4, minW: 6, minH: 4 },
-  { i: "timers_alarms",   x: 0,  y: 26, w: 6,  h: 5, minW: 3, minH: 4 },
-  { i: "kitchen_recipes", x: 6,  y: 26, w: 6,  h: 6, minW: 3, minH: 5 },
-  { i: "top_priority",    x: 0,  y: 32, w: 12, h: 3, minW: 4, minH: 2 },
-  { i: "voice_capture",   x: 0,  y: 35, w: 4,  h: 4, minW: 3, minH: 3 },
-  { i: "done_today",      x: 4,  y: 35, w: 4,  h: 3, minW: 3, minH: 2 },
+  { i: "workflows",        x: 0,  y: 0,  w: 6,  h: 8, minW: 4, minH: 6 },
+  { i: "workflows_exec_os",x: 6,  y: 0,  w: 6,  h: 8, minW: 4, minH: 6 },
+  { i: "calendar",         x: 0,  y: 8,  w: 6,  h: 5, minW: 3, minH: 4 },
+  { i: "inbox",            x: 6,  y: 8,  w: 6,  h: 3, minW: 3, minH: 3 },
+  { i: "done_today",       x: 0,  y: 13, w: 12, h: 6, minW: 6, minH: 4 },
+  { i: "money",           x: 0,  y: 19, w: 4,  h: 5, minW: 3, minH: 4 },
+  { i: "projects",        x: 4,  y: 19, w: 4,  h: 5, minW: 3, minH: 4 },
+  { i: "content_pulse",   x: 8,  y: 19, w: 4,  h: 5, minW: 3, minH: 4 },
+  { i: "follow_ups",      x: 0,  y: 24, w: 6,  h: 5, minW: 3, minH: 4 },
+  { i: "bench_whispers",  x: 6,  y: 24, w: 6,  h: 5, minW: 3, minH: 4 },
+  { i: "bench",           x: 0,  y: 29, w: 12, h: 4, minW: 6, minH: 4 },
+  { i: "timers_alarms",   x: 0,  y: 33, w: 6,  h: 5, minW: 3, minH: 4 },
+  { i: "kitchen_recipes", x: 6,  y: 33, w: 6,  h: 6, minW: 3, minH: 5 },
+  { i: "top_priority",    x: 0,  y: 39, w: 12, h: 3, minW: 4, minH: 2 },
+  { i: "voice_capture",   x: 0,  y: 42, w: 4,  h: 4, minW: 3, minH: 3 },
+  { i: "timeline",        x: 4,  y: 42, w: 8,  h: 4, minW: 6, minH: 3 },
 ];
 
 const MD_BASE: LayoutItem[] = [
-  { i: "workflows",       x: 0,  y: 0,  w: 8,  h: 8, minW: 4, minH: 6 },
-  { i: "calendar",        x: 0,  y: 8,  w: 8,  h: 5, minW: 3, minH: 4 },
-  { i: "inbox",           x: 0,  y: 13, w: 8,  h: 3, minW: 3, minH: 3 },
-  { i: "timeline",        x: 0,  y: 16, w: 8,  h: 4, minW: 4, minH: 3 },
-  { i: "money",           x: 0,  y: 20, w: 4,  h: 5, minW: 3, minH: 4 },
-  { i: "projects",        x: 4,  y: 20, w: 4,  h: 5, minW: 3, minH: 4 },
-  { i: "content_pulse",   x: 0,  y: 25, w: 4,  h: 5, minW: 3, minH: 4 },
-  { i: "follow_ups",      x: 4,  y: 25, w: 4,  h: 5, minW: 3, minH: 4 },
-  { i: "bench_whispers",  x: 0,  y: 30, w: 8,  h: 5, minW: 3, minH: 4 },
-  { i: "bench",           x: 0,  y: 35, w: 8,  h: 4, minW: 4, minH: 4 },
-  { i: "timers_alarms",   x: 0,  y: 39, w: 4,  h: 5, minW: 3, minH: 4 },
-  { i: "kitchen_recipes", x: 4,  y: 39, w: 4,  h: 6, minW: 3, minH: 5 },
-  { i: "top_priority",    x: 0,  y: 45, w: 8,  h: 3, minW: 4, minH: 2 },
-  { i: "voice_capture",   x: 0,  y: 48, w: 4,  h: 4, minW: 3, minH: 3 },
-  { i: "done_today",      x: 4,  y: 48, w: 4,  h: 3, minW: 3, minH: 2 },
+  { i: "workflows",        x: 0,  y: 0,  w: 8,  h: 8, minW: 4, minH: 6 },
+  { i: "workflows_exec_os",x: 0,  y: 8,  w: 8,  h: 8, minW: 4, minH: 6 },
+  { i: "calendar",         x: 0,  y: 16, w: 8,  h: 5, minW: 3, minH: 4 },
+  { i: "inbox",            x: 0,  y: 21, w: 8,  h: 3, minW: 3, minH: 3 },
+  { i: "done_today",       x: 0,  y: 24, w: 8,  h: 6, minW: 4, minH: 4 },
+  { i: "money",            x: 0,  y: 30, w: 4,  h: 5, minW: 3, minH: 4 },
+  { i: "projects",         x: 4,  y: 30, w: 4,  h: 5, minW: 3, minH: 4 },
+  { i: "content_pulse",    x: 0,  y: 35, w: 4,  h: 5, minW: 3, minH: 4 },
+  { i: "follow_ups",       x: 4,  y: 35, w: 4,  h: 5, minW: 3, minH: 4 },
+  { i: "bench_whispers",   x: 0,  y: 40, w: 8,  h: 5, minW: 3, minH: 4 },
+  { i: "bench",            x: 0,  y: 45, w: 8,  h: 4, minW: 4, minH: 4 },
+  { i: "timers_alarms",    x: 0,  y: 49, w: 4,  h: 5, minW: 3, minH: 4 },
+  { i: "kitchen_recipes",  x: 4,  y: 49, w: 4,  h: 6, minW: 3, minH: 5 },
+  { i: "top_priority",     x: 0,  y: 55, w: 8,  h: 3, minW: 4, minH: 2 },
+  { i: "voice_capture",    x: 0,  y: 58, w: 4,  h: 4, minW: 3, minH: 3 },
+  { i: "timeline",         x: 0,  y: 62, w: 8,  h: 4, minW: 4, minH: 3 },
 ];
 
 const MOBILE_ORDER: WidgetId[] = [
   "top_priority",
   "workflows",
+  "workflows_exec_os",
+  "done_today",
   "inbox",
   "calendar",
-  "timeline",
   "money",
   "content_pulse",
   "projects",
@@ -163,7 +169,7 @@ const MOBILE_ORDER: WidgetId[] = [
   "timers_alarms",
   "kitchen_recipes",
   "voice_capture",
-  "done_today",
+  "timeline",
 ];
 
 function stackedLayout(cols: number): LayoutItem[] {
@@ -191,10 +197,10 @@ function buildLayouts(locks: Record<string, boolean>): ResponsiveLayouts {
   };
 }
 
-// Bumped to v3 on 2026-05-18 — second-pass refit after Donna flagged
-// timeline rendering with content clipped at h=3. Wiping again so the
-// new clean heights apply on next load.
-const DASHBOARD_KEY = "execOs.dashboardLayout.v3";
+// Bumped to v4 on 2026-05-18 — header restructured + appointment timeline
+// dropped from the default grid in favor of a real productivity-log
+// (done_today) widget. Wiping the saved layout so the new defaults apply.
+const DASHBOARD_KEY = "execOs.dashboardLayout.v5";
 
 type DashboardPersisted = {
   lg?: LayoutItem[];
@@ -218,7 +224,7 @@ function loadDashboard(): DashboardPersisted | null {
 // the current DEFAULT_WIDGET_SIZE. Won't shrink anything the user manually
 // enlarged. Bump SIZE_FLOOR_KEY whenever DEFAULT_WIDGET_SIZE changes so
 // existing users pick up the new floor on next load.
-const SIZE_FLOOR_KEY = "execOs.dashboard.sizeFloor.v6";
+const SIZE_FLOOR_KEY = "execOs.dashboard.sizeFloor.v7";
 
 // Floor migration: any layout entry whose w/h is below the catalog's
 // DEFAULT_WIDGET_SIZE gets bumped to that floor. Plus: if the entry looks
@@ -497,6 +503,11 @@ function TodayPage() {
   const [editingTopPriority, setEditingTopPriority] = useState(false);
   const [topPriorityDraft, setTopPriorityDraft] = useState("");
   const [todayRevenueCents, setTodayRevenueCents] = useState<number | null>(null);
+  const [lastDoneTask, setLastDoneTask] = useState<{ title: string; completed_at: string } | null>(null);
+  // Real per-source liveness: last record timestamp from each table, plus
+  // a row count. Drives the Data Fresh popover so it shows when the upstream
+  // integration last actually wrote data, not when we last queried.
+  const [sourceHealth, setSourceHealth] = useState<Record<string, { lastAt: string | null; count: number }>>({});
 
   const upsertDailyToday = useCallback(
     async (patch: Partial<Omit<DailyRow, "entry_date">>) => {
@@ -578,13 +589,12 @@ function TodayPage() {
         body: {},
       });
       if (error) {
-        // The edge function isn't deployed yet (waiting on Lovable org
-        // access). Show a softer message instead of a scary error.
-        const msg = error.message ?? "";
-        if (msg.includes("not found") || msg.includes("404") || msg.includes("Failed to send")) {
-          toast.info("Manual refresh isn't wired up yet. Calendars auto-sync daily at 5am.", { duration: 6000 });
+        const msg = (error.message ?? "").toLowerCase();
+        if (msg.includes("500") || msg.includes("make_api_token")) {
+          toast.error("Make.com token not set — add MAKE_API_TOKEN in Lovable Cloud → Settings → Secrets.", { duration: 8000 });
         } else {
-          toast.error(`Refresh failed: ${msg}`);
+          // Function not deployed or unreachable — give a direct Make.com fallback
+          toast.error("Sync trigger unavailable — go to Make.com and run scenarios #5067108 and #5072163 manually.", { duration: 10000 });
         }
         return;
       }
@@ -790,7 +800,19 @@ function TodayPage() {
       .eq("user_id", user.id)
       .eq("entry_date", todayStr);
 
-    const [emailsRes, dailyRes, weekRes, calRes, revRes] = await Promise.all([
+    // Most-recent task closed today — drives the "Last done" header strip.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const lastDonePromise = (supabase as any)
+      .from("exec_os_workflow_tasks")
+      .select("title, completed_at")
+      .eq("status", "done")
+      .gte("completed_at", dayStart.toISOString())
+      .lt("completed_at", dayEnd.toISOString())
+      .order("completed_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    const [emailsRes, dailyRes, weekRes, calRes, revRes, lastDoneRes] = await Promise.all([
       supabase
         .from("exec_os_emails")
         .select(
@@ -812,16 +834,20 @@ function TodayPage() {
         .eq("user_id", user.id)
         .gte("entry_date", sevenAgoStr)
         .order("entry_date", { ascending: true }),
-      supabase
-        .from("exec_os_calendar_events")
-        .select(
-          "id,account,external_id,title,description,start_at,end_at,organizer_email,location,video_url,is_all_day,status,attendees,calendar_id,calendar_name",
-        )
-        .eq("user_id", user.id)
-        .gte("start_at", dayStart.toISOString())
-        .lt("start_at", dayEnd.toISOString())
-        .order("start_at", { ascending: true }),
+      // Live Google Calendar read (server-side OAuth — replaces the
+      // Make.com → exec_os_calendar_events pipeline that was paused
+      // 2026-05-19 after Single-Events recurrence expansion bug).
+      // Returns the same shape as the old supabase query so downstream
+      // code (setCalendarEvents, sorting, filtering) is unchanged.
+      fetchCalendarEvents({
+        timeMin: dayStart.toISOString(),
+        timeMax: dayEnd.toISOString(),
+      }).then((r) => ({
+        data: r.events,
+        error: r.error ? { message: r.error } : null,
+      })),
       revenuePromise,
+      lastDonePromise,
     ]);
 
     setEmails((emailsRes.data as EmailRow[]) ?? []);
@@ -838,6 +864,52 @@ function TodayPage() {
     } else {
       setTodayRevenueCents(null);
     }
+
+    if (lastDoneRes && !lastDoneRes.error && lastDoneRes.data) {
+      const r = lastDoneRes.data as { title: string; completed_at: string };
+      setLastDoneTask({ title: r.title, completed_at: r.completed_at });
+    } else {
+      setLastDoneTask(null);
+    }
+
+    // Per-source liveness — last-record timestamp + count, used by the
+    // header status popover. Each query: 1 row max, head=true for count.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const sb = supabase as any;
+    const healthQueries: Record<string, Promise<{ lastAt: string | null; count: number }>> = {
+      emails: (async () => {
+        const last = await sb.from("exec_os_emails").select("received_at").order("received_at", { ascending: false }).limit(1).maybeSingle();
+        const total = await sb.from("exec_os_emails").select("*", { count: "exact", head: true });
+        return { lastAt: (last.data?.received_at as string | undefined) ?? null, count: total.count ?? 0 };
+      })(),
+      calendar: (async () => {
+        const last = await sb.from("exec_os_calendar_events").select("created_at").order("created_at", { ascending: false }).limit(1).maybeSingle();
+        const total = await sb.from("exec_os_calendar_events").select("*", { count: "exact", head: true });
+        return { lastAt: (last.data?.created_at as string | undefined) ?? null, count: total.count ?? 0 };
+      })(),
+      daily: (async () => {
+        const last = await sb.from("exec_os_daily").select("entry_date").eq("user_id", user.id).order("entry_date", { ascending: false }).limit(1).maybeSingle();
+        const total = await sb.from("exec_os_daily").select("*", { count: "exact", head: true });
+        return { lastAt: (last.data?.entry_date as string | undefined) ?? null, count: total.count ?? 0 };
+      })(),
+      revenue: (async () => {
+        const last = await sb.from("exec_os_revenue").select("created_at").order("created_at", { ascending: false }).limit(1).maybeSingle();
+        const total = await sb.from("exec_os_revenue").select("*", { count: "exact", head: true });
+        return { lastAt: (last.data?.created_at as string | undefined) ?? null, count: total.count ?? 0 };
+      })(),
+      content: (async () => {
+        const last = await sb.from("exec_os_content").select("created_at").order("created_at", { ascending: false }).limit(1).maybeSingle();
+        const total = await sb.from("exec_os_content").select("*", { count: "exact", head: true });
+        return { lastAt: (last.data?.created_at as string | undefined) ?? null, count: total.count ?? 0 };
+      })(),
+    };
+    const healthEntries = await Promise.all(
+      Object.entries(healthQueries).map(async ([k, p]) => {
+        try { return [k, await p] as const; }
+        catch { return [k, { lastAt: null, count: 0 }] as const; }
+      }),
+    );
+    setSourceHealth(Object.fromEntries(healthEntries));
 
     // Build 7-day series ending today
     const rows = (weekRes.data ?? []) as { entry_date: string; energy_level: number | null }[];
@@ -859,6 +931,27 @@ function TodayPage() {
   useEffect(() => {
     void loadAll();
   }, [loadAll, refreshTick]);
+
+  // Realtime: refresh header (Last Done) + source-health pills whenever a
+  // workflow task or revenue row changes. Without this, "Last Done" stays
+  // stale until Donna refreshes — which is exactly the bug she flagged.
+  useEffect(() => {
+    if (!user) return;
+    const ch = supabase
+      .channel("today_header_rt")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "exec_os_workflow_tasks" },
+        () => setRefreshTick((n) => n + 1),
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "exec_os_revenue" },
+        () => setRefreshTick((n) => n + 1),
+      )
+      .subscribe();
+    return () => { void supabase.removeChannel(ch); };
+  }, [user]);
 
   // Realtime emails
   useEffect(() => {
@@ -985,6 +1078,16 @@ function TodayPage() {
       )
     : null;
 
+  const lastDoneAgo = useMemo(() => {
+    if (!lastDoneTask) return "";
+    const ms = now.getTime() - new Date(lastDoneTask.completed_at).getTime();
+    const mins = Math.max(0, Math.round(ms / 60000));
+    if (mins < 1) return "just now";
+    if (mins < 60) return `${mins} min ago`;
+    const hrs = Math.round(mins / 60 * 10) / 10;
+    return `${hrs}h ago`;
+  }, [lastDoneTask, now]);
+
   const followUps = useMemo(
     () =>
       emails
@@ -1002,15 +1105,34 @@ function TodayPage() {
     [emails],
   );
 
-  // Status: stale if any source >1h since last refresh
-  const sources: { name: string; ts: number | null; live: boolean }[] = [
-    { name: "Inbox (exec_os_emails)", ts: emailsLoadedAt, live: true },
-    { name: "Pulse (exec_os_daily)", ts: dailyLoadedAt, live: true },
-    { name: "Money (exec_os_revenue)", ts: emailsLoadedAt, live: true },
-    { name: "Calendar (exec_os_calendar_events)", ts: calendarLoadedAt, live: true },
-    { name: "Content Pulse (exec_os_content)", ts: emailsLoadedAt, live: true },
+  // Per-source health for the status popover. `kind` distinguishes external
+  // integrations (something writes for you) from manual logs (you write).
+  // The pill only flips to "needs attention" for integrations that have
+  // gone dark — manual sources being empty isn't a problem to flag.
+  type SourceKind = "integration" | "manual";
+  const sources: {
+    name: string;
+    kind: SourceKind;
+    lastAt: string | null;
+    count: number;
+    maxAgeHours: number | null;
+    // Short hint shown when the source is empty.
+    emptyHint: string;
+  }[] = [
+    { name: "Inbox (Gmail)",     kind: "integration", lastAt: sourceHealth.emails?.lastAt   ?? null, count: sourceHealth.emails?.count   ?? 0, maxAgeHours: 48,       emptyHint: "Gmail ingester never ran" },
+    { name: "Calendar (Google)", kind: "integration", lastAt: sourceHealth.calendar?.lastAt ?? null, count: sourceHealth.calendar?.count ?? 0, maxAgeHours: 48,       emptyHint: "Calendar ingester never ran" },
+    { name: "Pulse (daily log)", kind: "manual",      lastAt: sourceHealth.daily?.lastAt    ?? null, count: sourceHealth.daily?.count    ?? 0, maxAgeHours: 48,       emptyHint: "Log mood + energy via the Pulse widget" },
+    { name: "Money (revenue)",   kind: "manual",      lastAt: sourceHealth.revenue?.lastAt  ?? null, count: sourceHealth.revenue?.count  ?? 0, maxAgeHours: null,     emptyHint: "Log revenue via the Money widget" },
+    { name: "Content Pulse",     kind: "manual",      lastAt: sourceHealth.content?.lastAt  ?? null, count: sourceHealth.content?.count  ?? 0, maxAgeHours: 14 * 24,  emptyHint: "Log posts via the Content Pulse widget" },
   ];
-  const stale = sources.some((s) => s.live && s.ts && Date.now() - s.ts > 3600_000);
+  // Pill only goes "needs attention" when an INTEGRATION is broken or stale.
+  // Empty manual sources are an expected state, not a fault.
+  const stale = sources.some((s) => {
+    if (s.kind !== "integration") return false;
+    if (s.count === 0) return true;
+    if (!s.lastAt || s.maxAgeHours == null) return false;
+    return Date.now() - new Date(s.lastAt).getTime() > s.maxAgeHours * 3600_000;
+  });
 
   async function setEmailStatus(id: string, status: string) {
     setEmails((cur) => cur.map((r) => (r.id === id ? { ...r, status } : r)));
@@ -1140,73 +1262,25 @@ function TodayPage() {
             </div>
           </Link>
 
-          {/* TOP PRIORITY — click text to edit, click checkbox to mark done */}
-          <div className="lg:col-span-3 min-w-0">
+          {/* LAST DONE — proof-of-productivity strip. Pulls the most recent
+              completed workflow task today; falls back to next calendar
+              event if nothing's been logged yet. Top priority lives in the
+              top_priority widget below — header keeps only objective signals
+              (clock, money, what-shipped, alarms). */}
+          <div className="lg:col-span-5 min-w-0 hidden lg:block">
             <div className="text-[10px] uppercase tracking-wider text-muted-foreground">
-              Top priority · today
+              {lastDoneTask ? "Last done" : "Next up"}
             </div>
-            <div className="flex items-center gap-2">
-              {daily?.top_priority && (
-                <button
-                  type="button"
-                  onClick={toggleTopPriorityDone}
-                  aria-label={daily.top_priority_done ? "Mark as not done" : "Mark as done"}
-                  title={daily.top_priority_done ? "Done. Tap to undo." : "Tap when complete."}
-                  className={`shrink-0 h-5 w-5 rounded border-2 flex items-center justify-center transition-colors ${
-                    daily.top_priority_done
-                      ? "bg-[color:var(--forest)] border-[color:var(--forest)] text-white"
-                      : "border-border hover:border-[color:var(--navy)]"
-                  }`}
-                >
-                  {daily.top_priority_done && (
-                    <svg className="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                      <polyline points="20 6 9 17 4 12" />
-                    </svg>
-                  )}
-                </button>
-              )}
-              {editingTopPriority ? (
-                <input
-                  type="text"
-                  autoFocus
-                  value={topPriorityDraft}
-                  onChange={(e) => setTopPriorityDraft(e.target.value)}
-                  onBlur={commitTopPriority}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") commitTopPriority();
-                    if (e.key === "Escape") setEditingTopPriority(false);
-                  }}
-                  placeholder="What matters most today?"
-                  maxLength={120}
-                  className="flex-1 text-sm font-medium text-foreground bg-transparent border-b border-[color:var(--navy)] outline-none py-0.5"
-                />
-              ) : (
-                <button
-                  type="button"
-                  onClick={startEditTopPriority}
-                  className={`flex-1 text-sm font-medium text-left transition-colors truncate ${
-                    daily?.top_priority_done
-                      ? "text-muted-foreground line-through"
-                      : "text-foreground hover:text-[color:var(--navy)]"
-                  }`}
-                  title="Click to edit today's top priority"
-                >
-                  {daily?.top_priority || (
-                    <span className="text-muted-foreground inline-flex items-center gap-1">
-                      + set top priority <ArrowRight className="h-3 w-3" />
-                    </span>
-                  )}
-                </button>
-              )}
-            </div>
-          </div>
-
-          {/* NEXT EVENT — live from today's calendar */}
-          <div className="lg:col-span-2 min-w-0 hidden lg:block">
-            <div className="text-[10px] uppercase tracking-wider text-muted-foreground">
-              Next up
-            </div>
-            {nextMeeting && nextMeetingMinutes != null ? (
+            {lastDoneTask ? (
+              <div className="min-w-0">
+                <div className="text-sm font-medium text-foreground truncate">
+                  ✓ {lastDoneTask.title}
+                </div>
+                <div className="text-[11px] text-muted-foreground tabular-nums">
+                  {lastDoneAgo}
+                </div>
+              </div>
+            ) : nextMeeting && nextMeetingMinutes != null ? (
               <div className="min-w-0">
                 <div className="text-sm font-medium text-foreground truncate">
                   {nextMeeting.title || "(untitled)"}
@@ -1216,12 +1290,13 @@ function TodayPage() {
                 </div>
               </div>
             ) : (
-              <div className="text-sm text-muted-foreground italic">Clear</div>
+              <div className="text-sm text-muted-foreground italic">Nothing logged yet</div>
             )}
           </div>
 
           {/* Status pill (desktop) + Library / Edit buttons */}
           <div className="hidden lg:flex lg:col-span-2 lg:justify-end items-center gap-2">
+            <TimersAlarmsMenu />
             <button
               type="button"
               onClick={() => setStatusOpen((v) => !v)}
@@ -1306,29 +1381,53 @@ function TodayPage() {
           </div>
         </div>
         {statusOpen && (
-          <div className="absolute right-3 sm:right-5 lg:right-6 top-full mt-2 z-40 w-[280px] max-w-[calc(100vw-1.5rem)] rounded-xl border border-border bg-card shadow-lg p-3 space-y-2">
-            {sources.map((s) => (
-              <div
-                key={s.name}
-                className="flex items-center justify-between text-xs gap-3"
-              >
-                <span className="flex items-center gap-2 text-foreground">
-                  <span
-                    className={`h-2 w-2 rounded-full ${
-                      !s.live
-                        ? "bg-muted-foreground/40"
-                        : s.ts && Date.now() - s.ts > 3600_000
-                          ? "bg-[color:var(--rose)]"
-                          : "bg-[color:var(--sage)]"
-                    }`}
-                  />
-                  {s.name}
-                </span>
-                <span className="text-muted-foreground">
-                  {!s.live ? "not connected" : s.ts ? relTime(new Date(s.ts).toISOString()) : "—"}
-                </span>
-              </div>
-            ))}
+          <div className="absolute right-3 sm:right-5 lg:right-6 top-full mt-2 z-40 w-[320px] max-w-[calc(100vw-1.5rem)] rounded-xl border border-border bg-card shadow-lg p-3 space-y-2">
+            <div className="text-[10px] uppercase tracking-wider text-muted-foreground pb-1 border-b border-border">
+              Source liveness — when the upstream wrote last
+            </div>
+            {sources.map((s) => {
+              const ageMs = s.lastAt ? Date.now() - new Date(s.lastAt).getTime() : null;
+              const isStale =
+                s.kind === "integration" &&
+                ((s.count === 0) ||
+                  (s.maxAgeHours != null && ageMs != null && ageMs > s.maxAgeHours * 3600_000));
+              const isEmptyManual = s.kind === "manual" && s.count === 0;
+              const dotColor =
+                s.kind === "integration" && s.count === 0
+                  ? "bg-[color:var(--rose)]"
+                  : isStale
+                    ? "bg-[color:var(--orange)]"
+                    : isEmptyManual
+                      ? "bg-muted-foreground/40"
+                      : "bg-[color:var(--sage)]";
+              const detail =
+                s.count === 0
+                  ? s.emptyHint
+                  : s.lastAt
+                    ? `${relTime(s.lastAt)} · ${s.count} rows`
+                    : `${s.count} rows`;
+              const detailColor = isStale
+                ? "text-[color:var(--orange)]"
+                : s.kind === "integration" && s.count === 0
+                  ? "text-[color:var(--rose)]"
+                  : "text-muted-foreground";
+              return (
+                <div key={s.name} className="flex items-start justify-between text-xs gap-3">
+                  <span className="flex items-center gap-2 text-foreground">
+                    <span className={`h-2 w-2 rounded-full mt-1 shrink-0 ${dotColor}`} />
+                    <span>
+                      {s.name}
+                      <span className="ml-1.5 text-[9px] uppercase tracking-wider text-muted-foreground">
+                        {s.kind === "integration" ? "auto" : "manual"}
+                      </span>
+                    </span>
+                  </span>
+                  <span className={`text-right text-[11px] max-w-[60%] ${detailColor}`}>
+                    {detail}
+                  </span>
+                </div>
+              );
+            })}
             <button
               onClick={() => {
                 setRefreshTick((n) => n + 1);
@@ -1373,6 +1472,25 @@ function TodayPage() {
             onRemove={removeWidget}
           >
             <WorkflowsWidget />
+          </Card>
+        </div>
+        )}
+
+        {/* WORKFLOWS — second instance, pinned to the Exec OS Build workflow */}
+        {activeWidgets.includes("workflows_exec_os") && (
+        <div key="workflows_exec_os" className="relative">
+          <Card
+            title="Workflow · Exec OS Build"
+            icon={Activity}
+            className="h-full overflow-hidden"
+            dragHandle={!locks.workflows_exec_os && !isMobileViewport}
+            lockId="workflows_exec_os"
+            locked={!!locks.workflows_exec_os}
+            onToggleLock={toggleLock}
+            editMode={editMode}
+            onRemove={removeWidget}
+          >
+            <WorkflowsWidget workflowId="e4029110-338b-4d48-875e-53257a8f4dd9" />
           </Card>
         </div>
         )}
@@ -1429,13 +1547,36 @@ function TodayPage() {
               isToday={selectedIsToday}
             />
             {meetingsToday.length === 0 ? (
-              <EmptyState
-                text={
-                  selectedIsToday
-                    ? "Nothing on the calendar today."
-                    : "Nothing on the calendar."
-                }
-              />
+              <div className="flex flex-col items-center gap-2 py-6 text-center">
+                <p className="text-xs text-muted-foreground/70 italic">
+                  {selectedIsToday ? "Nothing on the calendar today." : "Nothing on the calendar."}
+                </p>
+                {selectedIsToday && sourceHealth.calendar?.lastAt && (
+                  <p className="text-[11px] text-muted-foreground">
+                    Last sync:{" "}
+                    <span className={
+                      Date.now() - new Date(sourceHealth.calendar.lastAt).getTime() > 86_400_000 * 2
+                        ? "text-[color:var(--orange)]"
+                        : "text-foreground"
+                    }>
+                      {relTime(sourceHealth.calendar.lastAt)}
+                    </span>
+                    {" · "}
+                    <button
+                      onClick={refreshCalendars}
+                      disabled={refreshing}
+                      className="text-[color:var(--navy)] hover:underline disabled:opacity-50"
+                    >
+                      Refresh now
+                    </button>
+                  </p>
+                )}
+                {selectedIsToday && !sourceHealth.calendar?.lastAt && sourceHealth.calendar?.count === 0 && (
+                  <p className="text-[11px] text-[color:var(--rose)]">
+                    No events in database — Make.com sync may be paused
+                  </p>
+                )}
+              </div>
             ) : (
               <>
                 {nextMeeting && nextMeetingMinutes != null && (

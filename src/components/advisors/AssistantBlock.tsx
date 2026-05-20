@@ -63,9 +63,38 @@ function applyInlineFormatting(text: string): React.ReactNode {
   let m: RegExpExecArray | null;
   let k = 0;
   while ((m = codeRe.exec(text)) !== null) {
-    if (m.index > last) out.push(<Fragment key={k++}>{boldItalic(text.slice(last, m.index))}</Fragment>);
+    if (m.index > last) out.push(<Fragment key={k++}>{renderLinksAndEmphasis(text.slice(last, m.index))}</Fragment>);
     out.push(<code key={k++} className="rounded bg-muted px-1 py-0.5 font-mono text-xs">{m[1]}</code>);
     last = codeRe.lastIndex;
+  }
+  if (last < text.length) out.push(<Fragment key={k++}>{renderLinksAndEmphasis(text.slice(last))}</Fragment>);
+  return out;
+}
+
+function renderLinksAndEmphasis(text: string): React.ReactNode {
+  // [label](href) — same-origin paths open inline; external opens in new tab.
+  const linkRe = /\[([^\]]+)\]\(([^)]+)\)/g;
+  const out: React.ReactNode[] = [];
+  let last = 0;
+  let m: RegExpExecArray | null;
+  let k = 0;
+  while ((m = linkRe.exec(text)) !== null) {
+    if (m.index > last) out.push(<Fragment key={k++}>{boldItalic(text.slice(last, m.index))}</Fragment>);
+    const label = m[1];
+    const href = m[2];
+    const external = /^https?:\/\//i.test(href);
+    out.push(
+      <a
+        key={k++}
+        href={href}
+        target={external ? "_blank" : undefined}
+        rel={external ? "noopener noreferrer" : undefined}
+        className="text-[color:var(--navy)] underline underline-offset-2 hover:opacity-80"
+      >
+        {label}
+      </a>,
+    );
+    last = linkRe.lastIndex;
   }
   if (last < text.length) out.push(<Fragment key={k++}>{boldItalic(text.slice(last))}</Fragment>);
   return out;

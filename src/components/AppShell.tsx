@@ -30,7 +30,7 @@ export function AppShell({
     { to: "/today", label: "Today", icon: CalendarDays },
     { to: "/hub", label: "Hub", icon: Compass },
     { to: "/capture", label: "Capture", icon: Mic },
-    { to: "/advisors", label: "Advisors", icon: MessageSquare },
+    { to: "/advisors", label: "Toolkit", icon: MessageSquare },
     { to: "/settings", label: "Settings", icon: SettingsIcon },
   ] as const;
 

@@ -2,7 +2,10 @@
 // Anthropic pricing per 1M tokens (USD), as of 2026-05.
 import type { ModelTier } from "@/config/advisors";
 
-export const DAILY_COST_CAP_USD = 5;
+// Edit this number to change the daily Opus spend ceiling. Above the cap,
+// Opus calls auto-downgrade to Sonnet (~10× cheaper) for the rest of the
+// day. Sonnet + Haiku calls are never downgraded.
+export const DAILY_COST_CAP_USD = 25;
 
 // [input $/Mtok, output $/Mtok]
 export const TIER_PRICING: Record<ModelTier, { input: number; output: number }> = {

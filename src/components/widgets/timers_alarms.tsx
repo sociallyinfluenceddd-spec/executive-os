@@ -57,6 +57,16 @@ function saveLS<T>(key: string, value: T) {
   }
 }
 
+function fmt12h(hhmm: string): string {
+  const [hStr, mStr] = hhmm.split(":");
+  const h = parseInt(hStr, 10);
+  const m = parseInt(mStr, 10);
+  if (Number.isNaN(h) || Number.isNaN(m)) return hhmm;
+  const period = h >= 12 ? "PM" : "AM";
+  const h12 = h % 12 === 0 ? 12 : h % 12;
+  return `${h12}:${String(m).padStart(2, "0")} ${period}`;
+}
+
 function fmtMMSS(totalSec: number): string {
   const s = Math.max(0, Math.floor(totalSec));
   const m = Math.floor(s / 60);
@@ -512,7 +522,7 @@ function AlarmsPanel({
               <div className="min-w-0">
                 <div className="flex items-center gap-2">
                   <span className="text-base font-semibold tabular-nums" style={{ color: a.enabled ? NAVY : undefined }}>
-                    {a.time}
+                    {fmt12h(a.time)}
                   </span>
                   <span className={`text-sm truncate ${a.enabled ? "" : "text-muted-foreground line-through"}`}>
                     {a.label}

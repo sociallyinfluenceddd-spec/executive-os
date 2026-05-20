@@ -187,6 +187,47 @@ export const ADVISOR_TOOLS: ToolDef[] = [
   // ============================================================
 
   {
+    name: "query_workflow_activity_today",
+    description:
+      "Get everything that shipped today: completed workflow tasks (with their dollar_lever), revenue logged, and artifacts last_touched since midnight local. Use this as the source of truth for 'what did Donna get done today' — never ask her directly when you can read it.",
+    input_schema: { type: "object", properties: {} },
+    execute: async (_input, { supabase }) => {
+      const now = new Date();
+      const start = new Date(now);
+      start.setHours(0, 0, 0, 0);
+      const sinceIso = start.toISOString();
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const db = supabase as any;
+      const [tasksRes, revenueRes, artifactsRes] = await Promise.all([
+        db
+          .from("exec_os_workflow_tasks")
+          .select("id, title, dollar_lever, done_when, completed_at, phase_id")
+          .eq("status", "done")
+          .gte("completed_at", sinceIso)
+          .order("completed_at", { ascending: true }),
+        db
+          .from("exec_os_revenue")
+          .select("amount_cents, source, notes, created_at")
+          .gte("created_at", sinceIso)
+          .order("created_at", { ascending: true }),
+        db
+          .from("exec_os_artifacts")
+          .select("id, title, kind, category, last_touched")
+          .gte("last_touched", sinceIso)
+          .order("last_touched", { ascending: true }),
+      ]);
+
+      return {
+        since: sinceIso,
+        tasks_completed: tasksRes.data ?? [],
+        revenue_entries: revenueRes.data ?? [],
+        artifacts_touched: artifactsRes.data ?? [],
+      };
+    },
+  },
+
+  {
     name: "mark_workflow_task_done",
     description:
       "Mark a workflow task as done. Use when the user confirms a task is complete OR when you (the advisor) have just executed the task's claude_prompt successfully. Sets status=done and completed_at=now.",
@@ -321,6 +362,103 @@ export const ADVISOR_TOOLS: ToolDef[] = [
         .single();
       if (error) throw new Error(error.message);
       return { artifact: data };
+    },
+  },
+
+  {
+    name: "append_workflow_map_update",
+    description:
+      "Add a dated update block to the Ideafetti Workflow Map artifact. Use this when the user wants to log today's progress on the workflow map. Reads the current HTML, inserts the new block right after the existing 'Manual Updates' header (newest on top), and writes the updated HTML back. Returns the new headline.",
+    input_schema: {
+      type: "object",
+      properties: {
+        headline: { type: "string", description: "Short title for today's milestone (≤ 80 chars)" },
+        body: { type: "string", description: "1-3 sentence description of what shipped" },
+        date: { type: "string", description: "ISO date (YYYY-MM-DD). Defaults to today." },
+      },
+      required: ["headline", "body"],
+    },
+    execute: async (input, { supabase }) => {
+      const ARTIFACT_ID = "5b3cb064-d86d-47de-ac1f-5809dd7776d2";
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const db = supabase as any;
+      const { data: row, error: readErr } = await db
+        .from("exec_os_artifacts")
+        .select("id, content")
+        .eq("id", ARTIFACT_ID)
+        .single();
+      if (readErr) throw new Error(`Read failed: ${readErr.message}`);
+      if (!row || !row.content) {
+        throw new Error("Workflow Map artifact has no content — seed it first.");
+      }
+
+      const b64 = String(row.content);
+      const decode = (s: string) => {
+        const bin = atob(s);
+        const bytes = new Uint8Array(bin.length);
+        for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+        return new TextDecoder("utf-8").decode(bytes);
+      };
+      const encode = (s: string) => {
+        const bytes = new TextEncoder().encode(s);
+        let bin = "";
+        for (let i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]);
+        return btoa(bin);
+      };
+
+      const html = decode(b64);
+      const headline = String(input.headline).slice(0, 200);
+      const body = String(input.body).slice(0, 2000);
+      const date =
+        typeof input.date === "string" && /^\d{4}-\d{2}-\d{2}$/.test(input.date)
+          ? input.date
+          : new Date().toISOString().slice(0, 10);
+
+      const escape = (s: string) =>
+        s
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;");
+
+      const block = `<div class="manual-update" style="border-left:4px solid #E97451;padding:0.75rem 1rem;margin:1rem 0;background:#FFF8E1;"><h3 style="color:#083D77;margin:0 0 0.5rem 0;">Manual update — ${date}: ${escape(headline)}</h3><p style="color:#355834;margin:0;">${escape(body)}</p></div>`;
+
+      // Insertion strategy: prefer the first existing .manual-update so newer
+      // entries stack on top of older ones. Fall back to right after the first
+      // </h1>. Fall back again to prepending inside <body>.
+      let next: string;
+      const mu = html.indexOf('class="manual-update"');
+      if (mu !== -1) {
+        const blockStart = html.lastIndexOf("<div", mu);
+        if (blockStart !== -1) {
+          next = html.slice(0, blockStart) + block + html.slice(blockStart);
+        } else {
+          next = html.replace(/<\/h1>/, `</h1>\n${block}`);
+        }
+      } else if (/<\/h1>/.test(html)) {
+        next = html.replace(/<\/h1>/, `</h1>\n${block}`);
+      } else if (/<body[^>]*>/i.test(html)) {
+        next = html.replace(/<body[^>]*>/i, (m) => `${m}\n${block}`);
+      } else {
+        next = block + html;
+      }
+
+      const newB64 = encode(next);
+      const { error: writeErr } = await db
+        .from("exec_os_artifacts")
+        .update({ content: newB64, last_touched: new Date().toISOString() })
+        .eq("id", ARTIFACT_ID);
+      if (writeErr) throw new Error(`Write failed: ${writeErr.message}`);
+
+      return {
+        artifact_id: ARTIFACT_ID,
+        headline,
+        date,
+        bytes_before: html.length,
+        bytes_after: next.length,
+        view_url: `/hub?artifact=${ARTIFACT_ID}`,
+        message: `Workflow map updated. Open [View workflow map](/hub?artifact=${ARTIFACT_ID}) to see the new block.`,
+      };
     },
   },
 

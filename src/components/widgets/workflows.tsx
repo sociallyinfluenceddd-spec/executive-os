@@ -101,19 +101,25 @@ type ExecutorAgent = {
   model_tier: ModelTier;
 };
 
-export function WorkflowsWidget() {
+export function WorkflowsWidget({ workflowId }: { workflowId?: string } = {}) {
   const { user } = useAuth();
   const [workflow, setWorkflow] = useState<WorkflowRow | null | undefined>(undefined);
   const [phases, setPhases] = useState<PhaseRow[]>([]);
   const [tasks, setTasks] = useState<TaskRow[]>([]);
   const [setupNeeded, setSetupNeeded] = useState(false);
   const [expandedTaskId, setExpandedTaskId] = useState<string | null>(null);
+  // Manual phase navigation — null = auto-pick (date-based current phase
+  // or auto-advance when current is 100%). Setting a phase id overrides.
+  const [selectedPhaseId, setSelectedPhaseId] = useState<string | null>(null);
 
   // Chat-with-task state. Selected task drives the sheet's title + initial
   // message; we mint a fresh threadId for each open so each task gets its
   // own conversation history that won't bleed across tasks.
   const [chatTask, setChatTask] = useState<TaskRow | null>(null);
   const [chatThreadId, setChatThreadId] = useState<string | null>(null);
+  // true when the thread was just pre-created (no prior messages) so we know
+  // to pass initialMessage and autoSend — false when reconnecting to existing history.
+  const [chatTaskIsNew, setChatTaskIsNew] = useState(false);
   const [executor, setExecutor] = useState<ExecutorAgent | null>(null);
 
   // Load Maya (the Ideafetti Co-founder advisor) as the executor. She has
@@ -146,14 +152,18 @@ export function WorkflowsWidget() {
 
   const load = useCallback(async () => {
     if (!user) return;
-    // Active workflow (priority: ideafetti category, then sort_order)
-    const wRes = await wdb
+    // If a specific workflowId is pinned, load that one. Otherwise the
+    // first active workflow by sort_order (backwards-compatible default).
+    const wQuery = wdb
       .from("exec_os_workflows")
-      .select("id, name, emoji, category, starts_at, ends_at, status, forcing_function")
-      .eq("status", "active")
-      .order("sort_order", { ascending: true })
-      .limit(1)
-      .maybeSingle();
+      .select("id, name, emoji, category, starts_at, ends_at, status, forcing_function");
+    const wRes = workflowId
+      ? await wQuery.eq("id", workflowId).maybeSingle()
+      : await wQuery
+          .eq("status", "active")
+          .order("sort_order", { ascending: true })
+          .limit(1)
+          .maybeSingle();
 
     if (wRes.error) {
       const msg = (wRes.error.message || "").toLowerCase();
@@ -199,31 +209,50 @@ export function WorkflowsWidget() {
 
     if (!pRes.error) setPhases((pRes.data ?? []) as PhaseRow[]);
     if (!tRes.error) setTasks((tRes.data ?? []) as TaskRow[]);
-  }, [user]);
+  }, [user, workflowId]);
 
   useEffect(() => {
     void load();
   }, [load]);
 
-  // Pick the "current" phase: first active, then first pending that has not started yet,
-  // else the most recent done. Use today's date to decide.
+  // Realtime sync — when any task in this workflow changes (Maya's executor
+  // tools, the other workflow widget, or status cycles), refresh local state
+  // so both widgets stay in lockstep and "breaks down often" stops happening.
+  useEffect(() => {
+    if (!workflow?.id) return;
+    const ch = supabase
+      .channel(`workflow_tasks_${workflow.id}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "exec_os_workflow_tasks",
+          filter: `workflow_id=eq.${workflow.id}`,
+        },
+        () => void load(),
+      )
+      .subscribe();
+    return () => {
+      void supabase.removeChannel(ch);
+    };
+  }, [workflow?.id, load]);
+
+  // Manual override always wins. Otherwise: pick the FIRST phase (by
+  // sort_order) that still has open tasks — ignoring calendar dates so
+  // shipping ahead of schedule isn't blocked. Falls back to the last
+  // phase if everything is done.
   const currentPhase = useMemo(() => {
     if (!phases.length) return null;
-    const t = todayISO();
-    // Phase whose starts_at <= today <= ends_at and not done
-    const within = phases.find(
-      (p) =>
-        p.status !== "done" &&
-        (!p.starts_at || p.starts_at <= t) &&
-        (!p.ends_at || p.ends_at >= t),
-    );
-    if (within) return within;
-    // First pending phase that hasn't started
-    const upcoming = phases.find((p) => p.status === "pending");
-    if (upcoming) return upcoming;
-    // Last active or last done
-    return [...phases].reverse().find((p) => p.status === "active") ?? phases[phases.length - 1];
-  }, [phases]);
+    if (selectedPhaseId) {
+      const picked = phases.find((p) => p.id === selectedPhaseId);
+      if (picked) return picked;
+    }
+    const hasOpen = (phaseId: string) =>
+      tasks.some((tk) => tk.phase_id === phaseId && tk.status !== "done");
+    const next = phases.find((p) => hasOpen(p.id));
+    return next ?? phases[phases.length - 1];
+  }, [phases, tasks, selectedPhaseId]);
 
   const phaseTasks = useMemo(() => {
     if (!currentPhase) return [];
@@ -259,22 +288,61 @@ export function WorkflowsWidget() {
       return;
     }
     setChatTask(task);
-    // Look up an existing non-archived thread for this (agent, task) pair
-    // that has actually been used (has a message). Skipping empty threads
-    // means re-opening a chat where the user previously closed without
-    // sending still pre-fills the composer with claude_prompt.
-    const { data } = await wdb
+
+    // Auto-flip to in_progress so the workflow widget reflects what
+    // Donna's actually doing — no manual cycle-status click needed.
+    if (task.status === "pending") {
+      setTasks((cur) =>
+        cur.map((t) => (t.id === task.id ? { ...t, status: "in_progress" } : t)),
+      );
+      void wdb
+        .from("exec_os_workflow_tasks")
+        .update({ status: "in_progress" })
+        .eq("id", task.id);
+    }
+
+    // Look up an existing non-archived thread for this (agent, task) pair.
+    // No last_message_at filter — we want even empty threads so closing the
+    // chat without sending doesn't "lose" the task continuity.
+    const { data: existing } = await wdb
       .from("exec_os_agent_threads")
       .select("id")
       .eq("agent_id", executor.id)
       .eq("task_id", task.id)
       .eq("archived", false)
-      .not("last_message_at", "is", null)
-      .order("last_message_at", { ascending: false })
+      .order("last_message_at", { ascending: false, nullsFirst: false })
       .limit(1)
       .maybeSingle();
-    setChatThreadId(data?.id ?? null);
-  }, [executor]);
+
+    if (existing?.id) {
+      setChatThreadId(existing.id);
+      setChatTaskIsNew(false);
+      return;
+    }
+
+    // No thread yet — pre-create one immediately, tagged with this task.
+    // Means closing the chat right after opening still leaves a real thread
+    // that loads cleanly next time, instead of looking like a fresh start.
+    if (!user) return;
+    const { data: created, error: createErr } = await wdb
+      .from("exec_os_agent_threads")
+      .insert({
+        agent_id: executor.id,
+        user_id: user.id,
+        task_id: task.id,
+        title: task.title.slice(0, 80),
+      })
+      .select("id")
+      .single();
+    if (createErr) {
+      // Non-fatal — fall back to "let ChatWindow create one on first send".
+      setChatThreadId(null);
+      setChatTaskIsNew(true);
+      return;
+    }
+    setChatThreadId(created.id);
+    setChatTaskIsNew(true);
+  }, [executor, user]);
 
   // Called by ChatWindow when a brand-new thread is created on first send.
   // We back-fill task_id + a recognizable title so this thread is reused
@@ -294,13 +362,31 @@ export function WorkflowsWidget() {
     [chatTask],
   );
 
-  // Fallback: copy the prompt to clipboard (for users who prefer running
-  // Claude Code locally instead of in the dashboard).
+  // Copy the prompt to clipboard for Claude Code execution (Max plan, no API cost).
   const copyPromptToClipboard = useCallback(async (task: TaskRow) => {
     if (!task.claude_prompt) return;
     await navigator.clipboard.writeText(task.claude_prompt).catch(() => {});
-    toast.success("Prompt copied to clipboard");
+    toast.success("Prompt copied — paste it into Claude Code to execute free on Max plan", { duration: 6000 });
   }, []);
+
+  // Find the next task to surface as a nudge after one completes. Walks
+  // sort_order across phases so completing the last task in Week 1
+  // surfaces the first task in Week 2 automatically.
+  const findNextTask = useCallback(
+    (justDoneId: string): TaskRow | null => {
+      const remaining = tasks
+        .filter((t) => t.id !== justDoneId && t.status !== "done" && t.status !== "skipped")
+        .slice()
+        .sort((a, b) => {
+          const aPhase = phases.findIndex((p) => p.id === a.phase_id);
+          const bPhase = phases.findIndex((p) => p.id === b.phase_id);
+          if (aPhase !== bPhase) return aPhase - bPhase;
+          return a.sort_order - b.sort_order;
+        });
+      return remaining[0] ?? null;
+    },
+    [tasks, phases],
+  );
 
   const markDone = useCallback(
     async (task: TaskRow) => {
@@ -319,10 +405,31 @@ export function WorkflowsWidget() {
         toast.error("Couldn't update", { description: error.message });
         void load();
       } else if (newStatus === "done") {
-        toast.success("Task complete ✓");
+        // Nudge to the next task — saves the "what now" beat.
+        const next = findNextTask(task.id);
+        if (next) {
+          toast.success("Task complete ✓", {
+            description: `Next: ${next.title}`,
+            duration: 9000,
+            action: next.claude_prompt
+              ? {
+                  label: "Run with Claude",
+                  onClick: () => void openTaskChat(next),
+                }
+              : {
+                  label: "Open task",
+                  onClick: () => setExpandedTaskId(next.id),
+                },
+          });
+        } else {
+          toast.success("All tasks complete 🎉", {
+            description: "Workflow finished. Take the win.",
+            duration: 9000,
+          });
+        }
       }
     },
-    [load],
+    [load, findNextTask, openTaskChat],
   );
 
   const cycleTaskStatus = useCallback(
@@ -407,8 +514,48 @@ export function WorkflowsWidget() {
         <div className="border border-border rounded-md p-2 bg-muted/30">
           <div className="flex items-center justify-between gap-2">
             <div className="min-w-0 flex-1">
-              <div className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
-                Current phase
+              <div className="flex items-center justify-between gap-2 mb-0.5">
+                <div className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+                  {selectedPhaseId ? "Viewing phase" : "Current phase"}
+                </div>
+                {/* Prev / Next phase chevrons */}
+                <div className="flex items-center gap-1 no-drag">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const idx = phases.findIndex((p) => p.id === currentPhase.id);
+                      if (idx > 0) setSelectedPhaseId(phases[idx - 1].id);
+                    }}
+                    disabled={phases.findIndex((p) => p.id === currentPhase.id) <= 0}
+                    aria-label="Previous phase"
+                    className="h-5 w-5 inline-flex items-center justify-center rounded border border-border hover:bg-muted disabled:opacity-30 disabled:cursor-not-allowed"
+                  >
+                    ‹
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const idx = phases.findIndex((p) => p.id === currentPhase.id);
+                      if (idx < phases.length - 1) setSelectedPhaseId(phases[idx + 1].id);
+                    }}
+                    disabled={phases.findIndex((p) => p.id === currentPhase.id) >= phases.length - 1}
+                    aria-label="Next phase"
+                    className="h-5 w-5 inline-flex items-center justify-center rounded border border-border hover:bg-muted disabled:opacity-30 disabled:cursor-not-allowed"
+                  >
+                    ›
+                  </button>
+                  {selectedPhaseId && (
+                    <button
+                      type="button"
+                      onClick={() => setSelectedPhaseId(null)}
+                      aria-label="Jump back to today's active phase"
+                      title="Jump back to active phase"
+                      className="h-5 px-1.5 inline-flex items-center justify-center rounded border border-[color:var(--navy)] text-[9px] text-[color:var(--navy)] hover:bg-[color:var(--navy)]/10 uppercase tracking-wider"
+                    >
+                      Today
+                    </button>
+                  )}
+                </div>
               </div>
               <div className="text-xs font-semibold text-foreground truncate">{currentPhase.name}</div>
             </div>
@@ -570,14 +717,14 @@ export function WorkflowsWidget() {
                           </Button>
                           <Button
                             type="button"
-                            size="icon"
-                            variant="ghost"
+                            size="sm"
+                            variant="outline"
                             onClick={() => void copyPromptToClipboard(task)}
-                            title="Copy prompt to clipboard"
-                            aria-label="Copy prompt to clipboard"
-                            className="no-drag h-7 w-7"
+                            title="Copy prompt to clipboard — paste into Claude Code (free on Max plan)"
+                            className="no-drag h-7 text-[11px] gap-1 border-[color:var(--navy)] text-[color:var(--navy)]"
                           >
                             <Copy className="h-3 w-3" />
+                            Claude Code
                           </Button>
                         </>
                       )}
@@ -645,15 +792,22 @@ export function WorkflowsWidget() {
               </SheetHeader>
               <div className="flex-1 min-h-0">
                 <ChatWindow
+                  // Remount on task or thread change so streaming/focus
+                  // state from a prior conversation can't leak into the new
+                  // one — was leaving the composer un-engageable after a
+                  // mid-stream nav-away or task switch.
+                  key={`${chatTask.id}:${chatThreadId ?? "new"}`}
                   agentId={executor.id}
                   agentName={executor.name}
                   agentTier={executor.model_tier}
                   threadId={chatThreadId}
                   onThreadCreated={handleThreadCreated}
-                  // Only pre-fill the prompt when starting from scratch. If
-                  // an existing thread is loaded, the history speaks for
-                  // itself — don't shove the prompt back into the composer.
-                  initialMessage={chatThreadId ? undefined : chatTask.claude_prompt ?? ""}
+                  // Pre-fill + auto-send only on fresh tasks. chatTaskIsNew is
+                  // true when the thread was just pre-created (no history),
+                  // false when reconnecting to an existing conversation.
+                  initialMessage={chatTaskIsNew ? (chatTask.claude_prompt ?? "") : undefined}
+                  autoSend={chatTaskIsNew && !!chatTask.claude_prompt}
+                  initialBoostToOpus={chatTaskIsNew}
                 />
               </div>
             </>

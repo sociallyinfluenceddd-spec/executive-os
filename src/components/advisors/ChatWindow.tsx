@@ -24,10 +24,13 @@ interface ChatWindowProps {
   agentTier: ModelTier;
   threadId: string | null;
   onThreadCreated: (threadId: string) => void;
-  /** Pre-fill the composer's textarea on mount. Used by the Workflows widget
-   *  to drop a task's claude_prompt into the chat so Donna can review then
-   *  press Enter — no clipboard hop. */
+  /** Pre-fill the composer's textarea on mount. */
   initialMessage?: string;
+  /** When true, automatically sends initialMessage after history loads (only
+   *  fires when the thread is empty — won't double-send on reconnect). */
+  autoSend?: boolean;
+  /** When true, the Composer defaults to Opus for the first send. */
+  initialBoostToOpus?: boolean;
 }
 
 export function ChatWindow({
@@ -37,12 +40,15 @@ export function ChatWindow({
   threadId,
   onThreadCreated,
   initialMessage,
+  autoSend,
+  initialBoostToOpus,
 }: ChatWindowProps) {
   const { user } = useAuth();
   const [messages, setMessages] = useState<UIMessage[]>([]);
   const [streaming, setStreaming] = useState(false);
   const [loadingHistory, setLoadingHistory] = useState(true);
   const scrollerRef = useRef<HTMLDivElement>(null);
+  const autoSentRef = useRef(false);
   // Threads we just minted in this session — when the streamAdvisorReply
   // emits {type:"thread"} mid-send, onThreadCreated bubbles the new id up
   // to the URL/parent, which re-renders us with a new threadId prop. Without
@@ -106,10 +112,21 @@ export function ChatWindow({
     if (el) el.scrollTop = el.scrollHeight;
   }, [messages, streaming]);
 
+  // Auto-send the initialMessage once history finishes loading and the thread
+  // is confirmed empty. The ref guard prevents double-fire on re-renders.
+  useEffect(() => {
+    if (!autoSend || !initialMessage || loadingHistory || streaming) return;
+    if (messages.length > 0) return; // thread has history — don't re-send
+    if (autoSentRef.current) return;
+    autoSentRef.current = true;
+    void handleSend(initialMessage, { boostToOpus: !!initialBoostToOpus, attachments: [] });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoSend, initialMessage, loadingHistory, streaming, messages.length]);
+
   const handleSend = useCallback(
     async (
       text: string,
-      opts: { boostToOpus: boolean; attachments: File[] },
+      opts: { boostToOpus: boolean; tierOverride?: "opus" | "sonnet" | "haiku"; attachments: File[] },
     ) => {
       if (!user || streaming) return;
       const userMsgId = `u-${Date.now()}`;
@@ -127,7 +144,7 @@ export function ChatWindow({
           agentId,
           threadId: activeThreadId,
           message: text,
-          tierOverride: opts.boostToOpus ? "opus" : undefined,
+          tierOverride: opts.tierOverride ?? (opts.boostToOpus ? "opus" : undefined),
         })) {
           if (ev.type === "thread") {
             activeThreadId = ev.threadId;
@@ -287,6 +304,7 @@ export function ChatWindow({
         disabled={streaming}
         onSend={handleSend}
         initialMessage={initialMessage}
+        initialBoostToOpus={initialBoostToOpus}
       />
     </div>
   );

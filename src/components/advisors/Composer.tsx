@@ -26,10 +26,13 @@ const SLASH_COMMANDS: { slash: string; description: string; insert: string }[] =
 export interface ComposerProps {
   agentTier: ModelTier;
   disabled: boolean;
-  onSend: (message: string, opts: { boostToOpus: boolean; attachments: File[] }) => void;
+  onSend: (message: string, opts: { boostToOpus: boolean; tierOverride?: ModelTier; attachments: File[] }) => void;
   /** Optional pre-fill (e.g. workflow task's claude_prompt). Populates the
    *  textarea on mount so the user can review/edit before pressing Enter. */
   initialMessage?: string;
+  /** Default Opus on the first send. Used when chat opens from a workflow
+   *  task's "Run with Claude" button — those prompts need executor tools. */
+  initialBoostToOpus?: boolean;
 }
 
 const TIER_LABEL: Record<ModelTier, string> = {
@@ -38,38 +41,45 @@ const TIER_LABEL: Record<ModelTier, string> = {
   haiku: "Haiku",
 };
 
-export function Composer({ agentTier, disabled, onSend, initialMessage }: ComposerProps) {
+export function Composer({ agentTier, disabled, onSend, initialMessage, initialBoostToOpus }: ComposerProps) {
   const [text, setText] = useState(initialMessage ?? "");
-  // If initialMessage changes (e.g. user re-opens the chat sheet for a
-  // different task), refresh the textarea once. Only fires when the value
-  // actually changes, not on every render.
   useEffect(() => {
     if (initialMessage != null) setText(initialMessage);
   }, [initialMessage]);
   const [attachments, setAttachments] = useState<File[]>([]);
-  const [boost, setBoost] = useState(false);
+  // tierOverride is the per-turn pick. null = use the agent's default tier.
+  // initialBoostToOpus pre-selects "opus" so executor-prompt opens default
+  // to the right tool-using model without Donna having to click Boost.
+  const [tierOverride, setTierOverride] = useState<ModelTier | null>(
+    initialBoostToOpus ? "opus" : null,
+  );
+  useEffect(() => {
+    if (initialBoostToOpus) setTierOverride("opus");
+  }, [initialBoostToOpus]);
   const [slashOpen, setSlashOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  // Auto-focus on mount + after send completes
   useEffect(() => {
     if (!disabled) textareaRef.current?.focus();
   }, [disabled]);
 
-  // Detect leading "/" → open slash menu
   useEffect(() => {
     setSlashOpen(text.startsWith("/") && text.length > 0 && !text.includes(" "));
   }, [text]);
 
-  const effectiveTier: ModelTier = boost ? "opus" : agentTier;
+  const effectiveTier: ModelTier = tierOverride ?? agentTier;
 
   const submit = () => {
     if (!text.trim() || disabled) return;
-    onSend(text.trim(), { boostToOpus: boost, attachments });
+    onSend(text.trim(), {
+      boostToOpus: effectiveTier === "opus",
+      tierOverride: tierOverride ?? undefined,
+      attachments,
+    });
     setText("");
     setAttachments([]);
-    setBoost(false);
+    setTierOverride(null);
   };
 
   const handleKey = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -168,23 +178,66 @@ export function Composer({ agentTier, disabled, onSend, initialMessage }: Compos
               </DropdownMenuContent>
             </DropdownMenu>
 
-            <Badge variant={boost ? "default" : "secondary"} className="ml-1 text-[10px]">
-              {TIER_LABEL[effectiveTier]}
-            </Badge>
-
-            {agentTier !== "opus" && (
-              <Button
-                type="button"
-                variant={boost ? "default" : "ghost"}
-                size="sm"
-                className="h-7 px-2 text-xs"
-                onClick={() => setBoost((b) => !b)}
-                title="Boost this turn to Opus"
-              >
-                <Zap className="mr-1 h-3 w-3" />
-                Boost
-              </Button>
-            )}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button
+                  type="button"
+                  title="Pick model for this message"
+                  className={`ml-1 inline-flex items-center gap-1 rounded-md px-1.5 h-6 text-[10px] font-medium border transition ${
+                    tierOverride
+                      ? "bg-[color:var(--navy)] text-white border-[color:var(--navy)]"
+                      : "bg-muted text-foreground border-border hover:bg-accent"
+                  }`}
+                >
+                  {tierOverride && <Zap className="h-3 w-3" />}
+                  {TIER_LABEL[effectiveTier]}
+                  {tierOverride && <span className="opacity-70">·1×</span>}
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start" className="w-56">
+                <DropdownMenuLabel className="text-[10px]">
+                  Model for this message
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onSelect={() => setTierOverride(null)}>
+                  <div className="flex w-full items-center justify-between gap-2">
+                    <div className="flex flex-col">
+                      <span className="text-xs font-medium">Default ({TIER_LABEL[agentTier]})</span>
+                      <span className="text-[10px] text-muted-foreground">Use agent's normal model</span>
+                    </div>
+                    {!tierOverride && <span className="text-[10px]">✓</span>}
+                  </div>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onSelect={() => setTierOverride("opus")}>
+                  <div className="flex w-full items-center justify-between gap-2">
+                    <div className="flex flex-col">
+                      <span className="text-xs font-medium">Opus</span>
+                      <span className="text-[10px] text-muted-foreground">Slow, smart, expensive. Pick for tool use, execution, or hard reasoning.</span>
+                    </div>
+                    {tierOverride === "opus" && <span className="text-[10px]">✓</span>}
+                  </div>
+                </DropdownMenuItem>
+                <DropdownMenuItem onSelect={() => setTierOverride("sonnet")}>
+                  <div className="flex w-full items-center justify-between gap-2">
+                    <div className="flex flex-col">
+                      <span className="text-xs font-medium">Sonnet</span>
+                      <span className="text-[10px] text-muted-foreground">~10× cheaper than Opus. Best default for chat + planning.</span>
+                    </div>
+                    {tierOverride === "sonnet" && <span className="text-[10px]">✓</span>}
+                  </div>
+                </DropdownMenuItem>
+                <DropdownMenuItem onSelect={() => setTierOverride("haiku")}>
+                  <div className="flex w-full items-center justify-between gap-2">
+                    <div className="flex flex-col">
+                      <span className="text-xs font-medium">Haiku</span>
+                      <span className="text-[10px] text-muted-foreground">~50× cheaper than Opus. Quick lookups, short answers.</span>
+                    </div>
+                    {tierOverride === "haiku" && <span className="text-[10px]">✓</span>}
+                  </div>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
 
             <div className="ml-auto flex items-center gap-1">
               {attachments.length > 0 && (

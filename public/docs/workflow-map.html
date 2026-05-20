@@ -1,0 +1,1081 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ideafetti — Full Workflow Map</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: #f8f9fa;
+    color: #111;
+    padding: 32px 24px;
+    min-width: 1000px;
+  }
+
+  .header {
+    text-align: center;
+    margin-bottom: 32px;
+  }
+  .header h1 {
+    font-size: 28px;
+    font-weight: 800;
+    letter-spacing: -0.5px;
+    color: #111;
+  }
+  .header p {
+    color: #666;
+    margin-top: 6px;
+    font-size: 15px;
+  }
+
+  .legend {
+    display: flex;
+    justify-content: center;
+    gap: 24px;
+    margin-bottom: 32px;
+    flex-wrap: wrap;
+  }
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    color: #444;
+  }
+  .dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .dot-green { background: #16a34a; }
+  .dot-amber { background: #d97706; }
+  .dot-red { background: #dc2626; }
+  .dot-blue { background: #2563eb; }
+  .dot-purple { background: #7c3aed; }
+
+  /* 6-Layer Vision Banner */
+  .vision-banner {
+    background: linear-gradient(135deg, #1e1b4b 0%, #312e81 50%, #4c1d95 100%);
+    border-radius: 16px;
+    padding: 24px 28px;
+    margin-bottom: 32px;
+    color: white;
+  }
+  .vision-banner h2 {
+    font-size: 13px;
+    font-weight: 800;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: #a5b4fc;
+    margin-bottom: 8px;
+  }
+  .vision-banner .vision-title {
+    font-size: 18px;
+    font-weight: 800;
+    margin-bottom: 16px;
+    color: white;
+    line-height: 1.3;
+  }
+  .vision-layers {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .vision-layer {
+    background: rgba(255,255,255,0.12);
+    border: 1.5px solid rgba(255,255,255,0.2);
+    border-radius: 10px;
+    padding: 10px 14px;
+    flex: 1;
+    min-width: 130px;
+  }
+  .vision-layer-num {
+    font-size: 10px;
+    font-weight: 800;
+    color: #a5b4fc;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    margin-bottom: 2px;
+  }
+  .vision-layer-name {
+    font-size: 14px;
+    font-weight: 800;
+    color: white;
+    margin-bottom: 2px;
+  }
+  .vision-layer-status {
+    font-size: 10px;
+    font-weight: 600;
+    padding: 2px 6px;
+    border-radius: 20px;
+    display: inline-block;
+    margin-top: 4px;
+  }
+  .vlayer-green { background: rgba(34,197,94,0.25); color: #86efac; }
+  .vlayer-purple { background: rgba(167,139,250,0.25); color: #c4b5fd; }
+  .vlayer-amber { background: rgba(251,191,36,0.25); color: #fde68a; }
+  .vlayer-red { background: rgba(248,113,113,0.25); color: #fca5a5; }
+  .vlayer-blue { background: rgba(96,165,250,0.25); color: #bfdbfe; }
+
+  .pipeline {
+    display: flex;
+    gap: 0;
+    overflow-x: auto;
+    padding-bottom: 16px;
+    margin-bottom: 8px;
+  }
+
+  .stage {
+    flex: 1;
+    min-width: 175px;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+  }
+  .stage-label {
+    text-align: center;
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: 1.2px;
+    text-transform: uppercase;
+    color: #888;
+    margin-bottom: 10px;
+    padding: 0 6px;
+  }
+  .stage-sublabel {
+    text-align: center;
+    font-size: 9px;
+    font-weight: 600;
+    color: #bbb;
+    letter-spacing: 0.5px;
+    margin-top: -8px;
+    margin-bottom: 10px;
+  }
+  .stage:not(:last-child)::after {
+    content: '→';
+    position: absolute;
+    right: -12px;
+    top: 48%;
+    transform: translateY(-50%);
+    font-size: 20px;
+    color: #ccc;
+    z-index: 10;
+    font-weight: 300;
+  }
+
+  .cards {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 0 6px;
+  }
+
+  .card {
+    border-radius: 10px;
+    padding: 10px 12px;
+    border: 1.5px solid transparent;
+    position: relative;
+    cursor: default;
+    transition: box-shadow 0.15s;
+  }
+  .card:hover { box-shadow: 0 4px 16px rgba(0,0,0,0.1); }
+
+  .card-green  { background: #f0fdf4; border-color: #bbf7d0; }
+  .card-amber  { background: #fffbeb; border-color: #fde68a; }
+  .card-red    { background: #fef2f2; border-color: #fecaca; }
+  .card-blue   { background: #eff6ff; border-color: #bfdbfe; }
+  .card-purple { background: #f5f3ff; border-color: #c4b5fd; }
+
+  .card-title {
+    font-size: 12px;
+    font-weight: 700;
+    margin-bottom: 3px;
+    color: #111;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+  }
+  .card-desc {
+    font-size: 10px;
+    color: #666;
+    line-height: 1.4;
+  }
+
+  .badge {
+    display: inline-block;
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    padding: 2px 6px;
+    border-radius: 20px;
+    margin-top: 5px;
+  }
+  .badge-green  { background: #dcfce7; color: #15803d; }
+  .badge-amber  { background: #fef3c7; color: #92400e; }
+  .badge-red    { background: #fee2e2; color: #991b1b; }
+  .badge-blue   { background: #dbeafe; color: #1d4ed8; }
+  .badge-purple { background: #ede9fe; color: #6d28d9; }
+
+  .gaps-section { margin-top: 48px; }
+  .gaps-section h2 {
+    font-size: 18px;
+    font-weight: 800;
+    margin-bottom: 20px;
+    color: #111;
+  }
+
+  .gaps-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 16px;
+  }
+
+  .gap-card {
+    background: white;
+    border-radius: 12px;
+    padding: 16px 18px;
+    border: 1.5px solid #fecaca;
+  }
+  .gap-card.gap-amber { border-color: #fde68a; }
+  .gap-card.gap-blue  { border-color: #bfdbfe; background: #eff6ff; }
+  .gap-card.gap-green { border-color: #bbf7d0; background: #f0fdf4; }
+  .gap-card.gap-purple { border-color: #c4b5fd; background: #f5f3ff; }
+
+  .gap-number {
+    font-size: 11px;
+    font-weight: 800;
+    color: #aaa;
+    margin-bottom: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .gap-title {
+    font-size: 14px;
+    font-weight: 700;
+    color: #111;
+    margin-bottom: 6px;
+  }
+  .gap-what {
+    font-size: 12px;
+    color: #555;
+    line-height: 1.5;
+    margin-bottom: 8px;
+  }
+  .gap-fix {
+    font-size: 11px;
+    font-weight: 600;
+    color: #16a34a;
+    background: #f0fdf4;
+    border-radius: 6px;
+    padding: 6px 10px;
+  }
+  .gap-fix.fix-amber  { color: #92400e; background: #fef3c7; }
+  .gap-fix.fix-blue   { color: #1d4ed8; background: #dbeafe; }
+  .gap-fix.fix-purple { color: #6d28d9; background: #ede9fe; }
+  .gap-fix.fix-red    { color: #991b1b; background: #fee2e2; }
+
+  .tools-row {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 32px;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  .tool-pill {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: white;
+    border: 1.5px solid #e5e7eb;
+    border-radius: 40px;
+    padding: 7px 14px;
+    font-size: 12px;
+    font-weight: 600;
+    color: #333;
+  }
+  .tool-pill span { font-size: 15px; }
+
+  .divider {
+    border: none;
+    border-top: 1.5px solid #e5e7eb;
+    margin: 40px 0;
+  }
+  .note {
+    text-align: center;
+    font-size: 11px;
+    color: #aaa;
+    margin-top: 40px;
+    line-height: 1.6;
+  }
+
+  .alert-red {
+    background: #fef2f2;
+    border: 1.5px solid #fecaca;
+    border-radius: 10px;
+    padding: 12px 16px;
+    margin-bottom: 20px;
+    font-size: 13px;
+    color: #991b1b;
+  }
+  .alert-blue {
+    background: #eff6ff;
+    border: 1.5px solid #bfdbfe;
+    border-radius: 10px;
+    padding: 12px 16px;
+    margin-bottom: 20px;
+    font-size: 13px;
+    color: #1d4ed8;
+  }
+  .alert-green {
+    background: #f0fdf4;
+    border: 1.5px solid #bbf7d0;
+    border-radius: 10px;
+    padding: 12px 16px;
+    margin-bottom: 20px;
+    font-size: 13px;
+    color: #15803d;
+  }
+  .alert-amber {
+    background: #fffbeb;
+    border: 1.5px solid #fde68a;
+    border-radius: 10px;
+    padding: 12px 16px;
+    margin-bottom: 20px;
+    font-size: 13px;
+    color: #92400e;
+  }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="header">
+  <h1>Ideafetti — Full Workflow Map</h1>
+  <p>Every tool, every step, every gap · <strong style="color:#16a34a;">🏆 May 7–8: First auto-published tweet + 9-tweet thread live on @sociallydonnai · Lovable Publish Now → edge fn → Twitter loop verified end-to-end</strong> · <strong style="color:#16a34a;">🏆 May 9–10: LinkedIn auto-publish backend SHIPPED — first LinkedIn auto-post queued via Ideafetti</strong> · <strong style="color:#7c3aed;">send-to-blotato v13 ✓ multi-platform (Twitter threads + LinkedIn single posts) · tick_publish_queue() filter widened to platform IN ('twitter','linkedin')</strong> · <strong style="color:#7c3aed;">pg_cron tick_publish_queue() every 1 min replaces Make for scheduled fires</strong> · <strong style="color:#16a34a;">BLOTATO_API_KEY confirmed ✓ · LinkedIn account connected to Blotato (verified May 10)</strong> · <strong style="color:#7c3aed;">DB migration: derive_platform_from_content_type() now maps linkedin_post + linkedin_viral + linkedin_founder → 'linkedin'</strong> · <strong style="color:#16a34a;">Humanizer v13 ✓ · daily digest pipeline ✓</strong> · <strong style="color:#7c3aed;">Make scenario 4806465 [DEPRECATED May 8] · paused · replaced by pg_cron + edge fn</strong> · <strong style="color:#dc2626;">🔴 Beehiiv blocked — Enterprise tier paywall ($300+/mo) — send-to-beehiiv edge fn sleeping; manual paste path open</strong> · <strong style="color:#d97706;">Pending: LinkedIn UI in Lovable (DashboardFormatPicker tone selector + contentTypes.ts) · generate edge fn LinkedIn prompts edited locally but NOT YET DEPLOYED · 5 Lovable UI bugs from May 8 batch unverified · 0 paid users / 0 beta users</strong> · <strong style="color:#16a34a;">backfill-blotato-urls v1 pg_cron running ✓ (every 60s, platform-agnostic — handles LinkedIn URLs automatically)</strong></p>
+  <!-- MANUAL_UPDATE_START — Auto-runner: NEVER modify or delete content inside this block -->
+  <div style="margin-top:10px; background:#ecfdf5; border:1.5px solid #6ee7b7; border-radius:8px; padding:10px 14px; display:inline-block; font-size:12px; color:#065f46; max-width:1100px; text-align:left;">
+    👩‍💻 <strong>Manual update — May 4–5 (Donna + Claude session):</strong> Spent the session diagnosing + sealing the Make → Blotato pipeline. <strong>Root-cause findings:</strong> (1) "Queue freeze" was NOT primarily a missing BLOTATO_API_KEY — Make was actively trying to publish, but failing on every non-Twitter platform because TikTok/YouTube/Instagram require media (and image attachment isn't wired yet). (2) Make filter was missing <code>deleted_at IS NULL</code> — Removed cards would still publish if the scenario fired. (3) Make scenario was account-scoped to a single Blotato account (Donna's) but NOT user-scoped — meaning queued cards from 5 OTHER beta users would publish to Donna's Twitter feed. (4) The "230 paused" items aren't all soft-deleted — only 31 are. The other 230 are genuinely just paused (status flag, not <code>deleted_at</code>). <strong>Fixes shipped to Make scenario 4806465:</strong> Added 4 AND filters in Search Rows (<code>schedule_status='queued'</code>, <code>is_published=false</code>, <code>platform='twitter'</code>, <code>user_id='68c904c3...'</code>) + added <code>deleted_at "Does not exist"</code> to BOTH AND groups in the route filter + fixed pre-existing broken <code>scheduled_at</code> rule (was missing operator → now <code>Earlier than or equal to now</code>). <strong>Verified:</strong> FAL_API_KEY ✓ live (digest present, last updated Apr 22). Remove button works (sets <code>deleted_at</code>, leaves status='queued'). <strong>Decisions:</strong> Solo mode now (Donna's user_id only); proper multi-tenancy deferred until paying customers. <strong>Make scenario currently INACTIVE</strong> — manually toggled OFF to prevent cross-user posts; will flip back ON once Donna decides on multi-user routing. <strong>Donna's queue is empty</strong> by her choice (Removed her 2 unpaused Twitter cards).
+  </div>
+  <!-- MANUAL_UPDATE_END -->
+  <div style="margin-top:10px; background:#ecfdf5; border:1.5px solid #6ee7b7; border-radius:8px; padding:10px 14px; display:inline-block; font-size:12px; color:#065f46; max-width:1100px; text-align:left;">
+    👩‍💻 <strong>Manual update — May 9–10 (Donna + Claude session, LinkedIn pipeline ship):</strong> Brought LinkedIn auto-publish from "half-built UI button only" to "queued for first real auto-post" in one session. <strong>What was already there (verified):</strong> LinkedIn slug in <code>DashboardFormatPicker.tsx</code> (slug: <code>linkedin_post</code>, emoji 💼), <code>linkedin</code> mapping in <code>contentTypes.ts</code>, LinkedIn checkbox in <code>CreatorOnboarding</code>, LinkedIn dims in image generator (1200×628), LinkedIn handle in ProfileModal, blue badge in PublishQueue. <strong>Critically missing (now fixed):</strong> (1) NO AI generation prompt for LinkedIn in <code>generate</code> edge fn — clicking LinkedIn button silently fell back to short_script. (2) <code>derive_platform_from_content_type()</code> didn't map any LinkedIn content_type → 'linkedin' — auto_set_platform trigger left platform NULL on LinkedIn rows. (3) <code>tick_publish_queue()</code> cron filter was Twitter-only. <strong>Shipped today:</strong> (a) DB migration <code>linkedin_platform_mapping_and_cron_filter</code> applied — derive_platform_from_content_type now maps <code>linkedin_post / linkedin_viral / linkedin_founder</code> → <code>'linkedin'</code>. (b) <code>tick_publish_queue()</code> updated to <code>platform IN ('twitter', 'linkedin')</code>. (c) Blotato dashboard verified — Donna connected LinkedIn (4 platforms total: Twitter, LinkedIn, TikTok, Bluesky). (d) <code>send-to-blotato</code> v13 verified already LinkedIn-capable (single-post branch handles non-Twitter platforms cleanly — no patch needed). (e) Two LinkedIn AI prompts authored locally in <code>generate/index.ts</code>: <code>linkedin_viral</code> (Justin-Welsh-style hook + insight + CTA, 1300-1500 chars) and <code>linkedin_founder</code> (build-in-public ND-creator voice, 800-1300 chars). <strong>⚠️ NOT YET DEPLOYED:</strong> generate edge fn local edit hasn't been pushed to Supabase yet. Until deployed, Lovable LinkedIn button still falls back to short_script prompt. <strong>First LinkedIn auto-post queued:</strong> content_piece_id <code>a39673ff-79e7-442e-8ca4-4a480b4b20c2</code> · content_type <code>linkedin_founder</code> · platform <code>linkedin</code> (auto-set via trigger ✓) · scheduled_at NOW · waiting on cron to fire. <strong>Pending Lovable work (prompt not yet drafted):</strong> Split single LinkedIn tile in DashboardFormatPicker into two tones (linkedin_viral + linkedin_founder) + add tone slugs to contentTypes.ts mapping.
+  </div>
+  <div style="margin-top:10px; background:#ecfdf5; border:1.5px solid #6ee7b7; border-radius:8px; padding:10px 14px; display:inline-block; font-size:12px; color:#065f46; max-width:1100px; text-align:left;">
+    🏆 <strong>Manual update — May 18, 2026 (LinkedIn auto-publish LIVE end-to-end):</strong> The May 9–10 ship landed today. <strong>What changed in this session:</strong> (a) <code>generate</code> edge fn deployed to Supabase project <code>nsbqluctvubfqrhznhre</code> — bumped from v833 → <strong>v834</strong> with the two LinkedIn prompts (<code>linkedin_viral</code> + <code>linkedin_founder</code>) that had been sitting in <code>supabase/functions/generate/index.ts</code> locally since May 8. Deployed via Supabase CLI with a personal access token; CLI confirmed the upload. (b) The queued LinkedIn post <code>a39673ff-79e7-442e-8ca4-4a480b4b20c2</code> is now unblocked — <code>pg_cron tick_publish_queue()</code> should pick it up within 60s of deploy and fire via <code>send-to-blotato</code> v13 → LinkedIn URL written to <code>published_url</code>. <em>Watching for the URL — will paste it here when it lands.</em> (c) Built into Executive OS dashboard: a "Run with Claude" drawer on every workflow task that opens an in-dashboard Maya chat with the task's prompt pre-filled — no copy-paste hop to a terminal anymore. Maya now has 5 executor tools (mark_workflow_task_done, update_workflow_task, log_revenue, add_artifact, supabase_execute_sql). <strong>What's still pending on this LinkedIn track:</strong> The Lovable UI tone picker (split single LinkedIn tile into <code>linkedin_viral</code> + <code>linkedin_founder</code> buttons) hasn't shipped yet — see Phase 1 task 3 in the 30-day workflow.
+  </div>
+  <div style="margin-top:10px; background:#fef3c7; border:1.5px solid #fbbf24; border-radius:8px; padding:12px 16px; display:block; font-size:12.5px; color:#78350f; max-width:1100px; text-align:left; line-height:1.55;">
+    🧐 <strong>HONEST GAPS &amp; STRATEGY REALITY CHECK — May 10, 2026.</strong> A separate strategy chat (Fastlane investigation → two-business reveal → 12-month vision) outlined Track A (Executive OS consulting at $7.5K + $1.5K/mo retainer) + Track B (Ideafetti SaaS at $19/$39/$79). Mapping that strategy onto the actual codebase reveals real gaps:<br><br>
+    <strong>What the strategy assumed working but isn't fully:</strong>
+    <ul style="margin:4px 0 8px 18px; padding:0;">
+      <li><strong>Output quality (#1 churn risk per strategy):</strong> Voice profile is in DB schema but <em>not in onboarding flow</em>. Humanizer v13 is wired into 10 frontend call sites but no measured quality test. Strategy says "Pro $39 sweet spot — voice profile" but voice profile isn't a paid feature gate yet because it isn't a feature yet.</li>
+      <li><strong>Paid tiers ($19/$39/$79):</strong> 0 paid users · 0 beta users on the books. LemonSqueezy webhook reaches 401 on unsigned requests (correct signature-verify behavior) but never fired with a real LemonSqueezy event end-to-end. Setting prices before validating willingness-to-pay is theoretical.</li>
+      <li><strong>Submagic integration:</strong> "Build first — highest ROI" per strategy. 0% built. Risk: 1-2 weeks dev time, then discover users don't use video output. Should ship a manual video flow first to measure demand before automating.</li>
+      <li><strong>Distribution / launch plan:</strong> Strategy maps a 12-month vision (150-200 paid users for Ideafetti) but skips HOW users find Ideafetti. Donna has TikTok (per profile + skills) — that's the channel. No content calendar, no acquisition funnel, no waitlist exists.</li>
+    </ul>
+    <strong>What the strategy didn't acknowledge but is real:</strong>
+    <ul style="margin:4px 0 8px 18px; padding:0;">
+      <li><strong>"Run two businesses in parallel" is the highest-risk move in the plan.</strong> Strategy itself flagged "distraction is your #1 risk" then advocated parallel execution. When Exec OS clients pay and SaaS doesn't, attention follows money — and SaaS gets neglected. The "6 retainer cap" doesn't fix this; clients always have urgent issues. Realistic: Exec OS will eat Ideafetti dev time unless one is paused while the other matures.</li>
+      <li><strong>Executive OS pricing ($7.5K + $1.5K/mo) is high for ND fractional executive market.</strong> Individual ND executives are not VC-backed; most won't pay $25K/year. Likely realistic: $3K-$5K build, $500-$800/mo retainer. OR pivot Exec OS to a $99/mo SaaS for ND executives — which might overlap with Ideafetti.</li>
+      <li><strong>Beehiiv decision deferred.</strong> 3 paths (upgrade $300+/mo, manual paste, RSS-to-email) — none chosen. send-to-beehiiv edge fn parked. Manual paste is free + immediate but loses auto-publish promise.</li>
+      <li><strong>5 Lovable UI bugs from May 8 batch unverified.</strong> TikTok-on-Twitter card, idea duplication, 4-button row, Drafts tab, Idea Assistant button rename, LIVE/INACTIVE badge. Silent UX issues users hit before they ever see Publish Now work.</li>
+      <li><strong>No monitoring / alerting.</strong> If Blotato has an outage or send-to-blotato 500s, no alert. backfill-blotato-urls cron firing every 60s saturates the log window and hides everything else (per May 9 auto-update).</li>
+      <li><strong>No backup / disaster recovery plan.</strong> Supabase is source of truth for everything (ideas, content_pieces, voice profiles, accounts). No documented backups, no restore drill.</li>
+    </ul>
+    <strong>Honest re-prioritization (foundation → revenue → second business):</strong>
+    <ol style="margin:4px 0 8px 18px; padding:0;">
+      <li>✅ Twitter auto-publish (DONE May 7-8)</li>
+      <li>🔄 LinkedIn auto-publish (backend DONE May 10, Lovable UI pending, generate edge fn deploy pending)</li>
+      <li>📌 Beehiiv decision (defer to manual paste path until paid users justify Enterprise)</li>
+      <li>📌 Voice profile in onboarding (fixes strategy's #1 churn risk before paid tiers go live)</li>
+      <li>📌 Find 5 beta users → measure willingness-to-pay before locking $19/$39/$79 tiers</li>
+      <li>📌 Submagic: ship ONE manual video flow first → measure demand → automate only if users use it</li>
+      <li>📌 Executive OS: paused until Ideafetti has real beta users (avoid attention-eats-SaaS pattern)</li>
+    </ol>
+    <strong>Questions Donna should answer to unblock the plan:</strong> (a) Beehiiv: upgrade, manual paste, or kill newsletter offering? (b) Voice profile: ship in onboarding now or after first paid user? (c) Five beta users: who and how soon? (d) Executive OS: park until Q4 or run minimum-viable in parallel?
+  </div>
+  <div style="margin-top:10px; background:#dcfce7; border:1.5px solid #86efac; border-radius:8px; padding:10px 14px; display:inline-block; font-size:12px; color:#15803d;">
+    🏆 <strong>END OF DAY MAY 8, 2026 — AUTONOMOUS AUTO-PUBLISH IS LIVE.</strong> Three real tweets posted today through Ideafetti's own pipeline:<br>
+    &nbsp;&nbsp;&bull; <strong>May 7 7:41 PM CST</strong> — first single auto-tweet (via Make+Blotato) · <a href="https://x.com/sociallydonnai/status/2052549452645159321" style="color:#15803d;">view</a><br>
+    &nbsp;&nbsp;&bull; <strong>May 8 9:55 AM CST</strong> — first real 9-tweet thread (via send-to-blotato v10) · <a href="https://x.com/sociallydonnai/status/2052764290449342752" style="color:#15803d;">view</a><br>
+    &nbsp;&nbsp;&bull; <strong>May 8 12:31 PM CST</strong> — Lovable "Publish Now" → edge fn → Twitter loop verification (deleted post-test by Donna)<br><br>
+
+    <strong>Architecture migration shipped (May 8):</strong><br>
+    &nbsp;&nbsp;1. <code>send-to-blotato</code> edge fn rewritten v10 — paragraph-split + greedy bin-packing + Blotato <code>additionalPosts</code> array + 11-tweet hard cap + idempotency check + auto-updates content_piece row to <code>published</code> with real URL.<br>
+    &nbsp;&nbsp;2. <code>pg_cron</code> + <code>pg_net</code> extensions enabled. <code>tick_publish_queue()</code> function created and scheduled to run every 1 minute. Picks up queued+due Twitter rows for Donna's user_id and async-fires the edge fn for each.<br>
+    &nbsp;&nbsp;3. Lovable "Publish Now" button rewired to call <code>send-to-blotato</code> directly (verified end-to-end with a live tweet). Draft-card "Publish Now" visibility bug fixed in same prompt.<br>
+    &nbsp;&nbsp;4. Make scenario 4806465 renamed <code>[DEPRECATED May 8]</code>, paused, bypassed entirely. Make is OUT of the Twitter pipeline.<br><br>
+
+    <strong>Path map for new architecture:</strong><br>
+    &nbsp;&nbsp;&bull; <em>Publish Now</em> (immediate) → Lovable UI → POST <code>/functions/v1/send-to-blotato</code> → Blotato → Twitter → DB updated<br>
+    &nbsp;&nbsp;&bull; <em>Schedule for later</em> → Lovable sets <code>scheduled_at</code>+<code>queued</code> → pg_cron picks up within 60s of due time → calls edge fn → same path as above<br><br>
+
+    <strong>Verified today:</strong> send-to-blotato v10 (live posts) · BLOTATO_API_KEY (edge fn called Blotato successfully) · generate-blotato-media v7 (HTTP 202 + creationId via direct curl) · LemonSqueezy webhook v172 reachable (returns 401 on unsigned requests = correct signature-verify behavior) · semantic-search 401 was a single one-off May 7, not recurring.<br><br>
+
+    <strong>Open loops at end-of-day:</strong> (1) Lovable UI bugs awaiting next Lovable session: TikTok-button-on-Twitter-cards, idea duplication on save, 4-button-row layout, Drafts tab on /publish/queue, Idea Assistant button rename, LIVE/INACTIVE badge mismatch. (2) 282 orphaned content_pieces in DB (idea_id pointing to deleted ideas) — bulk soft-delete deferred for review. (3) Real platform URL polling — currently published_url saves as Blotato submission UUID until I patch by hand; needs a polling job or webhook for production. (4) Beehiiv Make scenario 4817580 not yet end-to-end tested. (5) LemonSqueezy webhook signature-verify path unverified end-to-end (needs a real LemonSqueezy event).
+  </div>
+  <div style="margin-top:10px; background:#fffbeb; border:1.5px solid #fde68a; border-radius:8px; padding:10px 14px; display:inline-block; font-size:12px; color:#92400e; max-width:1100px; text-align:left;">
+    🤖 <strong>Auto-updated May 17, 2026 @ 8:00 PM CST (scheduled run)</strong> — Queue: <strong>16 active queued / 58 active paused / 36 active draft / 6 active published / 0 active failed</strong> (confirmed via live query — unchanged from May 16 for 2nd consecutive day; no new content activity detected in 24hr). Soft-deleted: 174 draft + 127 paused + 18 queued + 4 failed + 4 published = 327 total (unchanged). Generated images: <strong>4 pending / 9 rejected</strong> (13 total, confirmed via live query — unchanged). Paused content breakdown: newsletter 14 · blog_post 13 · social 11 · blog 7 · general 7 · articulation 3 · email_sequence 3 (unchanged). Edge fn activity last 24hr: <strong>backfill-blotato-urls v1 firing every ~60s — all 200s ✓</strong> (pg_cron URL-backfill loop healthy, no errors, ~1,500+ calls in window). Log window 100% saturated by backfill-blotato-urls minutely ticks — <strong style="color:#d97706;">generate-daily-digest, send-daily-digest, send-to-blotato, generate-with-humanization, generate-images, and lemonsqueezy-webhook all outside log window</strong> (buried behind backfill traffic; no errors detected but daily digest fire status unconfirmed today). <strong style="color:#d97706;">📋 send-lead-email-v5 502 errors (May 8 PM) — no new occurrences in 9+ days, still watching.</strong> Day 11 — Beehiiv Make scenario body-construction bug (JSON escaping) unresolved. Day 11 — Make HTTP module rewire for scheduled send-to-blotato triggering still pending. Day 10 — generate edge fn LinkedIn prompts authored locally but <strong>NOT YET DEPLOYED</strong> to Supabase (LinkedIn Lovable button still falls back to short_script prompt until deployed).
+  </div>
+</div>
+
+<!-- TOOLS ROW -->
+<div class="tools-row">
+  <div class="tool-pill"><span>✨</span> Ideafetti (Lovable)</div>
+  <div class="tool-pill"><span>🗄️</span> Supabase</div>
+  <div class="tool-pill"><span>⚙️</span> Make.com</div>
+  <div class="tool-pill"><span>🚀</span> Blotato</div>
+  <div class="tool-pill" style="border-color:#bbf7d0; background:#f0fdf4;"><span>📰</span> Beehiiv ✓</div>
+  <div class="tool-pill" style="border-color:#c4b5fd; background:#f5f3ff;"><span>🤖</span> Claude Sonnet 4.6</div>
+  <div class="tool-pill" style="border-color:#fde68a; background:#fffbeb;"><span>🖼</span> fal.ai (replacing → Blotato)</div>
+</div>
+
+<!-- 6-LAYER VISION BANNER -->
+<div class="vision-banner">
+  <h2>The Vision — 6-Layer Architecture</h2>
+  <div class="vision-title">"Brain dump in. Viral-ready content out. Across every format. In your voice."<br><span style="font-size:14px; font-weight:500; color:#c4b5fd;">The only content intelligence platform built for the neurodivergent brain. One tool. Six layers. No context switching.</span></div>
+  <div class="vision-layers">
+    <div class="vision-layer">
+      <div class="vision-layer-num">Layer 1</div>
+      <div class="vision-layer-name">📥 CAPTURE</div>
+      <div style="font-size:10px; color:#c4b5fd;">Voice, text, URL, semantic search</div>
+      <span class="vision-layer-status vlayer-green">✓ Mostly Live</span>
+    </div>
+    <div class="vision-layer">
+      <div class="vision-layer-num">Layer 2</div>
+      <div class="vision-layer-name">🔥 SCORE</div>
+      <div style="font-size:10px; color:#c4b5fd;">Instant virality score on card save</div>
+      <span class="vision-layer-status vlayer-blue">📋 Sprint 3</span>
+    </div>
+    <div class="vision-layer">
+      <div class="vision-layer-num">Layer 3</div>
+      <div class="vision-layer-name">✍️ GENERATE</div>
+      <div style="font-size:10px; color:#c4b5fd;">Claude Sonnet + Humanizer in your voice</div>
+      <span class="vision-layer-status vlayer-green">✓ Live + Wired</span>
+    </div>
+    <div class="vision-layer">
+      <div class="vision-layer-num">Layer 4</div>
+      <div class="vision-layer-name">🎬 MEDIA</div>
+      <div style="font-size:10px; color:#c4b5fd;">Images, video, filming, brand kit</div>
+      <span class="vision-layer-status vlayer-green">✓ Working</span>
+    </div>
+    <div class="vision-layer">
+      <div class="vision-layer-num">Layer 5</div>
+      <div class="vision-layer-name">🚀 PUBLISH</div>
+      <div style="font-size:10px; color:#c4b5fd;">9 platforms + Beehiiv, smart scheduling</div>
+      <span class="vision-layer-status vlayer-green">🟢 LIVE · Threads work (May 8)</span>
+    </div>
+    <div class="vision-layer">
+      <div class="vision-layer-num">Layer 6</div>
+      <div class="vision-layer-name">📊 LEARN</div>
+      <div style="font-size:10px; color:#c4b5fd;">Analytics, voice learning, social inbox</div>
+      <span class="vision-layer-status vlayer-blue">📋 Planned</span>
+    </div>
+  </div>
+</div>
+
+<!-- LEGEND -->
+<div class="legend">
+  <div class="legend-item"><div class="dot dot-green"></div> Working now</div>
+  <div class="legend-item"><div class="dot dot-purple"></div> Just shipped this sprint</div>
+  <div class="legend-item"><div class="dot dot-amber"></div> Building / verify needed</div>
+  <div class="legend-item"><div class="dot dot-red"></div> Gap or bug — not working</div>
+  <div class="legend-item"><div class="dot dot-blue"></div> Phase 2 / Planned</div>
+</div>
+
+<!-- PIPELINE — 6 LAYERS -->
+<div class="pipeline">
+
+  <!-- LAYER 1: CAPTURE -->
+  <div class="stage">
+    <div class="stage-label">Layer 1 · Capture</div>
+    <div class="stage-sublabel">Evernote + Descript DNA</div>
+    <div class="cards">
+
+      <div class="card card-green">
+        <div class="card-title">🎤 Voice Dictation + AI Cleanup ✓</div>
+        <div class="card-desc">Record voice in-app. Whisper transcribes → Claude Haiku removes filler words + cleans brain dump. Smart Cleanup toggle + "View original transcript" link. Edge function v836 live. UI shipped.</div>
+        <span class="badge badge-green">✓ Working</span>
+      </div>
+
+      <div class="card card-green">
+        <div class="card-title">⌨️ Text Brain Dump</div>
+        <div class="card-desc">Type your idea directly into Ideafetti. No blank page pressure — just dump what's in your head.</div>
+        <span class="badge badge-green">✓ Working</span>
+      </div>
+
+      <div class="card card-green">
+        <div class="card-title">🔍 Semantic Search</div>
+        <div class="card-desc">Search ideas by concept or topic — not just keywords. AI finds related ideas you may have forgotten. Edge function deployed and active.</div>
+        <span class="badge badge-green">✓ Working</span>
+      </div>
+
+      <div class="card card-green">
+        <div class="card-title">🔗 URL + Media Context</div>
+        <div class="card-desc">Links, images, file attachments on ideas. Context passed to AI generation. Idea detail view shipped — context section live on cards.</div>
+        <span class="badge badge-green">✓ Working</span>
+      </div>
+
+      <div class="card card-blue">
+        <div class="card-title">🔗 URL Repurposing (Blotato)</div>
+        <div class="card-desc">Paste a YouTube, TikTok, or article URL → Blotato's create_source extracts the transcript → Ideafetti generates platform-ready content from it. No scraper to build — Blotato handles extraction.</div>
+        <span class="badge badge-blue">📋 Planned — Sprint 2</span>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- LAYER 2: SCORE -->
+  <div class="stage">
+    <div class="stage-label">Layer 2 · Score</div>
+    <div class="stage-sublabel">TokScript + Trending Intel DNA</div>
+    <div class="cards">
+
+      <div class="card card-red">
+        <div class="card-title">🔥 Virality Score (0–100)</div>
+        <div class="card-desc">Fires automatically the moment a card is saved. Claude extracts topics → hits TikTok Creative Center API + Google Trends + Reddit API → Claude Sonnet analyzes → score pushed via Supabase realtime to the card. Personalized by user's niche (user_voice_profiles).<br><br><strong>Score tiers:</strong> 🔥 80–100 Trending NOW · 🟡 50–79 Growing · 🟢 30–49 Steady · ⚪ 0–29 Low signal.<br><br>Listed as "Coming Soon" on ideafetti.com. No edge function or DB column exists yet.</div>
+        <span class="badge badge-red">🔴 Not Built — Sprint 3</span>
+      </div>
+
+      <div class="card card-blue">
+        <div class="card-title">📈 Trend Intelligence</div>
+        <div class="card-desc">Rising, flat, or declining signal across TikTok + Google + Reddit. Feeds into the virality score — which angle is working for similar content right now.</div>
+        <span class="badge badge-blue">📋 Planned — Sprint 3</span>
+      </div>
+
+      <div class="card card-blue">
+        <div class="card-title">💡 Hook Intelligence</div>
+        <div class="card-desc">What angle is working for similar content. Timing recommendation: post in next 48 hours / wait / pivot. Niche relevance scored against user's content pillars.</div>
+        <span class="badge badge-blue">📋 Planned — Sprint 3</span>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- LAYER 3: GENERATE -->
+  <div class="stage">
+    <div class="stage-label">Layer 3 · Generate</div>
+    <div class="stage-sublabel">Jasper concept → Claude execution</div>
+    <div class="cards">
+
+      <div class="card card-purple">
+        <div class="card-title">✍️ AI Content Generation</div>
+        <div class="card-desc">TikTok scripts, LinkedIn captions, Instagram posts, Twitter/X threads, carousels, email sequences, newsletters, blog posts, faceless video scripts. Powered by <strong>Claude Sonnet 4.6</strong> via Lovable gateway. Section regeneration uses Claude Haiku 4.5. All creator templates included. Edge function v816 live.</div>
+        <span class="badge badge-purple">🚀 Claude Sonnet 4.6 — Live</span>
+      </div>
+
+      <div class="card card-purple">
+        <div class="card-title">🧠 Humanizer — v12 Active ✓</div>
+        <div class="card-desc">Strips AI tone. Makes every output sound like the creator actually wrote it. Uses user_voice_profiles (tone_markers, signature_phrases) — learns patterns over time.<br><br><strong>Wired in April 24. Now at v13 as of May 5.</strong> All 10 frontend call sites switched: useGenerate.ts, PersistentIdeaAssistant.tsx (2), PersistentSparkAssistant.tsx (4), ContentChat.tsx (3), EditContentDialog.tsx (1). Dozens of successful calls — all returning 200 ✓. v6 had 500 errors, resolved by v7. Now stable.<br><br>Next: add to marketing site.</div>
+        <span class="badge badge-purple">🚀 v13 Active — All 200s ✓</span>
+      </div>
+
+      <div class="card card-purple">
+        <div class="card-title">📧 Email Sequences — Fixed</div>
+        <div class="card-desc">Each email saved as a separate newsletter row with subject, body, preview text, sequence position (1/2/3), and delay days (0/1/2). Linked to parent via parent_content_id. Backend live v832.</div>
+        <span class="badge badge-purple">🚀 Just Fixed</span>
+      </div>
+
+      <div class="card card-purple">
+        <div class="card-title">📋 Daily Digest + Trending Research</div>
+        <div class="card-desc">Auto-generates 3 content tasks every morning based on trending ideas. Powered by Claude Haiku 4.5. Edge functions v829/v8/v6 all active. Runs daily at 8am ET. generate-daily-digest firing as expected ✓.</div>
+        <span class="badge badge-purple">🚀 Live — 8am Daily</span>
+      </div>
+
+      <div class="card card-purple">
+        <div class="card-title">⚡ generate-complete v6 — NEW</div>
+        <div class="card-desc">New/updated edge function deployed April 27. Combines generation steps into a single callable function. Part of the generate pipeline. v6 active.</div>
+        <span class="badge badge-purple">🚀 Updated — April 27</span>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- LAYER 4: MEDIA -->
+  <div class="stage">
+    <div class="stage-label">Layer 4 · Media</div>
+    <div class="stage-sublabel">Blotato + Descript DNA</div>
+    <div class="cards">
+
+      <div class="card card-purple">
+        <div class="card-title">🖼 Image Generation — v23 Live</div>
+        <div class="card-desc"><strong>generate-images v24 active (updated May 5).</strong> Claude Sonnet 4.6 writes image prompts (reads user_voice_profiles for brand alignment). fal.ai flux-dev renders. 13 images in generated_images table: <strong>4 pending / 9 rejected</strong> (9 rejections recorded since May 5).<br><br><strong>v23 features (still active):</strong> Single-dimension multi-variation mode (1–6 unique creative variations of ONE chosen dimension) · style_hint param · dim_key support · legacy 3-aspect-ratio mode preserved.<br><br><strong>Still needed:</strong> Image approval UI (all 13 stuck at "pending"). Migration: fal.ai → Blotato create_visual (Priority 2).</div>
+        <span class="badge badge-purple">🚀 v24 — May 5</span>
+      </div>
+
+      <div class="card card-green">
+        <div class="card-title">🤖 Blotato Media Functions — Live ✓</div>
+        <div class="card-desc"><strong>generate-blotato-media v7 + send-to-blotato v10 deployed.</strong> Both correctly use backend.blotato.com/v2 with confirmed BLOTATO_API_KEY. <strong>send-to-blotato v10 proven live May 8</strong> with a real 9-tweet thread. generate-blotato-media v7 ready for image/video posts (untested but plumbed).</div>
+        <span class="badge badge-green">✓ Working — send-to-blotato v10 proven</span>
+      </div>
+
+      <div class="card card-green">
+        <div class="card-title">🎬 Film + Teleprompter</div>
+        <div class="card-desc">Record in-browser with scrolling script overlay. Part of Media Studio. Live in Lovable.</div>
+        <span class="badge badge-green">✓ Working</span>
+      </div>
+
+      <div class="card card-green">
+        <div class="card-title">📁 Upload Media</div>
+        <div class="card-desc">Upload own video or image. Stored in content-media bucket (500MB). Live in Media Studio.</div>
+        <span class="badge badge-green">✓ Working</span>
+      </div>
+
+      <div class="card card-blue">
+        <div class="card-title">🖼 Switch fal.ai → Blotato create_visual</div>
+        <div class="card-desc">fal.ai had balance exhaustion April 22. Blotato uses same Flux model + already paid for. Plan: keep Claude Sonnet prompt-writing layer → swap fal.ai call for Blotato create_visual. Social-ready templates (quote cards, carousels) out of the box.</div>
+        <span class="badge badge-blue">📋 Planned — Priority 2</span>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- LAYER 5: PUBLISH -->
+  <div class="stage">
+    <div class="stage-label">Layer 5 · Publish</div>
+    <div class="stage-sublabel">Blotato DNA</div>
+    <div class="cards">
+
+      <div class="card card-green">
+        <div class="card-title">🎨 Visual Canvas + Content Library</div>
+        <div class="card-desc">All ideas displayed as color-coded cards. Filter by topic or format. Core feature. Content library is searchable and filterable.</div>
+        <span class="badge badge-green">✓ Working</span>
+      </div>
+
+      <div class="card card-green">
+        <div class="card-title">⚡ Publish Queue + Schedule UI ✓</div>
+        <div class="card-desc">Queue page with tabs (Queue / Scheduled / Published). Date + time + platform per post. Email sequences: date picker auto-schedules all 3 emails as expandable groups. <strong>Validated end-to-end May 8 — Donna scheduled + published a real thread through this UI.</strong></div>
+        <span class="badge badge-green">✓ Working — Validated May 8</span>
+      </div>
+
+      <div class="card card-amber">
+        <div class="card-title">⚙️ Make — Blotato (Scenario 4806465) — 🟡 INTENTIONALLY PAUSED · BYPASSED by edge fn (May 8)</div>
+        <div class="card-desc"><strong>Why it's paused now:</strong> Make's Blotato module has a hard-coded <code>substring(content, 0, 279)</code> truncation in its Text field that turns multi-paragraph thread content into a single mid-word-cut tweet. Make's chip editor can't be safely edited via UI automation. We bypassed it entirely on May 8 by rewriting the <code>send-to-blotato</code> edge function to handle Twitter threads natively (paragraph-split + greedy packing + Blotato <code>additionalPosts</code> array). The edge function path proved out with a real 9-tweet thread to @sociallydonnai (May 8 9:55 AM).<br><br><strong>What still works in this scenario:</strong> the user_id + platform + is_published + deleted_at filter logic in Search Rows (sealed May 4–5) is still correct. We just don't want the Blotato Create-a-Post module to fire — its <code>substring()</code> bug truncates threads.<br><br><strong>Path forward (separate session):</strong> Replace Make's "Blotato — Create a Post" module with an HTTP module that calls <code>https://nsbqluctvubfqrhznhre.supabase.co/functions/v1/send-to-blotato</code> with body <code>{ content_piece_id: {{1.id}} }</code>. Delete the Supabase Upsert step too — the edge function updates the row itself. Result: scenario shrinks from 3 modules → 2 modules, and threads work end-to-end. OR alternative: kill this scenario entirely and have Lovable's "Publish Now" UI invoke the edge function directly.<br><br><strong>Sealed filter (still correct, leave in place):</strong><br><strong>Search Rows (DB-level):</strong> <code>schedule_status='queued'</code> AND <code>is_published=false</code> AND <code>platform='twitter'</code> AND <code>user_id='68c904c3-5412-4ed1-bb0d-5481de090a4f'</code> (solo mode).<br><strong>Route filter (post-search):</strong> <code>(deleted_at NOT EXISTS)</code> AND <code>(status=queued OR (status=scheduled AND scheduled_at ≤ now))</code>.</div>
+        <span class="badge badge-amber">🟡 INTENTIONALLY PAUSED May 8 · BYPASSED by send-to-blotato v10</span>
+      </div>
+
+      <div class="card card-purple">
+        <div class="card-title">🚀 send-to-blotato edge fn v10 (Path C — May 8) ✓</div>
+        <div class="card-desc">Rewrote the <code>send-to-blotato</code> edge function from "single-post-only, requires media_id" to a proper publishing engine with Twitter thread support. <strong>Splits content on \\n\\n paragraph breaks · greedy-packs paragraphs to maximize chars-per-tweet · word-boundary fallback for any paragraph &gt;280 chars · hard cap at 11 tweets/thread (Blotato max) with tail-merging if exceeded · always sends <code>mediaUrls: []</code> (Blotato required field) · <code>additionalPosts</code> array for proper reply chaining · idempotency check (skips already-published rows) · auto-marks content_piece as published with real URL · sets row to <code>failed</code> on Blotato 4xx errors with detailed log.</strong><br><br><strong>Confirmed working:</strong> Donna's 12-paragraph "Guess what just happened" launch thread posted live as a 9-tweet chain on @sociallydonnai at May 8 9:55 AM CST. <a href="https://x.com/sociallydonnai/status/2052764290449342752" style="color:#7c3aed;">View thread →</a></div>
+        <span class="badge badge-purple">🚀 v10 SHIPPED May 8 — Threads working</span>
+      </div>
+
+      <div class="card card-amber">
+        <div class="card-title">⚙️ Make — Beehiiv (Scenario 4817580) — 🟡 PARTIALLY FIXED · 1 bug remains (May 8 EOD diagnosis)</div>
+        <div class="card-desc"><strong>End-to-end test attempted May 8 EOD revealed THREE bugs in this scenario, in sequence:</strong><br><br><strong>1. Search Rows had Limit=1 + only user_id filter</strong> (no platform/status/content_type at SQL level). With 24+ active rows of Donna's content, Search Rows would lottery-pick 1 row; if it wasn't a queued newsletter, the route filter rejected silently. Looked like the scenario "did nothing" most runs. <strong>FIXED:</strong> bumped Limit to 25.<br><br><strong>2. HTTP module had missing required parameter <code>followAllRedirects</code></strong> — Make recently made it required, and the existing scenario had no value. Caused <code>BundleValidationError</code> at runtime. <strong>FIXED:</strong> set Follow all redirect to "No".<br><br><strong>3. HTTP module sends raw JSON with unescaped <code>{{1.content}}</code> interpolation.</strong> When content has line breaks, apostrophes, or quotes, the JSON breaks. Beehiiv returns 400 <code>MALFORMED_JSON</code>. <strong>NOT FIXED:</strong> needs ~30 min of Make rebuild work. Two options: (a) rebuild as "Application/JSON" body type with key-value pairs (Make auto-escapes), or (b) wrap each interpolation in a <code>replace()</code> formula to escape newlines + quotes manually.<br><br><strong>Architecture also notable:</strong> Body uses <code>"status":"confirmed"</code> + <code>"platform":"web"</code> (web-only post, no email blast). With confirmed status and web-only, the Enterprise SEND gate doesn't apply — meaning Make IS allowed to publish to Beehiiv on Donna's Launch tier as long as the JSON validates. Just need the body bug fixed.<br><br><strong>Donna's Beehiiv:</strong> Socially Influenced.dd, Launch plan, 1 subscriber, pub_f9877161-4a4f-4bc7-a8e2-489b0d6887b7.</div>
+        <span class="badge badge-amber">🟡 2 of 3 bugs fixed · body construction bug remains · Beehiiv Launch tier</span>
+      </div>
+
+      <div class="card card-purple">
+        <div class="card-title">🚀 send-to-beehiiv edge fn v1 (May 8) — sleeping</div>
+        <div class="card-desc">Mirror of <code>send-to-blotato</code> for Beehiiv. Handles newsletter + blog_post (email_sequence deferred to v2). Idempotency check, auto-updates content_piece row to published with real Beehiiv web_url. <strong>BLOCKED on Beehiiv plan tier:</strong> the create-post API endpoint Beehiiv requires Enterprise plan ($99+/mo) regardless of API key validity. Confirmed via direct test May 8: returned <code>403 SEND_API_NOT_ENTERPRISE_PLAN</code>. Code-correct, sleeping until either (a) Donna upgrades, or (b) Beehiiv changes pricing.</div>
+        <span class="badge badge-purple">🚀 v1 deployed · sleeping (Enterprise tier required)</span>
+      </div>
+
+      <div class="card card-purple">
+        <div class="card-title">⚡ queue-content v1 — NEW</div>
+        <div class="card-desc">New edge function deployed April 27. Purpose: queues a content piece for publishing. Part of the Stage 4 → Stage 5 pipeline. v1 is active. May set scheduled_at — verify it resolves the 407 stuck queue issue.</div>
+        <span class="badge badge-purple">🚀 New — April 27</span>
+      </div>
+
+      <div class="card card-green">
+        <div class="card-title">🚀 Blotato Social (Text Only)</div>
+        <div class="card-desc">Twitter/X, LinkedIn, Instagram, TikTok, Facebook, Pinterest, YouTube, Threads, Bluesky. 9 platforms. Text-only posts currently — images not yet attached. Publishing works when scheduled_at + platform are set.</div>
+        <span class="badge badge-green">✓ Working (text only)</span>
+      </div>
+
+      <div class="card card-purple">
+        <div class="card-title">📰 Beehiiv ✓</div>
+        <div class="card-desc">Newsletters, blog posts, email sequence emails — each published as a separate Beehiiv post. Account live. API key set. Publication ID: pub_f9877161. Make scenario active every 30 min.</div>
+        <span class="badge badge-purple">🚀 Just Connected</span>
+      </div>
+
+      <div class="card card-blue">
+        <div class="card-title">🖼 Images with Posts</div>
+        <div class="card-desc">10 fal.ai images in generated_images table — all unused. When publishing to Blotato, pass image URLs via mediaUrls param. Content + image go out as one package. Requires: BLOTATO_API_KEY confirmed + image approval UI.</div>
+        <span class="badge badge-blue">📋 Planned — Priority 1</span>
+      </div>
+
+      <div class="card card-blue">
+        <div class="card-title">📱 Platform Picker</div>
+        <div class="card-desc">Use Blotato list_accounts to surface user's connected accounts in Ideafetti UI. User picks: "post this to LinkedIn" vs "post this to TikTok" — instead of a fixed account.</div>
+        <span class="badge badge-blue">📋 Planned — Priority 5</span>
+      </div>
+
+      <div class="card card-blue">
+        <div class="card-title">🗓 Smart Scheduling (Blotato)</div>
+        <div class="card-desc">Replace Make's 15-min polling loop with Blotato's useNextFreeSlot API. Posts go out at optimal time automatically. Cleaner, no timing guesswork.</div>
+        <span class="badge badge-blue">📋 Planned — Priority 4</span>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- LAYER 6: LEARN -->
+  <div class="stage">
+    <div class="stage-label">Layer 6 · Learn</div>
+    <div class="stage-sublabel">Metricool DNA</div>
+    <div class="cards">
+
+      <div class="card card-blue">
+        <div class="card-title">📊 Analytics on Cards</div>
+        <div class="card-desc">Post performance pulled from Blotato + Beehiiv. Shown on the content card that generated it. "Your best performing format this week." Best time to post recommendation. No performance tracking inside Ideafetti yet. Build after publishing flow is stable.</div>
+        <span class="badge badge-blue">📋 Planned — Sprint 4</span>
+      </div>
+
+      <div class="card card-blue">
+        <div class="card-title">🧠 Brand Voice Learning</div>
+        <div class="card-desc">Tracks which outputs users approve vs regenerate. Updates user_voice_profiles automatically. After 10 approved outputs: "Ideafetti knows your style." Gets harder to leave the longer you use it — retention flywheel.<br><br><strong>DB ready:</strong> user_voice_profiles table is live. 1 row exists. Next: approval signal tracking → nightly Make scenario → profile update edge function.</div>
+        <span class="badge badge-blue">📋 DB Ready — Sprint 4</span>
+      </div>
+
+      <div class="card card-blue">
+        <div class="card-title">💬 Social Inbox</div>
+        <div class="card-desc">Comments + DMs from all platforms in one place (Metricool API). Reply without leaving Ideafetti. ND difference: no app-switching to manage engagement.</div>
+        <span class="badge badge-blue">📋 Planned — Sprint 5</span>
+      </div>
+
+      <div class="card card-blue">
+        <div class="card-title">🎨 Brand Kit</div>
+        <div class="card-desc">Your colors, fonts, and logo applied automatically to all generated images and video templates. Brand kit stored in user profile → fed to Blotato create_visual and image prompt generation.</div>
+        <span class="badge badge-blue">📋 Planned — Sprint 5</span>
+      </div>
+
+      <div class="card card-blue">
+        <div class="card-title">🎬 Transcript-Based Video Editing</div>
+        <div class="card-desc">Record in-browser → edit video by editing the transcript (ND-friendly, no timeline). Filler word removal. Auto-captions. Descript approach. Edit words → video updates.</div>
+        <span class="badge badge-blue">📋 Planned — Sprint 5</span>
+      </div>
+
+    </div>
+  </div>
+
+</div>
+
+<hr class="divider">
+
+<!-- SUBSCRIPTION SYSTEM -->
+<div class="gaps-section">
+  <h2>💳 Subscription System — DB Live, UI Pending</h2>
+  <div class="alert-blue">
+    DB fully live as of April 22–23: subscription_plans, quotas, profile columns, LemonSqueezy webhook edge function. Active focus: Lovable pricing UI + LemonSqueezy webhook → quota gates.
+  </div>
+  <div class="gaps-grid">
+
+    <div class="gap-card gap-green">
+      <div class="gap-number">✅ Live — April 22–23</div>
+      <div class="gap-title">Subscription DB Schema</div>
+      <div class="gap-what">subscription_plans table, quotas, profile columns with subscription_status, LemonSqueezy webhook edge function deployed. All backend DB work complete.</div>
+      <div class="gap-fix">✅ DB done. Wire UI next.</div>
+    </div>
+
+    <div class="gap-card gap-amber">
+      <div class="gap-number">Next — Lovable UI</div>
+      <div class="gap-title">Pricing + Upgrade UI in Lovable</div>
+      <div class="gap-what">Build the pricing page, upgrade button, and plan comparison. Connects LemonSqueezy payment link → webhook updates subscription_status in Supabase.</div>
+      <div class="gap-fix fix-amber">🔧 Lovable: pricing UI → LemonSqueezy webhook → subscription_status update.</div>
+    </div>
+
+    <div class="gap-card gap-amber">
+      <div class="gap-number">Next — After Pricing UI</div>
+      <div class="gap-title">Quota Gates on Edge Functions</div>
+      <div class="gap-what">Limit generate, generate-images, etc. based on user's plan. Free users hit a cap and see upgrade prompt. Prevents API cost overrun.</div>
+      <div class="gap-fix fix-amber">🔧 Add quota check at top of generate + generate-images edge functions.</div>
+    </div>
+
+  </div>
+</div>
+
+<hr class="divider">
+
+<!-- BLOTATO API EXPANSION -->
+<div class="gaps-section">
+  <h2>🔌 Blotato API Expansion — What's Planned</h2>
+  <div class="alert-green">
+    <strong>🎉 Blotato API endpoints FIXED April 27.</strong> generate-blotato-media v6 + send-to-blotato v6 both deployed with backend.blotato.com/v2. Blotato's API has 6 capabilities — Ideafetti currently uses 1 (text publishing). The plan below unlocks the rest. One blocker remains: confirm BLOTATO_API_KEY is set in Supabase secrets.
+  </div>
+  <div class="gaps-grid">
+
+    <div class="gap-card gap-green">
+      <div class="gap-number">✅ DONE — April 27, 2026</div>
+      <div class="gap-title">Fix Blotato API Endpoints</div>
+      <div class="gap-what">Both generate-blotato-media v6 and send-to-blotato v6 now correctly use backend.blotato.com/v2. Fully rebuilt with template picker, polling, platform targets, useNextFreeSlot. test-blotato deployed for connectivity testing.</div>
+      <div class="gap-fix">✅ Endpoints fixed. Next: confirm BLOTATO_API_KEY in Supabase secrets, then test generate-blotato-media with a real content piece.</div>
+    </div>
+
+    <div class="gap-card gap-amber">
+      <div class="gap-number">Priority 1 — Images with Posts</div>
+      <div class="gap-title">🖼 Attach Images When Publishing</div>
+      <div class="gap-what">10 real fal.ai images exist in generated_images table — all sitting unused. When Make publishes to Blotato, look up approved images for the content piece and pass them via mediaUrls. Content + image go out together.</div>
+      <div class="gap-fix fix-amber">🔧 After endpoints fixed: update send-to-blotato to query generated_images + pass mediaUrls.</div>
+    </div>
+
+    <div class="gap-card gap-amber">
+      <div class="gap-number">Priority 2 — Replace fal.ai</div>
+      <div class="gap-title">🖼 Switch Image Generation to Blotato</div>
+      <div class="gap-what">fal.ai had balance exhaustion April 22. Blotato uses same Flux model + already paid for. Keep Claude Sonnet prompt-writing layer → swap fal.ai call for Blotato create_visual. Social-ready templates out of the box.</div>
+      <div class="gap-fix fix-amber">🔧 Rewrite generate-images: Claude Sonnet → Blotato create_visual → store URL in generated_images.</div>
+    </div>
+
+    <div class="gap-card gap-blue">
+      <div class="gap-number">Priority 3 — URL Repurposing</div>
+      <div class="gap-title">🔗 Paste URL → Get Content</div>
+      <div class="gap-what">New edge function: repurpose-from-url. User pastes YouTube/TikTok/article link → Blotato create_source extracts transcript → send to generate pipeline → platform-ready content comes out. Closes the biggest gap vs Blotato as a competitor.</div>
+      <div class="gap-fix fix-blue">🔧 New edge function: call Blotato create_source → pipe result to generate edge function.</div>
+    </div>
+
+    <div class="gap-card gap-blue">
+      <div class="gap-number">Priority 4 — Smarter Scheduling</div>
+      <div class="gap-title">🗓 Replace 15-min Polling with Slot API</div>
+      <div class="gap-what">Current Make scenario polls every 15 min. Blotato's useNextFreeSlot schedules at the optimal available time automatically. Cleaner, faster, no timing guesswork.</div>
+      <div class="gap-fix fix-blue">🔧 Update Make scenario publish call to include useNextFreeSlot: true.</div>
+    </div>
+
+    <div class="gap-card gap-blue">
+      <div class="gap-number">Priority 5 — Platform Picker</div>
+      <div class="gap-title">📱 Let Users Choose Where to Post</div>
+      <div class="gap-what">Currently posts to a fixed Blotato account. Blotato list_accounts returns all connected accounts. Surface in Ideafetti UI so users can pick: LinkedIn / TikTok / Instagram per piece.</div>
+      <div class="gap-fix fix-blue">🔧 New endpoint: call Blotato list_accounts → show in Lovable publish UI.</div>
+    </div>
+
+  </div>
+</div>
+
+<hr class="divider">
+
+<!-- STATUS — MOSTLY GREEN -->
+<div class="gaps-section">
+  <h2>✅ Status — All Major Pipelines Working · Minor Watching Items</h2>
+
+  <div class="gaps-grid">
+
+    <div class="gap-card gap-green">
+      <div class="gap-number">✅ RESOLVED — May 7–8 · Path C SHIPPED</div>
+      <div class="gap-title">"Queue Frozen" Was a 5-Cause Symptom — All Five Resolved · Auto-Publish Now Working End-to-End</div>
+      <div class="gap-what"><strong>The original "freeze" was actually five compounding issues:</strong><br><br><strong>1–4. Make Search Rows + route filter</strong> (wrong-platform errors, missing <code>deleted_at</code>, missing <code>user_id</code>, broken <code>scheduled_at</code> operator) — all sealed in the May 4–5 session.<br><strong>5. Make's Blotato Create-a-Post module had hard-coded <code>substring(content, 0, 279)</code></strong> that truncated thread content to a single mid-word-cut tweet, AND the module is single-post-only with no thread-mode field — discovered May 7–8 when the first long-content auto-publish bit. The chip editor couldn't be safely edited via UI automation, so we bypassed it entirely.<br><br><strong>Path C ship — May 8:</strong> rewrote <code>send-to-blotato</code> edge function (v10) to do paragraph-split + greedy bin-packing + Blotato <code>additionalPosts</code> array + thread cap at 11 tweets + auto-update of <code>content_piece</code> row. <strong>Confirmed live with a real 9-tweet thread on @sociallydonnai</strong> (<a href="https://x.com/sociallydonnai/status/2052764290449342752" style="color:#15803d;">view thread</a>). Make scenario 4806465 was paused intentionally to prevent any more queued items from going through the broken Blotato module path; needs HTTP-module rewire (or Lovable direct invocation) in a future session to restore auto-publish triggering.<br><br><strong>Counts (May 8 ~3pm CST):</strong> 24 active queued (none owned by Donna) · 154 active paused · 210 active draft · 9 published (3 real Twitter URLs + 1 real TikTok URL + 5 UUID fallbacks from before the fix) · 2 failed (the broken thread artifacts).</div>
+      <div class="gap-fix">✅ Done. <strong>Next:</strong> wire Make HTTP module → <code>send-to-blotato</code> edge fn for scheduled triggering, OR add a "Publish Now" handler in Lovable that calls the edge fn directly. Either path retires Make's broken Blotato module permanently.</div>
+    </div>
+
+    <div class="gap-card gap-green">
+      <div class="gap-number">📋 Watching — minor</div>
+      <div class="gap-title">LemonSqueezy Webhook v172 — No Inbound Traffic to Verify</div>
+      <div class="gap-what">Webhook redeployed at v172. No inbound calls in 24hr logs, so 401 status can't be confirmed either way. Subscription system DB is live; event pipeline unverified end-to-end. Will surface again once paid signups start.</div>
+      <div class="gap-fix">📋 When ready: send a manual test ping from LemonSqueezy dashboard to verify v172 returns 200.</div>
+    </div>
+
+    <div class="gap-card gap-green">
+      <div class="gap-number">✅ CONFIRMED — May 8</div>
+      <div class="gap-title">BLOTATO_API_KEY in Supabase Secrets — VERIFIED working</div>
+      <div class="gap-what">The rewritten <code>send-to-blotato</code> edge function (v10) successfully called Blotato's API on May 8 and posted a real 9-tweet thread. Blotato accepted the submission, returned a valid <code>postSubmissionId</code>, and the thread appeared on @sociallydonnai. <strong>BLOTATO_API_KEY is set correctly in Supabase secrets and routing through to Blotato.</strong> The earlier "Day 13 unconfirmed" framing was a false alarm — the key was there all along; the prior <code>send-to-blotato</code> v7 was just never being invoked because Make uses its own Blotato connection.</div>
+      <div class="gap-fix">✅ Done. Edge function path is the right architecture — Make's separate Blotato connection is now the deprecated path.</div>
+    </div>
+
+    <div class="gap-card gap-green">
+      <div class="gap-number">✅ Completed — April 24</div>
+      <div class="gap-title">Humanizer — Wired In ✓</div>
+      <div class="gap-what">All 10 frontend call sites updated from generate → generate-with-humanization. Every piece of content generated now runs through the humanization pass. Output quality fix is live. Now at v12.</div>
+      <div class="gap-fix">✅ Done. Next step: add Humanizer as a selling point on the marketing site.</div>
+    </div>
+
+    <div class="gap-card gap-green">
+      <div class="gap-number">📋 Watching — minor</div>
+      <div class="gap-title">semantic-search v794 — One 401 Observed May 7</div>
+      <div class="gap-what">Single 401 observed at 14:10 UTC May 7. No repeats since. Likely transient auth blip or an unauthenticated probe. Function is still active and the search feature works in the UI.</div>
+      <div class="gap-fix">📋 Re-check next time logs are pulled. If recurring, audit the embedding API key in Supabase secrets.</div>
+    </div>
+
+    <div class="gap-card gap-green">
+      <div class="gap-number">✅ Identified — May 8</div>
+      <div class="gap-title">2 "Failed" Rows = Pre-Fix Bug Artifacts (Known)</div>
+      <div class="gap-what">Both failed rows are by design: they're the broken thread artifacts from before the May 8 fix (b4f4ac05 = May 7 9-tweet thread test that hit substring truncation, af009305 = May 8 9:05 AM auto-publish that hit the same truncation before we shipped Path C). Both have the real Twitter URLs saved for reference. The proper version of the second one re-posted as a 9-tweet thread at 9:55 AM May 8 ✓.</div>
+      <div class="gap-fix">✅ Identified. Donna to manually delete the 9:05 AM truncated tweet from @sociallydonnai — irreversible action she has to do herself.</div>
+    </div>
+
+    <div class="gap-card gap-green">
+      <div class="gap-number">📋 Backlog — Sprint 4</div>
+      <div class="gap-title">Image Approval UI</div>
+      <div class="gap-what">13 fal.ai images total: <strong>4 pending / 9 rejected</strong> as of May 8 PM (9 images rejected since last check — was all-pending at May 5). When ready, build the thumbs-up/down approval flow on content cards so images can attach to social posts via Blotato's mediaUrls.</div>
+      <div class="gap-fix">📋 Lovable: image approval UI on content cards.</div>
+    </div>
+
+    <div class="gap-card gap-green">
+      <div class="gap-number">✅ Validated</div>
+      <div class="gap-title">Lovable UI End-to-End</div>
+      <div class="gap-what">All 5 prompts rendered. <strong>Validated by use:</strong> Donna successfully scheduled + published a real 9-tweet thread through the Lovable UI on May 8. /publish/queue, Schedule modal, Publish Now flow, content cards, idea detail view — all live and working in production.</div>
+      <div class="gap-fix">✅ Done. Minor follow-up: "Publish Now" button is hidden on Draft cards (only appears after Schedule) — separate UX bug, see notes.</div>
+    </div>
+
+    <div class="gap-card gap-green">
+      <div class="gap-number">📋 Tiny task — when convenient</div>
+      <div class="gap-title">Existing Bundled Email Sequences</div>
+      <div class="gap-what">Old email sequences (saved before the May fix) are one bundled blob. Regenerate them to get the new 3-row format so they publish to Beehiiv correctly. Cosmetic — not blocking anything new.</div>
+      <div class="gap-fix">📋 Open any old email_sequence → click Regenerate.</div>
+    </div>
+
+  </div>
+</div>
+
+<hr class="divider">
+
+<!-- CURRENT STATE SUMMARY -->
+<div class="gaps-section">
+  <h2>🎯 Current State — What's Live vs Building</h2>
+  <div class="gaps-grid">
+
+    <div class="gap-card gap-green">
+      <div class="gap-number">✅ Fully Live</div>
+      <div class="gap-title">Content Generation Pipeline + Humanizer</div>
+      <div class="gap-what">Brain dump → Claude Sonnet 4.6 generates content → Humanizer (v12) strips AI tone → saved to Supabase. All content types working. Voice + text input. Semantic search working. Daily digest running at 8am. Humanizer wired in April 24 — all 10 call sites now use generate-with-humanization.</div>
+    </div>
+
+    <div class="gap-card gap-green">
+      <div class="gap-number">🏆 SHIPPED — May 7–8</div>
+      <div class="gap-title">Blotato Social Publishing — LIVE (Single Tweets + Threads)</div>
+      <div class="gap-what">First real auto-published <strong>single tweet</strong> shipped May 7 @ 7:41 PM CST via Make → Blotato → Twitter, real URL on @sociallydonnai. First real auto-published <strong>9-tweet thread</strong> shipped May 8 @ 9:55 AM CST via the rewritten <code>send-to-blotato</code> edge fn v10 (Path C — paragraph-split + Blotato additionalPosts), real URL on @sociallydonnai. Pipeline proven end-to-end for Twitter, both single posts AND threads. <strong>Make scenario 4806465 is intentionally paused</strong> — its built-in Blotato Create-a-Post module has an unfixable substring(content, 0, 279) truncation. Auto-publish triggering needs to be re-wired in a separate session (Make HTTP module pointing at the edge fn, OR Lovable "Publish Now" → edge fn direct). 9 published rows total in DB (3 real Twitter URLs · 1 real TikTok URL · 5 UUID fallbacks from before the fix). Text only — image-attached posts deferred (13 images: 4 pending / 9 rejected, separate workstream).</div>
+    </div>
+
+    <div class="gap-card gap-green">
+      <div class="gap-number">✅ Fully Live</div>
+      <div class="gap-title">Beehiiv Email + Blog Publishing</div>
+      <div class="gap-what">Make scenario running every 30 min. Publishes newsletters, blog posts, and individual sequence emails to Beehiiv. Not yet tested end-to-end — run once manually to confirm.</div>
+    </div>
+
+    <div class="gap-card gap-purple">
+      <div class="gap-number">🚀 Just Shipped — April 27</div>
+      <div class="gap-title">generate-images v23 — Claude Sonnet 4.6</div>
+      <div class="gap-what">Image prompt generation upgraded from Claude Haiku to Claude Sonnet 4.6. Single-dimension multi-variation mode. style_hint param. fal.ai still renders for now. Next: swap fal.ai → Blotato create_visual.</div>
+    </div>
+
+    <div class="gap-card gap-purple">
+      <div class="gap-number">🚀 Just Shipped — April 27</div>
+      <div class="gap-title">Blotato API Endpoints Fixed + queue-content v1</div>
+      <div class="gap-what">generate-blotato-media v6 + send-to-blotato v6 deployed with correct backend.blotato.com/v2 endpoints. queue-content v1 deployed. generate-complete v6 updated. One step left: confirm BLOTATO_API_KEY in Supabase secrets.</div>
+    </div>
+
+    <div class="gap-card gap-purple">
+      <div class="gap-number">🚀 Sprint 3 — Planned</div>
+      <div class="gap-title">Virality Score (Layer 2)</div>
+      <div class="gap-what">score-virality edge function → Claude extracts topics → TikTok Creative Center API + Google Trends + Reddit API → Claude Sonnet analyzes → score pushed via Supabase realtime to the card. Personalized by user's niche. Instant gut-check the moment a card is saved.</div>
+    </div>
+
+  </div>
+</div>
+
+<hr class="divider">
+
+<!-- INTEGRATIONS -->
+<div class="gaps-section">
+  <h2>🔌 Integrations — Promised on Site, None Built</h2>
+  <div class="alert-red">
+    <strong>⚠ All 8 integrations on ideafetti.com show dates of Q1–Q3 2025. It is now April 2026. These are over a year overdue and should be updated on the marketing site immediately.</strong>
+  </div>
+  <div class="gaps-grid">
+
+    <div class="gap-card">
+      <div class="gap-number">Was: Q1 2025 — Now: Overdue</div>
+      <div class="gap-title">🗂️ Notion Export</div>
+      <div class="gap-what">Export organized ideas directly to Notion databases. Not built.</div>
+      <div class="gap-fix fix-amber">Update site: change date to "On the roadmap" until built.</div>
+    </div>
+
+    <div class="gap-card">
+      <div class="gap-number">Was: Q1 2025 — Now: Overdue</div>
+      <div class="gap-title">📝 Google Docs</div>
+      <div class="gap-what">Turn ideas into Google Docs with one click. Not built.</div>
+      <div class="gap-fix fix-amber">Update site: change date to "On the roadmap".</div>
+    </div>
+
+    <div class="gap-card">
+      <div class="gap-number">Was: Q2 2025 — Now: Overdue</div>
+      <div class="gap-title">💬 Slack</div>
+      <div class="gap-what">Share ideas with your team instantly. Not built.</div>
+      <div class="gap-fix fix-amber">Update site or remove until ready to build.</div>
+    </div>
+
+    <div class="gap-card">
+      <div class="gap-number">Was: Q2 2025 — Now: Overdue</div>
+      <div class="gap-title">⚡ Zapier</div>
+      <div class="gap-what">Connect to 5000+ apps. Not built. High value — connects Ideafetti to any existing workflow. Would unlock massive distribution.</div>
+      <div class="gap-fix fix-amber">High priority to actually build — Zapier would unlock massive distribution.</div>
+    </div>
+
+    <div class="gap-card">
+      <div class="gap-number">Was: Q3 2025 — Now: Overdue</div>
+      <div class="gap-title">🎨 Figma / 📊 Linear / 🗃️ Airtable / 📅 Calendar</div>
+      <div class="gap-what">Four more integrations promised. None built. Low priority compared to Zapier, Notion, and Google Docs.</div>
+      <div class="gap-fix fix-amber">Remove dates from site. Keep as "On the roadmap".</div>
+    </div>
+
+  </div>
+</div>
+
+<hr class="divider">
+
+<!-- MARKETING SITE GAPS -->
+<div class="gaps-section">
+  <h2>🌐 ideafetti.com — What's Missing from the Marketing Site</h2>
+  <div class="alert-blue">
+    These features are live or building but not mentioned anywhere on the public website.
+  </div>
+  <div class="gaps-grid">
+
+    <div class="gap-card gap-amber">
+      <div class="gap-number">Missing from Site — Ready to Add</div>
+      <div class="gap-title">🧠 Humanizer — It's Live. Market It.</div>
+      <div class="gap-what">Strips AI tone. Makes content sound like you wrote it. Major selling point vs generic AI tools. Wired in April 24. Stable at v12. This is the #1 differentiator — it's not on the site at all.</div>
+      <div class="gap-fix fix-amber">🔧 Add to marketing site now — it's live, it's working, it's the moat.</div>
+    </div>
+
+    <div class="gap-card gap-amber">
+      <div class="gap-number">Missing from Site</div>
+      <div class="gap-title">📰 Beehiiv Auto-Publishing</div>
+      <div class="gap-what">Auto-publishes newsletters, blog posts, and email sequence emails to Beehiiv. A real differentiator. Not on the site at all.</div>
+      <div class="gap-fix fix-amber">Add to site: Publishing integrations section. "Auto-publish to Beehiiv."</div>
+    </div>
+
+    <div class="gap-card gap-amber">
+      <div class="gap-number">Missing from Site</div>
+      <div class="gap-title">🖼 Image Generation</div>
+      <div class="gap-what">AI generates platform-specific images for each content piece. Backend live v23. Not on site.</div>
+      <div class="gap-fix fix-amber">Add to site once image approval UI is confirmed working.</div>
+    </div>
+
+    <div class="gap-card gap-amber">
+      <div class="gap-number">Missing from Site</div>
+      <div class="gap-title">🎬 Media Studio</div>
+      <div class="gap-what">AI video generation, in-browser filming with teleprompter, media upload. Huge differentiator — no ND content tool does this.</div>
+      <div class="gap-fix fix-amber">Add to site once Lovable build confirms it's working.</div>
+    </div>
+
+    <div class="gap-card gap-amber">
+      <div class="gap-number">Coming Soon — Add to Site Now</div>
+      <div class="gap-title">🔥 Virality Score</div>
+      <div class="gap-what">Listed as "Coming Soon" on ideafetti.com. Good. Keep it there — but make sure the description matches the actual planned tech (TikTok Creative Center API + Google Trends + Reddit API + Claude Sonnet analysis).</div>
+      <div class="gap-fix fix-amber">Update copy on site to match the actual planned feature.</div>
+    </div>
+
+    <div class="gap-card gap-amber">
+      <div class="gap-number">Dates Are Wrong</div>
+      <div class="gap-title">⚠️ All Integration Dates Are April 2025 or Earlier</div>
+      <div class="gap-what">Every integration on the site shows "Q1 2025" or "Q2 2025." It's April 2026. Visitors will notice and lose trust.</div>
+      <div class="gap-fix fix-amber">Remove all specific dates. Replace with "On the roadmap" or remove entirely.</div>
+    </div>
+
+  </div>
+</div>
+
+<p class="note">Ideafetti Workflow Map · Last updated: May 8, 2026 @ late-EOD (manual — v8)<br>
+🏆 <strong>MILESTONES (May 7–8):</strong> First real auto-published single tweet (May 7 7:41 PM, <a href="https://x.com/sociallydonnai/status/2052549452645159321">x.com/.../2052549452645159321</a>) · First real auto-published 9-tweet THREAD (May 8 9:55 AM, <a href="https://x.com/sociallydonnai/status/2052764290449342752">x.com/.../2052764290449342752</a>) · <strong>End-to-end Lovable → edge fn → Twitter loop verified May 8 12:31 PM</strong> · <strong>send-to-blotato v10 SHIPPED</strong> · <strong>pg_cron + pg_net SHIPPED</strong> tick_publish_queue() every 1 min · <strong>Make 4806465 [DEPRECATED May 8]</strong> · <strong>BLOTATO_API_KEY CONFIRMED</strong> · <strong>Lovable Publish Now</strong> wired + verified · <strong>send-to-beehiiv edge fn v1 SHIPPED</strong> (sleeping — Beehiiv Enterprise tier required for create-post API) · <strong>Make 4817580 (Beehiiv) audited</strong>: 2 of 3 bugs fixed (Limit bumped 1→25, Follow-all-redirect set to No), 1 body-construction bug remains<br>
+<strong>Edge functions:</strong> generate-with-humanization v13 ✓ · generate v825 ✓ · humanize-content-piece-v2 v1 ✓ · daily-digest pipeline ✓ · qualify-lead v1 ✓ · queue-content v2 ✓ · generate-complete v7 ✓ · generate-images v26 ✓ · <strong>send-to-blotato v10 NEW ✓ proven live</strong> · generate-blotato-media v7 ✓ · <strong>send-to-beehiiv v1 NEW</strong> (deployed, sleeping, Enterprise-tier-gated) · lemonsqueezy-webhook v172 ✓ · semantic-search v794 ✓<br>
+<strong>DB state (May 8 8pm auto-run):</strong> 5 active published · 4 all-failed soft-deleted · 16 active queued · 58 active paused · 36 active draft · 18 soft-deleted queued · 127 soft-deleted paused · 174 soft-deleted draft · 4 images pending + 9 images rejected (13 total) · 282 orphan content_pieces SOFT-DELETED (prior session) · New edge fn active: backfill-blotato-urls v1 (every 60s via pg_cron) · ⚠️ send-lead-email-v5 3x 502 errors flagged<br>
+<strong>Make org:</strong> 5 scenarios remain (was 6 — Notion HTTP deleted May 8). Active: Daily Digest Trigger only. Paused/deprecated: Publish to Blotato (renamed [DEPRECATED]). Inactive: Publish to Beehiiv (body bug), SDR Agent (insufficient rights to delete), The Closer Agent (insufficient rights to delete).<br>
+<strong>Open loops:</strong> Lovable bug list (TikTok-on-Twitter, idea duplication, 4-button row, Drafts tab, Idea Assistant button rename, LIVE/INACTIVE badge mismatch) · Blotato real-URL polling for production · Beehiiv Make scenario E2E test · 5 beta users + auto-publish-paused message · 282 orphan cleanup decision · 3 abandoned Make scenarios (Notion/SDR/Closer) waiting for user-confirmed deletion<br>
+<strong>6-Layer Vision:</strong> CAPTURE ✓ · SCORE 📋 Sprint 3 · GENERATE ✓ · MEDIA ✓ (image gen + Blotato media + film + upload all working) · PUBLISH 🟢 LIVE (single tweets + threads via edge fn + pg_cron, Make deprecated) · LEARN 📋 Sprint 4–5</p>
+
+</body>
+</html>

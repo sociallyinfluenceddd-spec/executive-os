@@ -13,6 +13,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { WorkflowMapStatusView } from "@/components/hub/WorkflowMapStatusView";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import {
@@ -149,6 +150,23 @@ function HubPage() {
   // doc. Only artifacts with non-null content open the viewer.
   const [viewing, setViewing] = useState<Artifact | null>(null);
 
+  // Deep link: /hub?artifact=<id> auto-opens the viewer for that artifact
+  // once rows have loaded. Used by Maya to link "View workflow map" in chat.
+  useEffect(() => {
+    if (!rows) return;
+    const params = new URLSearchParams(window.location.search);
+    const target = params.get("artifact");
+    if (!target) return;
+    const match = rows.find((r) => r.id === target);
+    if (match) {
+      setViewing(match);
+      // Clean the query so re-visiting /hub doesn't keep re-opening it.
+      const url = new URL(window.location.href);
+      url.searchParams.delete("artifact");
+      window.history.replaceState({}, "", url.toString());
+    }
+  }, [rows]);
+
   const load = useCallback(async () => {
     if (!user) return;
     const { data, error } = await adb
@@ -242,6 +260,12 @@ function HubPage() {
     // If this artifact has inline content stored in the DB, open the viewer
     // Sheet — no context switch. Works for embedded HTML, MD, CSV.
     if (a.content) {
+      setViewing(a);
+      return;
+    }
+
+    // Locally-served URLs (e.g. /docs/foo.html) render inline via iframe.
+    if (a.location_type === "url" && a.location.startsWith("/")) {
       setViewing(a);
       return;
     }
@@ -497,7 +521,7 @@ function HubPage() {
 
         {/* INLINE CONTENT VIEWER — clicking any embedded artifact opens here */}
         <Sheet open={!!viewing} onOpenChange={(open) => { if (!open) setViewing(null); }}>
-          <SheetContent side="right" className="w-full sm:max-w-3xl p-0 flex flex-col">
+          <SheetContent side="right" className="w-full sm:max-w-3xl lg:max-w-5xl xl:max-w-6xl p-0 flex flex-col">
             {viewing && (
               <>
                 <SheetHeader className="px-5 py-3 border-b border-border space-y-1">
@@ -523,9 +547,29 @@ function HubPage() {
   );
 }
 
+const WORKFLOW_MAP_ARTIFACT_ID = "5b3cb064-d86d-47de-ac1f-5809dd7776d2";
+
 function ArtifactContentView({ artifact }: { artifact: Artifact }) {
   const text = useMemo(() => decodeContent(artifact.content ?? ""), [artifact.content]);
   const ext = fileExtFromLocation(artifact.location);
+
+  // Workflow Map gets a purpose-built status view: live phase + tasks +
+  // next-up + blockers + wins, with the legacy HTML blob tucked under a
+  // collapsible "Full archive" section so Donna can skim at the top.
+  if (artifact.id === WORKFLOW_MAP_ARTIFACT_ID) {
+    return <WorkflowMapStatusView archiveHtml={text} />;
+  }
+
+  // Locally-served file (e.g. /docs/workflow-map.html) — render in an iframe.
+  if (!artifact.content && artifact.location_type === "url" && artifact.location.startsWith("/")) {
+    return (
+      <iframe
+        src={artifact.location}
+        title={artifact.title}
+        className="w-full h-[80vh] border-0"
+      />
+    );
+  }
 
   if (ext === "html") {
     // Donna's own files — render the HTML as-is in a scoped scrollable area.
@@ -700,7 +744,7 @@ function ArtifactCard({
               {/* Label reflects what clicking the card will actually do.
                   Content-loaded artifacts open the inline viewer; everything
                   else falls back to URL/route/copy-path as before. */}
-              {a.content ? (
+              {a.content || (a.location_type === "url" && a.location.startsWith("/")) ? (
                 <>View →</>
               ) : a.location_type === "url" ? (
                 <>
