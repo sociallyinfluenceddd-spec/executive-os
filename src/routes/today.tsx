@@ -503,14 +503,42 @@ function urgencyDot(iso: string | null): string {
 // (Ideafetti DB, exec_os_projects table, etc.) is wired in.
 
 function TodayPage() {
-  // Live clock
+  // Live clock — minute-aligned, self-correcting, and resyncs on tab focus.
+  // The header shows minute-precision time; we want it to flip exactly when
+  // the minute rolls over, not up-to-30s late.
   const [now, setNow] = useState(() => new Date());
   useEffect(() => {
-    // 30s tick — the clock label and "next meeting in Nm" memos only need
-    // minute-level precision. 1s was re-rendering every memo on every widget
-    // every second.
-    const id = setInterval(() => setNow(new Date()), 30000);
-    return () => clearInterval(id);
+    let timeoutId: ReturnType<typeof setTimeout> | null = null;
+
+    const scheduleNextTick = () => {
+      const ms = Date.now();
+      const msUntilNextMinute = 60_000 - (ms % 60_000) + 50; // +50ms safety
+      timeoutId = setTimeout(() => {
+        setNow(new Date());
+        scheduleNextTick(); // re-arm — self-correcting drift
+      }, msUntilNextMinute);
+    };
+
+    // Hard refresh whenever the tab regains focus — covers the browser
+    // setInterval-throttling-when-backgrounded case where the timer can stall
+    // for 1+ minutes and the clock appears frozen.
+    const onVisibility = () => {
+      if (document.visibilityState === "visible") {
+        setNow(new Date());
+        if (timeoutId) clearTimeout(timeoutId);
+        scheduleNextTick();
+      }
+    };
+
+    scheduleNextTick();
+    document.addEventListener("visibilitychange", onVisibility);
+    window.addEventListener("focus", onVisibility);
+
+    return () => {
+      if (timeoutId) clearTimeout(timeoutId);
+      document.removeEventListener("visibilitychange", onVisibility);
+      window.removeEventListener("focus", onVisibility);
+    };
   }, []);
 
   const { user } = useAuth();
