@@ -10,6 +10,8 @@ import { CaptureModal } from "@/components/CaptureModal";
 
 import { BenchWidget } from "@/components/widgets/bench";
 import { BenchWhispersWidget } from "@/components/widgets/bench_whispers";
+import { MorningBriefWidget } from "@/components/widgets/morning_brief";
+import { PipelineWidget } from "@/components/widgets/pipeline";
 import { usePersonalization, isDarkColor } from "@/lib/personalization";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
@@ -18,6 +20,8 @@ import {
   DEFAULT_ACTIVE_WIDGETS,
   AUTO_APPEND_WIDGETS,
   AUTO_APPEND_KEY,
+  AUTO_REMOVE_WIDGETS,
+  AUTO_REMOVE_KEY,
   DEFAULT_WIDGET_SIZE,
   defaultSizeFor,
 } from "@/config/widgets";
@@ -63,6 +67,7 @@ import {
   CalendarClock,
   Banknote,
   Sparkles,
+  Briefcase,
   FolderKanban,
   MessageCircle,
   Activity,
@@ -98,6 +103,8 @@ type WidgetId =
   | "top_priority"
   | "voice_capture"
   | "bench_whispers"
+  | "morning_brief"
+  | "pipeline"
   | "timers_alarms"
   | "kitchen_recipes"
   | "workflows"
@@ -119,7 +126,9 @@ type WidgetId =
 const LG_BASE: LayoutItem[] = [
   { i: "workflows",        x: 0,  y: 0,  w: 6,  h: 8, minW: 4, minH: 6 },
   { i: "workflows_exec_os",x: 6,  y: 0,  w: 6,  h: 8, minW: 4, minH: 6 },
-  { i: "calendar",         x: 0,  y: 8,  w: 6,  h: 5, minW: 3, minH: 4 },
+  { i: "pipeline",         x: 0,  y: 8,  w: 12, h: 8, minW: 6, minH: 6 },
+  { i: "morning_brief",    x: 0,  y: 16, w: 12, h: 7, minW: 6, minH: 5 },
+  { i: "calendar",         x: 0,  y: 23, w: 6,  h: 5, minW: 3, minH: 4 },
   { i: "inbox",            x: 6,  y: 8,  w: 6,  h: 3, minW: 3, minH: 3 },
   { i: "done_today",       x: 0,  y: 13, w: 12, h: 6, minW: 6, minH: 4 },
   { i: "money",           x: 0,  y: 19, w: 4,  h: 5, minW: 3, minH: 4 },
@@ -224,7 +233,7 @@ function loadDashboard(): DashboardPersisted | null {
 // the current DEFAULT_WIDGET_SIZE. Won't shrink anything the user manually
 // enlarged. Bump SIZE_FLOOR_KEY whenever DEFAULT_WIDGET_SIZE changes so
 // existing users pick up the new floor on next load.
-const SIZE_FLOOR_KEY = "execOs.dashboard.sizeFloor.v7";
+const SIZE_FLOOR_KEY = "execOs.dashboard.sizeFloor.v8";
 
 // Floor migration: any layout entry whose w/h is below the catalog's
 // DEFAULT_WIDGET_SIZE gets bumped to that floor. Plus: if the entry looks
@@ -283,6 +292,17 @@ function loadActiveWidgets(): string[] {
     const parsed = JSON.parse(raw) as string[];
     if (!Array.isArray(parsed)) return DEFAULT_ACTIVE_WIDGETS;
     let active = parsed;
+    // One-time auto-remove of dead/deprecated widgets. Runs once per
+    // AUTO_REMOVE_KEY bump. See AUTO_REMOVE_WIDGETS comments in widgets.ts.
+    if (!localStorage.getItem(AUTO_REMOVE_KEY)) {
+      const toRemove = new Set(AUTO_REMOVE_WIDGETS);
+      const cleaned = active.filter((id) => !toRemove.has(id));
+      if (cleaned.length !== active.length) {
+        active = cleaned;
+        try { localStorage.setItem(ACTIVE_WIDGETS_KEY, JSON.stringify(active)); } catch {}
+      }
+      try { localStorage.setItem(AUTO_REMOVE_KEY, "1"); } catch {}
+    }
     // One-time auto-append for widgets added in later releases. AUTO_APPEND_KEY
     // is bumped in src/config/widgets.ts whenever AUTO_APPEND_WIDGETS gains an
     // entry, which re-runs this block once for users past the previous key.
@@ -708,7 +728,12 @@ function TodayPage() {
           const size = defaultSizeFor(id);
           const maxY = arr.reduce((m, l) => Math.max(m, l.y + l.h), 0);
           const w = bp === "sm" ? 1 : Math.min(size.w, cols);
-          arr.push({ i: id, x: 0, y: maxY, w, h: size.h, minW: 1, minH: 2 });
+          // minW/minH must match the widget's intended size — react-grid-layout
+          // will otherwise compact new widgets into 1×1 tiles on first load.
+          // Per memory rule: widgets must ship at full size from day one.
+          const minW = bp === "sm" ? 1 : Math.max(3, Math.min(size.w - 2, cols));
+          const minH = Math.max(3, size.h - 2);
+          arr.push({ i: id, x: 0, y: maxY, w, h: size.h, minW, minH });
           changed = true;
         });
         if (changed) next[bp] = arr;
@@ -731,7 +756,9 @@ function TodayPage() {
         const maxY = arr.reduce((m, l) => Math.max(m, l.y + l.h), 0);
         const cols = bp === "lg" ? 12 : bp === "md" ? 8 : 1;
         const w = bp === "sm" ? 1 : Math.min(size.w, cols);
-        arr.push({ i: id, x: 0, y: maxY, w, h: size.h, minW: 1, minH: 2 });
+        const minW = bp === "sm" ? 1 : Math.max(3, Math.min(size.w - 2, cols));
+        const minH = Math.max(3, size.h - 2);
+        arr.push({ i: id, x: 0, y: maxY, w, h: size.h, minW, minH });
         next[bp] = arr;
       });
       return next;
@@ -1829,6 +1856,44 @@ function TodayPage() {
             onRemove={removeWidget}
           >
             <BenchWhispersWidget />
+          </Card>
+        </div>
+        )}
+
+        {/* PIPELINE — sales pipeline + active clients (the 1000x layer) */}
+        {activeWidgets.includes("pipeline") && (
+        <div key="pipeline" className="relative">
+          <Card
+            title="Pipeline"
+            icon={Briefcase}
+            className="h-full overflow-auto"
+            dragHandle={!locks.pipeline && !isMobileViewport}
+            lockId="pipeline"
+            locked={!!locks.pipeline}
+            onToggleLock={toggleLock}
+            editMode={editMode}
+            onRemove={removeWidget}
+          >
+            <PipelineWidget />
+          </Card>
+        </div>
+        )}
+
+        {/* MORNING BRIEF — what the AI staff team did overnight */}
+        {activeWidgets.includes("morning_brief") && (
+        <div key="morning_brief" className="relative">
+          <Card
+            title="Morning brief"
+            icon={Sparkles}
+            className="h-full overflow-auto"
+            dragHandle={!locks.morning_brief && !isMobileViewport}
+            lockId="morning_brief"
+            locked={!!locks.morning_brief}
+            onToggleLock={toggleLock}
+            editMode={editMode}
+            onRemove={removeWidget}
+          >
+            <MorningBriefWidget />
           </Card>
         </div>
         )}

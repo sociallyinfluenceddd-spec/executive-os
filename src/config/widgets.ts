@@ -21,6 +21,8 @@ export const WIDGET_CATALOG: WidgetCatalogItem[] = [
   { id: "done_today",    name: "Done Today",     icon: "CheckCircle2", description: "Today's productivity log — every task closed and dollar logged, with timestamps", status: "connected" },
   { id: "bench",         name: "Bench",          icon: "Users",        description: "Your AI expert team — tap an avatar to chat", status: "connected" },
   { id: "bench_whispers",name: "Bench Whispers", icon: "Sparkles",     description: "Proactive nudges from your advisors",         status: "connected" },
+  { id: "morning_brief", name: "Morning Brief",  icon: "Sparkles",     description: "What your AI staff team did overnight — review, approve, ship", status: "connected" },
+  { id: "pipeline",      name: "Pipeline",       icon: "Briefcase",    description: "Sales pipeline + active clients · hot leads, proposals out, MRR, follow-ups due", status: "connected" },
   { id: "timers_alarms", name: "Timers + alarms",icon: "AlarmClock",   description: "Countdown timers and alarms with sound",      status: "connected" },
   { id: "kitchen_recipes",name:"Kitchen + recipes",icon:"ChefHat",     description: "Shopping list, meals, recipes and tonight plan", status: "connected" },
   { id: "workflows",     name: "Workflow",       icon: "Activity",     description: "Active phase + this week's tasks · Send to Claude / mark done inline", status: "connected" },
@@ -36,19 +38,21 @@ export const ACTIVE_WIDGETS_KEY = "execOs.activeWidgets.v3";
 //   - voice_capture  — stub; floating mic button already covers this
 //   - timeline       — replaced by done_today; appointment view available in calendar widget
 // All of the above are still in the widget library and can be added.
+// Cleaned 2026-05-20 — removed projects, content_pulse, bench_whispers,
+// kitchen_recipes, timers_alarms (in-header now). Follow-ups kept — it
+// tracks people awaiting your reply (inbox hygiene), distinct from
+// Pipeline which tracks leads/clients in the revenue funnel.
 export const DEFAULT_ACTIVE_WIDGETS: string[] = [
   "workflows",
   "workflows_exec_os",
-  "done_today",
+  "pipeline",
+  "morning_brief",
+  "calendar",
+  "inbox",
+  "follow_ups",
   "money",
   "bench",
-  "inbox",
-  "calendar",
-  "projects",
-  "content_pulse",
-  "follow_ups",
-  "bench_whispers",
-  "kitchen_recipes",
+  "done_today",
 ];
 
 // Widgets that should be auto-appended to existing users' saved layouts
@@ -59,15 +63,29 @@ export const AUTO_APPEND_WIDGETS: string[] = [
   "workflows",
   "workflows_exec_os",
   "money",
+  "bench",
+  "done_today",
+  "morning_brief",
+  "pipeline",
+];
+export const AUTO_APPEND_KEY = "execOs.activeWidgets.autoAppend.v11";
+
+// One-time removal: drop dead/duplicative widgets from existing users' saved
+// layouts. Bump AUTO_REMOVE_KEY to trigger the cleanup migration once for
+// users past the previous key.
+//   projects        — empty 0-of-0, not used
+//   content_pulse   — needs TikTok/LinkedIn API access we don't have
+//   bench_whispers  — placeholder that never produced anything; replaced by Morning Brief
+//   kitchen_recipes — off-brand for fractional exec OS
+//   timers_alarms   — moved to header pill; redundant on dashboard
+export const AUTO_REMOVE_WIDGETS: string[] = [
   "projects",
   "content_pulse",
-  "bench",
   "bench_whispers",
-  "timers_alarms",
   "kitchen_recipes",
-  "done_today",
+  "timers_alarms",
 ];
-export const AUTO_APPEND_KEY = "execOs.activeWidgets.autoAppend.v8";
+export const AUTO_REMOVE_KEY = "execOs.activeWidgets.autoRemove.v1";
 
 // Default grid sizes when a widget is freshly added via the library.
 // Full-width widgets get the timeline-style row.
@@ -81,6 +99,8 @@ export const DEFAULT_WIDGET_SIZE: Record<string, { w: number; h: number }> = {
   voice_capture:   { w: 4,  h: 4 },
   bench:           { w: 12, h: 4 },
   bench_whispers:  { w: 6,  h: 5 },
+  morning_brief:   { w: 12, h: 7 },
+  pipeline:        { w: 12, h: 8 },
   timers_alarms:   { w: 6,  h: 5 },
   kitchen_recipes: { w: 6,  h: 6 },
   money:           { w: 4,  h: 5 },

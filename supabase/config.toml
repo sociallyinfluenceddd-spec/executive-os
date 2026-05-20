@@ -25,3 +25,10 @@ verify_jwt = false
 
 [functions.fetch-calendar-events]
 verify_jwt = true
+
+# Cleo — Sales Agent. JWT required for manual/single/cold modes; scheduled
+# mode authenticates via SERVICE_ROLE which is exempt from JWT verify_jwt.
+# We keep verify_jwt = false so pg_cron can call without a user JWT; the
+# function itself enforces auth per-mode.
+[functions.cleo-run]
+verify_jwt = false
