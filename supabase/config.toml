@@ -14,3 +14,14 @@ verify_jwt = true
 
 [functions.refresh-calendars]
 verify_jwt = true
+
+[functions.google-oauth-start]
+verify_jwt = true
+
+# Public — Google redirects users here, no JWT possible. Auth via signed
+# state parameter set in google-oauth-start.
+[functions.google-oauth-callback]
+verify_jwt = false
+
+[functions.fetch-calendar-events]
+verify_jwt = true
