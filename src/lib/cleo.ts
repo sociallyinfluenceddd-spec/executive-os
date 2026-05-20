@@ -52,3 +52,20 @@ export function runCleoCold(opts: {
 }): Promise<CleoRunResult> {
   return invoke({ mode: "cold", linkedin_url: opts.linkedinUrl, notes: opts.notes });
 }
+
+/**
+ * Reroll a draft: archive the existing output, then re-run Cleo for the same
+ * client to produce a fresh draft. Used when Cleo's first draft hallucinated
+ * or sounds off and Donna wants another swing without manually deleting +
+ * re-clicking.
+ */
+export async function reissueDraft(
+  outputId: string,
+  refId: string,
+): Promise<CleoRunResult> {
+  // Import here to avoid circular dep with agent-outputs.ts.
+  const { archiveOutput } = await import("@/lib/agent-outputs");
+  const archived = await archiveOutput(outputId);
+  if (!archived.ok) return { ok: false, error: archived.error ?? "Could not archive old draft" };
+  return runCleoForClient(refId);
+}

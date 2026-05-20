@@ -1639,6 +1639,156 @@ export type Database = {
         }
         Relationships: []
       }
+      // === Manually added 2026-05-20 — Lovable types regen lags behind the
+      // schema. Loose typing here unblocks the build; real types appear on
+      // next Lovable typegen and these stubs will be overwritten with the
+      // proper Row/Insert/Update shapes. ===
+      exec_os_agent_triggers: {
+        Row: {
+          id: string
+          user_id: string
+          agent_id: string
+          enabled: boolean
+          cron_schedule: string | null
+          config: Json
+          last_run_at: string | null
+          next_run_at: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: Record<string, unknown>
+        Update: Record<string, unknown>
+        Relationships: []
+      }
+      exec_os_agent_runs: {
+        Row: {
+          id: string
+          user_id: string
+          agent_id: string
+          trigger_id: string | null
+          trigger_kind: string
+          status: string
+          started_at: string
+          finished_at: string | null
+          summary: string | null
+          error: string | null
+          outputs_count: number
+          cost_usd: number
+          tokens_in: number
+          tokens_out: number
+          context: Json | null
+        }
+        Insert: Record<string, unknown>
+        Update: Record<string, unknown>
+        Relationships: []
+      }
+      exec_os_agent_outputs: {
+        Row: {
+          id: string
+          user_id: string
+          agent_id: string
+          run_id: string | null
+          kind: string
+          title: string
+          body: string | null
+          status: string
+          ref_table: string | null
+          ref_id: string | null
+          priority: number
+          suggested_at: string | null
+          acted_at: string | null
+          acted_by: string | null
+          edit_diff: string | null
+          metadata: Json | null
+          created_at: string
+        }
+        Insert: Record<string, unknown>
+        Update: Record<string, unknown>
+        Relationships: []
+      }
+      exec_os_clients: {
+        Row: {
+          id: string
+          user_id: string
+          status: string
+          name: string
+          company: string | null
+          title: string | null
+          primary_contact_email: string | null
+          linkedin_url: string | null
+          tags: string[]
+          icp_score: number | null
+          source: string | null
+          one_time_value_cents: number
+          mrr_cents: number
+          external_stripe_customer_id: string | null
+          external_ls_customer_id: string | null
+          acquired_at: string | null
+          last_touchpoint_at: string | null
+          next_action_at: string | null
+          next_action_kind: string | null
+          notes: string | null
+          metadata: Json
+          created_at: string
+          updated_at: string
+        }
+        Insert: Record<string, unknown>
+        Update: Record<string, unknown>
+        Relationships: []
+      }
+      exec_os_outreach: {
+        Row: {
+          id: string
+          user_id: string
+          client_id: string | null
+          channel: string
+          direction: string | null
+          subject: string | null
+          body: string | null
+          status: string | null
+          generated_by_agent_id: string | null
+          source_agent_output_id: string | null
+          metadata: Json | null
+          created_at: string
+        }
+        Insert: Record<string, unknown>
+        Update: Record<string, unknown>
+        Relationships: []
+      }
+      exec_os_proposals: {
+        Row: {
+          id: string
+          user_id: string
+          client_id: string | null
+          status: string
+          one_time_cents: number
+          mrr_cents: number
+          body: string | null
+          sent_at: string | null
+          viewed_at: string | null
+          decided_at: string | null
+          metadata: Json | null
+          created_at: string
+        }
+        Insert: Record<string, unknown>
+        Update: Record<string, unknown>
+        Relationships: []
+      }
+      exec_os_client_milestones: {
+        Row: {
+          id: string
+          user_id: string
+          client_id: string
+          day_offset: number
+          title: string
+          completed_at: string | null
+          metadata: Json | null
+          created_at: string
+        }
+        Insert: Record<string, unknown>
+        Update: Record<string, unknown>
+        Relationships: []
+      }
     }
     Views: {
       public_revenue_monthly: {

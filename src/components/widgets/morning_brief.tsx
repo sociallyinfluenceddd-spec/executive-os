@@ -27,9 +27,10 @@ import {
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { Sparkles, Check, X, Edit3, Archive, ChevronDown, ChevronRight, Clock, Copy, ExternalLink, Mail, MessageSquare } from "lucide-react";
+import { Sparkles, Check, X, Edit3, Archive, ChevronDown, ChevronRight, Clock, Copy, ExternalLink, Mail, MessageSquare, RefreshCw } from "lucide-react";
 import { relTime } from "@/lib/time";
 import { toast } from "sonner";
+import { reissueDraft } from "@/lib/cleo";
 
 export function MorningBriefWidget() {
   const [outputs, setOutputs] = useState<AgentOutput[]>([]);
@@ -213,6 +214,27 @@ function OutputItem(props: {
   const company = output.client?.company ?? "";
   const clientTitle = output.client?.title ?? "";
 
+  const [regenerating, setRegenerating] = useState(false);
+  const canRegenerate = output.agent_id === "cleo" && !!output.ref_id;
+  const onRegenerate = async () => {
+    if (!output.ref_id) return;
+    setRegenerating(true);
+    try {
+      const r = await reissueDraft(output.id, output.ref_id);
+      if (r.ok) {
+        toast.success("Cleo drafted a fresh version — check the top of the list");
+        // The parent's refresh will be triggered by the toggle/refresh flow;
+        // we don't have direct access to refresh here, but the OutputItem
+        // re-renders when the parent reloads. Cheapest path: nudge user.
+        // (If parent doesn't refresh fast enough, the user can hit Refresh.)
+      } else {
+        toast.error(r.error ?? "Could not regenerate");
+      }
+    } finally {
+      setRegenerating(false);
+    }
+  };
+
   const channelIcon = channel === "email"
     ? <Mail className="h-3 w-3" />
     : <MessageSquare className="h-3 w-3" />;
@@ -334,6 +356,19 @@ function OutputItem(props: {
                   <Edit3 className="h-3 w-3 mr-1" />
                   Edit
                 </Button>
+                {canRegenerate && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={onRegenerate}
+                    disabled={regenerating}
+                    className="text-xs"
+                    title="Archive this draft and have Cleo write a fresh one"
+                  >
+                    <RefreshCw className={`h-3 w-3 mr-1 ${regenerating ? "animate-spin" : ""}`} />
+                    {regenerating ? "Rerolling…" : "Regenerate"}
+                  </Button>
+                )}
                 <Button size="sm" variant="ghost" onClick={props.onReject} className="text-xs">
                   <X className="h-3 w-3 mr-1" />
                   Reject

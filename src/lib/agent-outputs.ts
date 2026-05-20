@@ -112,11 +112,19 @@ export async function countPendingOutputs(): Promise<number> {
 }
 
 /**
- * Approve an output. The agent (or a follow-up function) is expected to
- * read approved rows and actually take the action (send the email, post
- * the DM, ship the PR). This function just flips the bit.
+ * Approve an output. In v1 this represents "Donna marked this as sent" — the
+ * actual send is manual (copy-paste). When the output references a client
+ * row, we ALSO bump the client's last_touchpoint_at so Pipeline freshness
+ * reflects the send.
  */
 export async function approveOutput(id: string): Promise<{ ok: boolean; error?: string }> {
+  // First grab the output so we know if it's linked to a client.
+  const { data: output } = await supabase
+    .from("exec_os_agent_outputs")
+    .select("ref_table, ref_id")
+    .eq("id", id)
+    .maybeSingle();
+
   const { error } = await supabase
     .from("exec_os_agent_outputs")
     .update({
@@ -126,6 +134,16 @@ export async function approveOutput(id: string): Promise<{ ok: boolean; error?: 
     })
     .eq("id", id);
   if (error) return { ok: false, error: error.message };
+
+  // If this output was for a client, bump their last_touchpoint_at so the
+  // Pipeline widget reflects the send. Best-effort — failure here doesn't
+  // fail the approve.
+  if (output?.ref_table === "exec_os_clients" && output?.ref_id) {
+    await supabase
+      .from("exec_os_clients")
+      .update({ last_touchpoint_at: new Date().toISOString() })
+      .eq("id", output.ref_id);
+  }
   return { ok: true };
 }
 
