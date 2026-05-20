@@ -76,6 +76,136 @@ export type Database = {
           },
         ]
       }
+      exec_os_agent_outputs: {
+        Row: {
+          acted_at: string | null
+          acted_by: string | null
+          agent_id: string
+          body: string | null
+          created_at: string
+          edit_diff: string | null
+          id: string
+          kind: string
+          metadata: Json | null
+          priority: number
+          ref_id: string | null
+          ref_table: string | null
+          run_id: string | null
+          status: string
+          suggested_at: string | null
+          title: string
+          user_id: string
+        }
+        Insert: {
+          acted_at?: string | null
+          acted_by?: string | null
+          agent_id: string
+          body?: string | null
+          created_at?: string
+          edit_diff?: string | null
+          id?: string
+          kind: string
+          metadata?: Json | null
+          priority?: number
+          ref_id?: string | null
+          ref_table?: string | null
+          run_id?: string | null
+          status?: string
+          suggested_at?: string | null
+          title: string
+          user_id: string
+        }
+        Update: {
+          acted_at?: string | null
+          acted_by?: string | null
+          agent_id?: string
+          body?: string | null
+          created_at?: string
+          edit_diff?: string | null
+          id?: string
+          kind?: string
+          metadata?: Json | null
+          priority?: number
+          ref_id?: string | null
+          ref_table?: string | null
+          run_id?: string | null
+          status?: string
+          suggested_at?: string | null
+          title?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "exec_os_agent_outputs_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "exec_os_agent_runs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      exec_os_agent_runs: {
+        Row: {
+          agent_id: string
+          context: Json | null
+          cost_usd: number
+          error: string | null
+          finished_at: string | null
+          id: string
+          outputs_count: number
+          started_at: string
+          status: string
+          summary: string | null
+          tokens_in: number
+          tokens_out: number
+          trigger_id: string | null
+          trigger_kind: string
+          user_id: string
+        }
+        Insert: {
+          agent_id: string
+          context?: Json | null
+          cost_usd?: number
+          error?: string | null
+          finished_at?: string | null
+          id?: string
+          outputs_count?: number
+          started_at?: string
+          status?: string
+          summary?: string | null
+          tokens_in?: number
+          tokens_out?: number
+          trigger_id?: string | null
+          trigger_kind?: string
+          user_id: string
+        }
+        Update: {
+          agent_id?: string
+          context?: Json | null
+          cost_usd?: number
+          error?: string | null
+          finished_at?: string | null
+          id?: string
+          outputs_count?: number
+          started_at?: string
+          status?: string
+          summary?: string | null
+          tokens_in?: number
+          tokens_out?: number
+          trigger_id?: string | null
+          trigger_kind?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "exec_os_agent_runs_trigger_id_fkey"
+            columns: ["trigger_id"]
+            isOneToOne: false
+            referencedRelation: "exec_os_agent_triggers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       exec_os_agent_threads: {
         Row: {
           agent_id: string
@@ -119,6 +249,45 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      exec_os_agent_triggers: {
+        Row: {
+          agent_id: string
+          config: Json
+          created_at: string
+          cron_schedule: string | null
+          enabled: boolean
+          id: string
+          last_run_at: string | null
+          next_run_at: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          agent_id: string
+          config?: Json
+          created_at?: string
+          cron_schedule?: string | null
+          enabled?: boolean
+          id?: string
+          last_run_at?: string | null
+          next_run_at?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          agent_id?: string
+          config?: Json
+          created_at?: string
+          cron_schedule?: string | null
+          enabled?: boolean
+          id?: string
+          last_run_at?: string | null
+          next_run_at?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       exec_os_agents: {
         Row: {
@@ -365,6 +534,146 @@ export type Database = {
           raw_text?: string
           routed_to?: string[] | null
           source?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      exec_os_client_milestones: {
+        Row: {
+          actual_value: number | null
+          client_id: string
+          completed_at: string | null
+          created_at: string
+          description: string | null
+          due_at: string | null
+          id: string
+          kpi_name: string | null
+          kpi_unit: string | null
+          metadata: Json
+          status: string
+          target_value: number | null
+          title: string
+          user_id: string
+          week_number: number
+        }
+        Insert: {
+          actual_value?: number | null
+          client_id: string
+          completed_at?: string | null
+          created_at?: string
+          description?: string | null
+          due_at?: string | null
+          id?: string
+          kpi_name?: string | null
+          kpi_unit?: string | null
+          metadata?: Json
+          status?: string
+          target_value?: number | null
+          title: string
+          user_id: string
+          week_number: number
+        }
+        Update: {
+          actual_value?: number | null
+          client_id?: string
+          completed_at?: string | null
+          created_at?: string
+          description?: string | null
+          due_at?: string | null
+          id?: string
+          kpi_name?: string | null
+          kpi_unit?: string | null
+          metadata?: Json
+          status?: string
+          target_value?: number | null
+          title?: string
+          user_id?: string
+          week_number?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "exec_os_client_milestones_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "exec_os_clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      exec_os_clients: {
+        Row: {
+          acquired_at: string | null
+          company: string | null
+          created_at: string
+          external_ls_customer_id: string | null
+          external_stripe_customer_id: string | null
+          icp_score: number | null
+          id: string
+          last_touchpoint_at: string | null
+          linkedin_url: string | null
+          metadata: Json
+          mrr_cents: number
+          name: string
+          next_action_at: string | null
+          next_action_kind: string | null
+          notes: string | null
+          one_time_value_cents: number
+          primary_contact_email: string | null
+          source: string | null
+          status: string
+          tags: string[] | null
+          title: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          acquired_at?: string | null
+          company?: string | null
+          created_at?: string
+          external_ls_customer_id?: string | null
+          external_stripe_customer_id?: string | null
+          icp_score?: number | null
+          id?: string
+          last_touchpoint_at?: string | null
+          linkedin_url?: string | null
+          metadata?: Json
+          mrr_cents?: number
+          name: string
+          next_action_at?: string | null
+          next_action_kind?: string | null
+          notes?: string | null
+          one_time_value_cents?: number
+          primary_contact_email?: string | null
+          source?: string | null
+          status?: string
+          tags?: string[] | null
+          title?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          acquired_at?: string | null
+          company?: string | null
+          created_at?: string
+          external_ls_customer_id?: string | null
+          external_stripe_customer_id?: string | null
+          icp_score?: number | null
+          id?: string
+          last_touchpoint_at?: string | null
+          linkedin_url?: string | null
+          metadata?: Json
+          mrr_cents?: number
+          name?: string
+          next_action_at?: string | null
+          next_action_kind?: string | null
+          notes?: string | null
+          one_time_value_cents?: number
+          primary_contact_email?: string | null
+          source?: string | null
+          status?: string
+          tags?: string[] | null
+          title?: string | null
+          updated_at?: string
           user_id?: string
         }
         Relationships: []
@@ -704,6 +1013,81 @@ export type Database = {
         }
         Relationships: []
       }
+      exec_os_outreach: {
+        Row: {
+          approval_required: boolean
+          body: string | null
+          channel: string
+          client_id: string | null
+          created_at: string
+          delivered_at: string | null
+          direction: string
+          generated_by_agent_id: string | null
+          id: string
+          metadata: Json
+          opened_at: string | null
+          replied_at: string | null
+          sent_at: string | null
+          source_agent_output_id: string | null
+          status: string
+          subject: string | null
+          user_id: string
+        }
+        Insert: {
+          approval_required?: boolean
+          body?: string | null
+          channel: string
+          client_id?: string | null
+          created_at?: string
+          delivered_at?: string | null
+          direction?: string
+          generated_by_agent_id?: string | null
+          id?: string
+          metadata?: Json
+          opened_at?: string | null
+          replied_at?: string | null
+          sent_at?: string | null
+          source_agent_output_id?: string | null
+          status?: string
+          subject?: string | null
+          user_id: string
+        }
+        Update: {
+          approval_required?: boolean
+          body?: string | null
+          channel?: string
+          client_id?: string | null
+          created_at?: string
+          delivered_at?: string | null
+          direction?: string
+          generated_by_agent_id?: string | null
+          id?: string
+          metadata?: Json
+          opened_at?: string | null
+          replied_at?: string | null
+          sent_at?: string | null
+          source_agent_output_id?: string | null
+          status?: string
+          subject?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "exec_os_outreach_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "exec_os_clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "exec_os_outreach_source_agent_output_id_fkey"
+            columns: ["source_agent_output_id"]
+            isOneToOne: false
+            referencedRelation: "exec_os_agent_outputs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       exec_os_projects: {
         Row: {
           created_at: string
@@ -742,6 +1126,96 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      exec_os_proposals: {
+        Row: {
+          accepted_at: string | null
+          body: string | null
+          client_id: string
+          created_at: string
+          declined_at: string | null
+          expires_at: string | null
+          external_id: string | null
+          external_url: string | null
+          generated_by_agent_id: string | null
+          id: string
+          metadata: Json
+          mrr_cents: number
+          one_time_cents: number
+          retainer_months: number | null
+          scope_summary: string | null
+          sent_at: string | null
+          source_agent_output_id: string | null
+          status: string
+          title: string
+          updated_at: string
+          user_id: string
+          viewed_at: string | null
+        }
+        Insert: {
+          accepted_at?: string | null
+          body?: string | null
+          client_id: string
+          created_at?: string
+          declined_at?: string | null
+          expires_at?: string | null
+          external_id?: string | null
+          external_url?: string | null
+          generated_by_agent_id?: string | null
+          id?: string
+          metadata?: Json
+          mrr_cents?: number
+          one_time_cents?: number
+          retainer_months?: number | null
+          scope_summary?: string | null
+          sent_at?: string | null
+          source_agent_output_id?: string | null
+          status?: string
+          title: string
+          updated_at?: string
+          user_id: string
+          viewed_at?: string | null
+        }
+        Update: {
+          accepted_at?: string | null
+          body?: string | null
+          client_id?: string
+          created_at?: string
+          declined_at?: string | null
+          expires_at?: string | null
+          external_id?: string | null
+          external_url?: string | null
+          generated_by_agent_id?: string | null
+          id?: string
+          metadata?: Json
+          mrr_cents?: number
+          one_time_cents?: number
+          retainer_months?: number | null
+          scope_summary?: string | null
+          sent_at?: string | null
+          source_agent_output_id?: string | null
+          status?: string
+          title?: string
+          updated_at?: string
+          user_id?: string
+          viewed_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "exec_os_proposals_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "exec_os_clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "exec_os_proposals_source_agent_output_id_fkey"
+            columns: ["source_agent_output_id"]
+            isOneToOne: false
+            referencedRelation: "exec_os_agent_outputs"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       exec_os_public_profile: {
         Row: {
