@@ -40,19 +40,56 @@ const LOVABLE_KEY = Deno.env.get("LOVABLE_API_KEY");
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL") ?? "";
 const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
 
-const CLEO_SYSTEM = `You are Cleo — Donna Curtis's CMO strategist and sales agent.
+const CLEO_SYSTEM = `You are Cleo, Donna Curtis's CMO strategist and sales agent.
 
 Donna runs an AI Lead Conversion business targeting fractional CMOs:
   - Build: $7,500 one-time
   - Retainer: $1,500/mo
 She is ND (AUDHD), bootstrapped, books few sales calls, hates pushy outreach.
 
-YOUR VOICE:
+============================================================
+ANTI-HALLUCINATION RULES (HIGHEST PRIORITY, OVERRIDES EVERYTHING ELSE)
+============================================================
+
+You will be given a "FACTS YOU HAVE" list and a "FACTS YOU DO NOT HAVE" list.
+
+RULES:
+1. NEVER invent, infer, or guess facts about the recipient that are not in the FACTS YOU HAVE list.
+2. Specifically FORBIDDEN unless explicitly listed in FACTS YOU HAVE:
+   - "Saw your post about X"
+   - "I noticed your recent X"
+   - "Loved your take on X"
+   - Any reference to something they wrote, said, posted, shipped, launched, or did
+   - Any specific metric or detail about their work
+3. NEVER claim Donna has results, clients, or metrics unless in FACTS YOU HAVE.
+   FORBIDDEN inventions: "3 clients shipped", "avg $40K in 90 days", "I've helped X people do Y".
+4. If FACTS YOU HAVE is thin, write a thinner message. Better to say
+   "Came across your profile, noticed you're a fractional CMO at Acme Co" than to invent.
+5. If you have nothing real to anchor on, lead with the SHARED CATEGORY only
+   ("Saw you're a fractional CMO" — that's a fact from their title).
+
+VOICE:
 - Warm, direct, no jargon. Sounds like a peer, not a salesperson.
-- Short. 2–4 sentences for DMs. Never the LinkedIn cliché ("Hope you're doing well!").
-- Lead with one specific observation about THEM (their role / company / recent move).
+- Short: 2 to 4 sentences for DMs.
+- Never the LinkedIn cliche "Hope you're doing well".
 - Open a loop, don't pitch. End with a low-friction question.
-- NEVER use: "circle back", "touch base", "synergy", "leverage", "deck", em dashes, "—".
+
+PUNCTUATION (STRICT):
+- NEVER use em dashes ("—") or en dashes ("–"). Use periods, commas, or "and" instead.
+  WRONG: "If you're swamped — your AI does the cold work"
+  RIGHT: "If you're swamped, your AI does the cold work."
+- NEVER use semicolons.
+- Keep sentences short. Two short sentences beat one long one.
+
+BANNED WORDS/PHRASES (NEVER USE):
+- circle back
+- touch base
+- synergy / synergize
+- leverage (as a verb)
+- deck (use "proposal" or "doc")
+- pick your brain
+- 10x / move the needle / unlock value
+- Hope you're doing well / Hope this finds you well
 
 YOUR JOB:
 You draft outreach. Donna reviews and sends. You never claim to send anything yourself.
@@ -158,24 +195,56 @@ async function llmDraft(opts: {
   if (!LOVABLE_KEY) throw new Error("LOVABLE_API_KEY not configured");
 
   const c = opts.client;
-  const userBlock = `CLIENT TO DRAFT FOR:
-- Name: ${c.name}
-- Company: ${c.company ?? "?"}
-- Title: ${c.title ?? "?"}
-- LinkedIn: ${c.linkedin_url ?? "?"}
-- Pipeline status: ${c.status}
-- Source: ${c.source ?? "?"}
-- Tags: ${(c.tags ?? []).join(", ") || "—"}
-- Existing value: ${c.mrr_cents > 0 ? `$${(c.mrr_cents / 100).toFixed(0)}/mo MRR` : ""}${c.one_time_value_cents > 0 ? ` + $${(c.one_time_value_cents / 100).toFixed(0)} one-time` : ""}
-- Last touchpoint: ${c.last_touchpoint_at ?? "never"}
-- Next action: ${c.next_action_kind ?? "follow_up"} (was due ${c.next_action_at ?? "—"})
-- Notes from Donna: ${c.notes ?? "—"}
 
-DRAFTING INTENT:
+  // Build "FACTS YOU HAVE" vs "FACTS YOU DO NOT HAVE" lists so the model
+  // can't quietly invent context. Donna's notes are the ground-truth source
+  // for anything beyond name/title/company/status.
+  const facts: string[] = [`Their name is ${c.name}.`];
+  if (c.title) facts.push(`Their title is "${c.title}".`);
+  if (c.company) facts.push(`They work at ${c.company}.`);
+  if (c.linkedin_url) facts.push(`They have a LinkedIn profile.`);
+  facts.push(`Their pipeline status with Donna is "${c.status}".`);
+  if (c.source) facts.push(`They came in via: ${c.source}.`);
+  if ((c.tags ?? []).length > 0) facts.push(`Tags Donna added: ${(c.tags ?? []).join(", ")}.`);
+  if (c.mrr_cents > 0) facts.push(`They pay Donna $${(c.mrr_cents / 100).toFixed(0)}/mo MRR.`);
+  if (c.one_time_value_cents > 0) facts.push(`They paid Donna $${(c.one_time_value_cents / 100).toFixed(0)} one-time.`);
+  if (c.last_touchpoint_at) facts.push(`Last touchpoint was ${c.last_touchpoint_at}.`);
+  if (c.notes && c.notes.trim()) {
+    facts.push(`Donna's notes about them (ground truth — use this freely): "${c.notes.trim()}"`);
+  }
+
+  const unknowns: string[] = [];
+  if (!c.notes || !c.notes.trim()) {
+    unknowns.push("What they posted, wrote, or said publicly. Donna has not given you any of their content.");
+    unknowns.push("Their specific opinions, recent launches, or projects.");
+    unknowns.push("Any mutual connections or shared history.");
+  }
+  unknowns.push("Donna's specific client count, revenue history, or case study metrics. NEVER invent numbers like '3 clients shipped' or '$40K in 90 days'.");
+  unknowns.push("Specific results Donna's product has produced. Stick to the offer (AI Lead Conversion Systems for fractional CMOs).");
+
+  const userBlock = `============================================================
+FACTS YOU HAVE (use these freely, do not invent anything else)
+============================================================
+${facts.map((f, i) => `${i + 1}. ${f}`).join("\n")}
+
+============================================================
+FACTS YOU DO NOT HAVE — DO NOT INVENT THESE
+============================================================
+${unknowns.map((u, i) => `${i + 1}. ${u}`).join("\n")}
+
+============================================================
+DRAFTING INTENT
+============================================================
 ${opts.intent}
 ${opts.extraContext ? `\nADDITIONAL CONTEXT FROM DONNA:\n${opts.extraContext}` : ""}
 
-Draft ONE message via the draft_outreach function. Pick the channel that fits: LinkedIn if they came from LinkedIn or have a LinkedIn URL, email otherwise.`;
+============================================================
+INSTRUCTIONS
+============================================================
+Draft ONE message via the draft_outreach function.
+- Anchor the opening line on a FACT YOU HAVE. If the only facts are name/title/company, that is fine: "Saw you're a fractional CMO at ${c.company ?? "their company"}" is honest. "Saw your post about X" is forbidden unless Donna's notes literally mention such a post.
+- Channel: LinkedIn if they came in via LinkedIn or have a LinkedIn URL, otherwise email.
+- Remember: NO em dashes, NO banned phrases, 2 to 4 sentences max.`;
 
   const resp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
     method: "POST",
@@ -205,8 +274,24 @@ Draft ONE message via the draft_outreach function. Pick the channel that fits: L
   if (!call?.function?.arguments) return null;
   try {
     const parsed = JSON.parse(call.function.arguments);
+
+    // Post-process body + title through the sanitizer to strip em dashes,
+    // semicolons, and flag banned phrases the model slipped past the prompt.
+    const bodyClean = sanitizeDraft(parsed.body ?? "");
+    const titleClean = sanitizeDraft(parsed.title ?? "");
+    const allEdits = [...bodyClean.edits, ...titleClean.edits];
+    if (allEdits.length > 0) {
+      console.log("sanitizer edits:", allEdits.join(" | "));
+    }
+
     return {
       ...parsed,
+      body: bodyClean.clean,
+      title: titleClean.clean,
+      // Append sanitizer notes onto rationale so Donna can see what was scrubbed.
+      rationale: allEdits.length > 0
+        ? `${parsed.rationale ?? ""}\n[Sanitizer: ${allEdits.join("; ")}]`.trim()
+        : parsed.rationale,
       tokens_in: data?.usage?.prompt_tokens ?? 0,
       tokens_out: data?.usage?.completion_tokens ?? 0,
     } as DraftResult;
@@ -224,6 +309,62 @@ function estimateCost(tokensIn: number, tokensOut: number): number {
   const inUsdPerM = 0.075;
   const outUsdPerM = 0.30;
   return ((tokensIn * inUsdPerM) + (tokensOut * outUsdPerM)) / 1_000_000;
+}
+
+/**
+ * Sanitize a draft body: strip em/en dashes and banned phrases that the
+ * model often produces despite system-prompt instructions. This is a
+ * belt-and-suspenders layer — the prompt forbids them, but Gemini Flash
+ * ignores those rules ~40% of the time.
+ *
+ * Returns the sanitized text plus a list of edits made (for debugging).
+ */
+function sanitizeDraft(input: string): { clean: string; edits: string[] } {
+  let s = input;
+  const edits: string[] = [];
+
+  // 1. Em/en dash handling.
+  // Pattern " — " (spaced em dash) — most common, almost always wants a period.
+  if (/\s+[—–]\s+/g.test(s)) {
+    s = s.replace(/\s+[—–]\s+/g, ". ");
+    edits.push("replaced ' — ' with '. '");
+  }
+  // Unspaced dashes inside words ("fact—not a question") — replace with comma+space.
+  if (/[—–]/.test(s)) {
+    s = s.replace(/[—–]/g, ", ");
+    edits.push("replaced inline '—' with ', '");
+  }
+  // Collapse any double spaces or stray ". ." artifacts.
+  s = s.replace(/\.\s*\./g, ".").replace(/\s{2,}/g, " ");
+
+  // 2. Semicolons → periods.
+  if (/;/.test(s)) {
+    s = s.replace(/;\s*/g, ". ");
+    edits.push("replaced semicolons");
+  }
+
+  // 3. Banned phrase scrub. Case-insensitive. Replace with neutral alternatives
+  // or just delete the offending sentence. For v1 we just FLAG them in edits
+  // so Donna sees what slipped through — we don't aggressively rewrite the
+  // sentence (that risks worse output). If a banned phrase appears, we tag it.
+  const banned: Array<[RegExp, string]> = [
+    [/\bcircle back\b/gi, "circle back"],
+    [/\btouch base\b/gi, "touch base"],
+    [/\bsynerg(y|ize|ies)\b/gi, "synergy"],
+    [/\bleverag(e|ing|ed)\b/gi, "leverage"],
+    [/\bpick your brain\b/gi, "pick your brain"],
+    [/\bmove the needle\b/gi, "move the needle"],
+    [/\bunlock value\b/gi, "unlock value"],
+    [/\bhope (you'?re|this finds you) (doing )?well\b/gi, "hope you're doing well"],
+    [/\b10[- ]?x\b/gi, "10x"],
+  ];
+  for (const [re, label] of banned) {
+    if (re.test(s)) {
+      edits.push(`⚠ contains banned phrase: "${label}"`);
+    }
+  }
+
+  return { clean: s.trim(), edits };
 }
 
 /**

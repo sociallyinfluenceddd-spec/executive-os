@@ -573,6 +573,7 @@ function AddClientForm({ onSaved, onCancel }: { onSaved: () => Promise<void>; on
   const [title, setTitle] = useState("");
   const [linkedinUrl, setLinkedinUrl] = useState("");
   const [source, setSource] = useState("linkedin_inbound");
+  const [notes, setNotes] = useState("");
   const [saving, setSaving] = useState(false);
 
   const onSubmit = async () => {
@@ -588,6 +589,7 @@ function AddClientForm({ onSaved, onCancel }: { onSaved: () => Promise<void>; on
         title: title.trim() || null,
         linkedin_url: linkedinUrl.trim() || null,
         source,
+        notes: notes.trim() || null,
         status: "lead",
       });
       if (res.ok) {
@@ -622,6 +624,15 @@ function AddClientForm({ onSaved, onCancel }: { onSaved: () => Promise<void>; on
           <SelectItem value="other" className="text-xs">Other</SelectItem>
         </SelectContent>
       </Select>
+      <Textarea
+        value={notes}
+        onChange={(e) => setNotes(e.target.value)}
+        placeholder="What you actually know about them — quote from their bio, post they wrote, mutual connection, why they're a fit. Cleo treats this as GROUND TRUTH and won't invent facts."
+        className="text-xs min-h-[70px]"
+      />
+      <p className="text-[10px] text-muted-foreground leading-snug">
+        Empty notes = Cleo can only reference name/title/company. Add 1-2 real facts to get a sharper draft.
+      </p>
       <div className="flex gap-2">
         <Button size="sm" onClick={onSubmit} disabled={saving} className="text-xs">Add</Button>
         <Button size="sm" variant="ghost" onClick={onCancel} className="text-xs">Cancel</Button>
