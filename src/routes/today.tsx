@@ -630,38 +630,33 @@ function TodayPage() {
   // added/changed in Google Calendar and we don't want to wait for the
   // daily 5am cron pull.
   const [refreshing, setRefreshing] = useState(false);
+  // Manual refresh — re-pulls calendar + Gmail live and reloads all dashboard
+  // state. Replaces the old Make.com-trigger path (refresh-calendars edge
+  // function firing scenario webhooks), which has been dead since 2026-05-19.
+  // Both data sources now flow through our own OAuth-backed edge functions:
+  //   - fetchCalendarEvents → live Google Calendar
+  //   - refreshGmail → fetch-gmail-emails edge fn upserts to exec_os_emails
+  // loadAll() handles the rest (revenue, daily, lastDone, etc).
   const refreshCalendars = useCallback(async () => {
     if (refreshing) return;
     setRefreshing(true);
     try {
-      const { data, error } = await supabase.functions.invoke("refresh-calendars", {
-        body: {},
-      });
-      if (error) {
-        const msg = (error.message ?? "").toLowerCase();
-        if (msg.includes("500") || msg.includes("make_api_token")) {
-          toast.error("Make.com token not set — add MAKE_API_TOKEN in Lovable Cloud → Settings → Secrets.", { duration: 8000 });
-        } else {
-          // Function not deployed or unreachable — give a direct Make.com fallback
-          toast.error("Sync trigger unavailable — go to Make.com and run scenarios #5067108 and #5072163 manually.", { duration: 10000 });
-        }
-        return;
-      }
-      const results = (data?.results ?? []) as Array<{ ok: boolean; error?: string }>;
-      const failed = results.filter((r) => !r.ok);
-      if (failed.length === 0) {
-        toast.success("Calendar sync started — new events will appear shortly.");
-      } else if (failed.length === results.length) {
-        toast.error(`All scenarios failed: ${failed[0]?.error ?? "unknown"}`);
-      } else {
-        toast.warning(`${failed.length}/${results.length} scenarios failed to start.`);
-      }
+      // Kick off Gmail refresh first (fire-and-forget — its writes flow in via
+      // realtime). Calendar live-fetch happens inside loadAll().
+      void refreshGmail();
+      await loadAllRef.current?.();
+      toast.success("Synced calendar + Gmail.");
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Refresh failed");
     } finally {
       setRefreshing(false);
     }
   }, [refreshing]);
+
+  // Stable ref to loadAll so the refreshCalendars callback can reach it even
+  // though loadAll is declared later in this component. Avoids the "cannot
+  // access before initialization" issue with useCallback ordering.
+  const loadAllRef = useRef<(() => Promise<void>) | null>(null);
 
   // Dashboard grid layout state
   //
@@ -1005,6 +1000,7 @@ function TodayPage() {
   }, [user, selectedDate]);
 
   useEffect(() => {
+    loadAllRef.current = loadAll;
     void loadAll();
   }, [loadAll, refreshTick]);
 

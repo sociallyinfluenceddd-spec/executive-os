@@ -132,31 +132,39 @@ function IntegrationHealth() {
 
   useEffect(() => { void load(); }, [load]);
 
+  // Manual sync — fires both live Google integrations and reloads the data
+  // health pills. No more Make.com (paused 2026-05-19).
   const refreshCalendar = useCallback(async () => {
     if (refreshing) return;
     setRefreshing(true);
     try {
-      const { data, error } = await supabase.functions.invoke("refresh-calendars", { body: {} });
-      if (error) {
-        const msg = (error.message ?? "").toLowerCase();
-        if (msg.includes("500") || msg.includes("make_api_token")) {
-          toast.error("Make.com token not set — add MAKE_API_TOKEN in Lovable Cloud → Settings → Secrets.", { duration: 8000 });
-        } else {
-          toast.error("Sync trigger unavailable — run Make.com scenarios #5067108 and #5072163 manually.", { duration: 10000 });
-        }
-        return;
-      }
-      const results = (data?.results ?? []) as Array<{ ok: boolean; id: string; error?: string }>;
-      const failed = results.filter((r) => !r.ok);
-      if (failed.length === 0) {
-        toast.success("Calendar sync triggered — new events will appear in ~30 seconds.");
-      } else if (failed.length === results.length) {
-        toast.error(`Make.com scenarios failed: ${failed.map((r) => r.error ?? r.id).join(", ")}`);
+      // Both edge functions handle their own auth + token refresh. Parallel.
+      const [gmailRes, calRes] = await Promise.all([
+        supabase.functions.invoke("fetch-gmail-emails", { body: {} }),
+        supabase.functions.invoke("fetch-calendar-events", { body: {} }),
+      ]);
+
+      const errors: string[] = [];
+      const gmailData = gmailRes.data as { error?: string; message?: string; counts?: { priority: number; needs_response: number } } | null;
+      const calData = calRes.data as { error?: string; message?: string; count?: number } | null;
+
+      if (gmailRes.error) errors.push(`Gmail: ${gmailRes.error.message}`);
+      else if (gmailData?.error) errors.push(`Gmail: ${gmailData.message ?? gmailData.error}`);
+
+      if (calRes.error) errors.push(`Calendar: ${calRes.error.message}`);
+      else if (calData?.error) errors.push(`Calendar: ${calData.message ?? calData.error}`);
+
+      if (errors.length === 0) {
+        const gP = gmailData?.counts?.priority ?? 0;
+        const gN = gmailData?.counts?.needs_response ?? 0;
+        const cN = calData?.count ?? 0;
+        toast.success(`Synced. ${gP + gN} emails, ${cN} calendar events.`);
+      } else if (errors.length === 2) {
+        toast.error(errors.join(" · "));
       } else {
-        toast.warning(`${failed.length}/${results.length} scenarios failed`);
+        toast.warning(`Partial sync: ${errors[0]}`);
       }
-      // Reload health after brief delay
-      setTimeout(() => void load(), 5000);
+      setTimeout(() => void load(), 1500);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Refresh failed");
     } finally {
