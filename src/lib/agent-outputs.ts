@@ -44,6 +44,17 @@ export interface AgentOutput {
   edit_diff: string | null;
   metadata: Record<string, unknown>;
   created_at: string;
+  // Joined from exec_os_clients when ref_table='exec_os_clients'.
+  // Populated by listPendingOutputs via a second fetch.
+  client?: {
+    id: string;
+    name: string;
+    company: string | null;
+    title: string | null;
+    linkedin_url: string | null;
+    primary_contact_email: string | null;
+    status: string;
+  } | null;
 }
 
 /**
@@ -62,7 +73,31 @@ export async function listPendingOutputs(limit = 25): Promise<AgentOutput[]> {
     console.error("listPendingOutputs failed", error);
     return [];
   }
-  return (data ?? []) as AgentOutput[];
+  const outputs = (data ?? []) as AgentOutput[];
+
+  // Bulk-fetch linked clients so each row can show channel/contact/role/status.
+  const clientIds = Array.from(
+    new Set(
+      outputs
+        .filter((o) => o.ref_table === "exec_os_clients" && o.ref_id)
+        .map((o) => o.ref_id as string),
+    ),
+  );
+
+  if (clientIds.length > 0) {
+    const { data: clients } = await supabase
+      .from("exec_os_clients")
+      .select("id, name, company, title, linkedin_url, primary_contact_email, status")
+      .in("id", clientIds);
+    const byId = new Map((clients ?? []).map((c: any) => [c.id, c]));
+    for (const o of outputs) {
+      if (o.ref_table === "exec_os_clients" && o.ref_id) {
+        o.client = (byId.get(o.ref_id) ?? null) as AgentOutput["client"];
+      }
+    }
+  }
+
+  return outputs;
 }
 
 /**

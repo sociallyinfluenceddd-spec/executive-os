@@ -27,7 +27,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { Sparkles, Check, X, Edit3, Archive, ChevronDown, ChevronRight, Clock } from "lucide-react";
+import { Sparkles, Check, X, Edit3, Archive, ChevronDown, ChevronRight, Clock, Copy, ExternalLink, Mail, MessageSquare } from "lucide-react";
 import { relTime } from "@/lib/time";
 import { toast } from "sonner";
 
@@ -204,6 +204,32 @@ function OutputItem(props: {
 }) {
   const { output, expanded, editing } = props;
 
+  const channel = (output.metadata?.channel as string | undefined) ?? "";
+  const rationale = (output.metadata?.rationale as string | undefined) ?? "";
+  const clientName = (output.metadata?.client_name as string | undefined) ?? output.client?.name ?? "";
+  const clientStatus = (output.metadata?.client_status as string | undefined) ?? output.client?.status ?? "";
+  const linkedinUrl = output.client?.linkedin_url ?? "";
+  const email = output.client?.primary_contact_email ?? "";
+  const company = output.client?.company ?? "";
+  const clientTitle = output.client?.title ?? "";
+
+  const channelIcon = channel === "email"
+    ? <Mail className="h-3 w-3" />
+    : <MessageSquare className="h-3 w-3" />;
+
+  const sendUrl = channel === "linkedin" && linkedinUrl
+    ? linkedinUrl
+    : channel === "email" && email
+      ? `mailto:${email}`
+      : "";
+
+  const onCopyBody = () => {
+    if (!output.body) return;
+    navigator.clipboard.writeText(output.body).then(() => {
+      toast.success("Copied — paste into " + (channel === "linkedin" ? "LinkedIn" : channel === "email" ? "your email" : "the channel"));
+    }).catch(() => toast.error("Copy failed"));
+  };
+
   return (
     <div className="rounded-lg border border-border bg-background/40">
       <button
@@ -220,19 +246,59 @@ function OutputItem(props: {
             <Badge variant="outline" className="text-[10px] px-1.5 py-0">
               {KIND_LABEL[output.kind]}
             </Badge>
+            {channel && (
+              <Badge variant="outline" className="text-[10px] px-1.5 py-0 flex items-center gap-1">
+                {channelIcon}
+                {channel}
+              </Badge>
+            )}
             <span className="text-sm font-medium truncate">{output.title}</span>
           </div>
-          {output.suggested_at && (
-            <div className="flex items-center gap-1 text-[11px] text-muted-foreground mt-1">
-              <Clock className="h-3 w-3" />
-              <span>Suggested send: {relTime(output.suggested_at)}</span>
-            </div>
-          )}
+          <div className="flex items-center gap-2 flex-wrap text-[11px] text-muted-foreground mt-1">
+            {clientName && (
+              <span>
+                <span className="font-medium text-foreground/80">{clientName}</span>
+                {clientTitle && <> · {clientTitle}</>}
+                {company && <> @ {company}</>}
+                {clientStatus && <> · <em>{clientStatus}</em></>}
+              </span>
+            )}
+            {output.suggested_at && (
+              <span className="flex items-center gap-1">
+                <Clock className="h-3 w-3" />
+                {relTime(output.suggested_at)}
+              </span>
+            )}
+          </div>
         </div>
       </button>
 
       {expanded && (
         <div className="border-t border-border px-3 py-3 space-y-3">
+          {/* WHY block — Cleo's rationale + contact links */}
+          {(rationale || sendUrl) && (
+            <div className="rounded-md bg-muted/40 px-3 py-2 space-y-2">
+              {rationale && (
+                <div className="text-[11px] leading-relaxed">
+                  <span className="uppercase tracking-wider text-muted-foreground font-medium">Why now: </span>
+                  <span className="text-foreground/80">{rationale}</span>
+                </div>
+              )}
+              {sendUrl && (
+                <a
+                  href={sendUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center gap-1 text-[11px] text-[color:var(--navy)] hover:underline"
+                >
+                  {channelIcon}
+                  {channel === "linkedin" ? "Open LinkedIn profile" : channel === "email" ? `Compose email to ${email}` : "Open"}
+                  <ExternalLink className="h-3 w-3" />
+                </a>
+              )}
+            </div>
+          )}
+
           {editing ? (
             <>
               <Textarea
@@ -252,13 +318,17 @@ function OutputItem(props: {
             </>
           ) : (
             <>
-              <pre className="text-sm whitespace-pre-wrap font-sans text-foreground/90">
+              <pre className="text-sm whitespace-pre-wrap font-sans text-foreground/90 leading-relaxed">
                 {output.body || <em className="text-muted-foreground">No body content.</em>}
               </pre>
               <div className="flex gap-2 flex-wrap">
-                <Button size="sm" onClick={props.onApprove} className="text-xs">
+                <Button size="sm" onClick={onCopyBody} disabled={!output.body} className="text-xs">
+                  <Copy className="h-3 w-3 mr-1" />
+                  Copy message
+                </Button>
+                <Button size="sm" variant="outline" onClick={props.onApprove} className="text-xs">
                   <Check className="h-3 w-3 mr-1" />
-                  Approve
+                  Mark sent
                 </Button>
                 <Button size="sm" variant="outline" onClick={props.onStartEdit} className="text-xs">
                   <Edit3 className="h-3 w-3 mr-1" />
