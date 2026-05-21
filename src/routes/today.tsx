@@ -33,6 +33,7 @@ import { listClients, pipelineSummary, formatCents, STATUS_META, type Client, ty
 import { reissueDraft, runCleoForClient } from "@/lib/cleo";
 import { runSageNow } from "@/lib/sage";
 import { runRenNow } from "@/lib/ren";
+import { runMayaNow } from "@/lib/maya";
 
 export const Route = createFileRoute("/today")({
   component: ConciergePage,
@@ -536,8 +537,11 @@ function ConciergePage() {
                     Maya
                   </span>
                 </div>
-                <div className="big-num-sm" style={{ color: "var(--con-brass-deep)" }}>
-                  {workflowTasks.length}
+                <div className="flex items-baseline gap-4">
+                  <RunMayaButton onDone={reload} />
+                  <div className="big-num-sm" style={{ color: "var(--con-brass-deep)" }}>
+                    {workflowTasks.length}
+                  </div>
                 </div>
               </div>
               <WorkflowsList tasks={workflowTasks} onChanged={reload} />
@@ -845,11 +849,11 @@ function OneEditor({ user, initial, onSaved }: { user: { id: string } | null; in
    BRIEF — one row per agent output, with action buttons inline
    ===================================================================== */
 function BriefRunActions({ onDone }: { onDone: () => void }) {
-  const [busy, setBusy] = useState<"sage" | "ren" | null>(null);
-  const run = async (k: "sage" | "ren") => {
+  const [busy, setBusy] = useState<"sage" | "ren" | "maya" | null>(null);
+  const run = async (k: "sage" | "ren" | "maya") => {
     setBusy(k);
     try {
-      const r = k === "sage" ? await runSageNow() : await runRenNow();
+      const r = k === "sage" ? await runSageNow() : k === "ren" ? await runRenNow() : await runMayaNow();
       if (r.ok) {
         toast.success(r.summary ?? `${k} done.`);
         onDone();
@@ -870,7 +874,46 @@ function BriefRunActions({ onDone }: { onDone: () => void }) {
         {busy === "ren" ? <Loader2 className="h-3 w-3 animate-spin" /> : <PenLine className="h-3 w-3" />}
         Run Ren
       </button>
+      <button onClick={() => run("maya")} disabled={busy !== null} className="inline-flex items-center gap-1.5" style={{ color: "var(--con-brass-deep)" }}>
+        {busy === "maya" ? <Loader2 className="h-3 w-3 animate-spin" /> : <RefreshCw className="h-3 w-3" />}
+        Run Maya
+      </button>
     </div>
+  );
+}
+
+/**
+ * Standalone Run Maya button for the To Ship card header. Same code path
+ * as Run Maya in the Brief card — picks the highest-leverage task and
+ * drafts the build focus + approach notes into the Brief.
+ */
+function RunMayaButton({ onDone }: { onDone: () => void }) {
+  const [busy, setBusy] = useState(false);
+  const click = async () => {
+    setBusy(true);
+    try {
+      const r = await runMayaNow();
+      if (r.ok) {
+        toast.success(r.summary ?? "Maya picked the next ship.");
+        onDone();
+      } else {
+        toast.error(r.error ?? "Maya failed");
+      }
+    } finally {
+      setBusy(false);
+    }
+  };
+  return (
+    <button
+      onClick={click}
+      disabled={busy}
+      className="text-[0.75rem] inline-flex items-center gap-1.5"
+      style={{ color: "var(--con-navy)" }}
+      title="Have Maya pick today's task and draft the approach"
+    >
+      {busy ? <Loader2 className="h-3 w-3 animate-spin" /> : <RefreshCw className="h-3 w-3" />}
+      Ask Maya
+    </button>
   );
 }
 

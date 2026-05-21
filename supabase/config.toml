@@ -44,6 +44,11 @@ verify_jwt = false
 [functions.ren-run]
 verify_jwt = false
 
+# Maya — Build Agent. Picks the highest-leverage task to ship today + drafts
+# approach notes for any task with a claude_prompt field set.
+[functions.maya-run]
+verify_jwt = false
+
 # Stripe + LemonSqueezy webhook receiver. Public endpoint, secured by
 # provider signature verification using STRIPE_WEBHOOK_SECRET / LS_WEBHOOK_SECRET.
 [functions.stripe-webhook]
