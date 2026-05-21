@@ -428,11 +428,6 @@ function ConciergePage() {
               <span style={{ width: "1rem", color: "var(--con-forest)" }}>●</span> Theo
             </a>
           </nav>
-          <div className="mt-auto pt-8 text-[0.6875rem]" style={{ color: "rgba(242, 234, 211, 0.4)" }}>
-            <Link to="/today" style={{ color: "rgba(242, 234, 211, 0.5)" }}>
-              ← old dashboard
-            </Link>
-          </div>
         </aside>
 
         {/* MAIN CONTENT — center */}

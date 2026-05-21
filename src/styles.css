@@ -118,40 +118,43 @@
    Type: Fraunces display + Inter body. Tabular numerals.
    ============================================================ */
 .concierge {
-  /* Studio palette — brand-color tinted cards on a warm cream base, with
-     a dark-navy sidebar and right rail. Hybrid: keeps the elegance of the
-     leather-folder direction but borrows the wellness-app structure.
-     Brand palette: sage / navy / forest / rose / yellow / orange. */
-  --con-cream: #FAF4E6;          /* page background — warm cream */
-  --con-cream-deep: #F2EAD3;     /* hover / soft fill */
-  --con-card: #FFFFFF;           /* default card surface — clean white */
-  --con-charcoal: #14100A;
-  --con-charcoal-soft: #3A3127;
-  --con-charcoal-faint: #6B5F4E;
-  --con-brass: #9C7530;
-  --con-brass-deep: #6E4F18;
-  --con-rule: #E4D9BA;
+  /* Studio palette — modern-app feel. Soft off-white base, clean white
+     cards with COLORED accent strips (not full washes), proper depth via
+     shadows. Sans-serif throughout — no serif anywhere. */
+  --con-bg: #F6F4F0;             /* page — soft warm off-white, not beige */
+  --con-bg-deep: #ECEAE4;        /* sidebar/rail companion */
+  --con-card: #FFFFFF;           /* card interior — clean white */
+  --con-ink: #0F1419;            /* primary text — near-black with cool tint */
+  --con-ink-soft: #4A535C;       /* secondary text */
+  --con-ink-faint: #7E8893;      /* tertiary */
+  --con-rule: #E5E7EB;           /* hairlines — neutral cool grey */
+  --con-hover: #F8F9FB;          /* hover background */
 
-  /* Brand palette — used as soft tints on card backgrounds. Light enough
-     to be a wash, saturated enough to give each card its own identity. */
+  /* Brand palette — used as ACCENT STRIPS on cards, not full washes */
   --con-sage: #A4B494;
+  --con-sage-deep: #6E8B5C;
   --con-navy: #083D77;
   --con-forest: #355834;
   --con-rose: #DB9C96;
+  --con-rose-deep: #B85E54;
   --con-yellow: #FFC100;
+  --con-yellow-deep: #C28F00;
   --con-orange: #E97451;
 
-  /* Card tints — 15% opacity wash of the brand color over white */
-  --con-tint-sage: #ECF1E5;
-  --con-tint-rose: #F7E5E2;
-  --con-tint-yellow: #FFF5D1;
-  --con-tint-orange: #FBE0D2;
-  --con-tint-forest: #E1E8DB;
+  /* Legacy brass tokens — kept for any leftover refs; route them to ink */
+  --con-brass: var(--con-ink-soft);
+  --con-brass-deep: var(--con-ink);
+  --con-charcoal: var(--con-ink);
+  --con-charcoal-soft: var(--con-ink-soft);
+  --con-charcoal-faint: var(--con-ink-faint);
+  --con-card-edge: var(--con-rule);
+  --con-cream: var(--con-bg);
+  --con-cream-deep: var(--con-bg-deep);
 
-  background-color: var(--con-cream);
-  color: var(--con-charcoal);
+  background-color: var(--con-bg);
+  color: var(--con-ink);
   font-family: "Inter", ui-sans-serif, system-ui, sans-serif;
-  letter-spacing: 0;
+  letter-spacing: -0.005em;
   font-feature-settings: "ss01", "cv11", "tnum";
   min-height: 100vh;
 }
@@ -197,9 +200,9 @@
   font-weight: 500;
 }
 
-/* Right rail — for the calendar, quick actions, etc. Lighter than main. */
+/* Right rail — lighter neutral, separated by a hairline. */
 .concierge .studio-rail {
-  background-color: var(--con-cream-deep);
+  background-color: var(--con-card);
   border-left: 1px solid var(--con-rule);
   padding: 1.5rem 1.25rem;
 }
@@ -209,42 +212,107 @@
   padding: 2rem 2.5rem;
 }
 
-/* Card — wraps each section. Default = clean white with subtle shadow.
-   Variants (.tint-sage, .tint-rose, etc.) wash the card with a soft
-   brand-color tint so each section has its own identity. */
+/* Card — clean white with a colored accent strip on top, real depth via
+   layered shadows. Tactile, interactive. Modern app shape language. */
 .concierge .con-card {
   background-color: var(--con-card);
   border: 1px solid var(--con-rule);
-  border-radius: 16px;
+  border-radius: 14px;
   padding: 1.5rem 1.5rem;
-  box-shadow: 0 1px 0 rgba(20, 16, 10, 0.02),
-              0 8px 24px rgba(20, 16, 10, 0.04);
+  position: relative;
+  overflow: hidden;
+  box-shadow:
+    0 1px 2px rgba(15, 20, 25, 0.04),
+    0 4px 12px rgba(15, 20, 25, 0.04),
+    0 12px 32px rgba(15, 20, 25, 0.03);
+  transition: box-shadow 200ms ease-out, transform 200ms ease-out;
 }
-.concierge .tint-sage   { background-color: var(--con-tint-sage); }
-.concierge .tint-rose   { background-color: var(--con-tint-rose); }
-.concierge .tint-yellow { background-color: var(--con-tint-yellow); }
-.concierge .tint-orange { background-color: var(--con-tint-orange); }
-.concierge .tint-forest { background-color: var(--con-tint-forest); }
-.concierge .tint-cream  { background-color: var(--con-card); }
+.concierge .con-card:hover {
+  box-shadow:
+    0 1px 2px rgba(15, 20, 25, 0.05),
+    0 6px 16px rgba(15, 20, 25, 0.06),
+    0 16px 40px rgba(15, 20, 25, 0.05);
+  transform: translateY(-1px);
+}
 
-/* Big personality numbers — for the wellness-app feel */
+/* Accent strip on the top edge — visible color identity without flooding
+   the whole card with a wash. Modern, dimensional. */
+.concierge .con-card::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background-color: transparent;
+}
+.concierge .tint-sage::before   { background-color: var(--con-sage); }
+.concierge .tint-rose::before   { background-color: var(--con-rose); }
+.concierge .tint-yellow::before { background-color: var(--con-yellow); }
+.concierge .tint-orange::before { background-color: var(--con-orange); }
+.concierge .tint-forest::before { background-color: var(--con-forest); }
+.concierge .tint-navy::before   { background-color: var(--con-navy); }
+.concierge .tint-cream::before  { background-color: var(--con-rule); }
+
+/* Tints are now ONLY the accent strip — card interior stays white */
+.concierge .tint-sage,
+.concierge .tint-rose,
+.concierge .tint-yellow,
+.concierge .tint-orange,
+.concierge .tint-forest,
+.concierge .tint-navy,
+.concierge .tint-cream {
+  background-color: var(--con-card);
+}
+
+/* Big personality numbers — Inter, bold, tight letter spacing */
 .concierge .big-num {
-  font-family: "Fraunces", "Times New Roman", serif;
-  font-optical-sizing: auto;
-  font-weight: 500;
-  letter-spacing: -0.03em;
+  font-family: "Inter", ui-sans-serif, system-ui, sans-serif;
+  font-weight: 600;
+  letter-spacing: -0.04em;
   font-size: 2.25rem;
   line-height: 1;
   font-variant-numeric: tabular-nums;
 }
 .concierge .big-num-sm {
-  font-family: "Fraunces", "Times New Roman", serif;
-  font-optical-sizing: auto;
-  font-weight: 500;
-  letter-spacing: -0.02em;
+  font-family: "Inter", ui-sans-serif, system-ui, sans-serif;
+  font-weight: 600;
+  letter-spacing: -0.03em;
   font-size: 1.5rem;
   line-height: 1;
   font-variant-numeric: tabular-nums;
+}
+
+/* Override the legacy .display class so any leftover serif refs render
+   in Inter without breaking layout */
+.concierge .display,
+.concierge .display-tight {
+  font-family: "Inter", ui-sans-serif, system-ui, sans-serif;
+  font-weight: 600;
+  letter-spacing: -0.025em;
+}
+.concierge .small-caps {
+  font-family: "Inter", ui-sans-serif, system-ui, sans-serif;
+  font-size: 0.6875rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  font-weight: 600;
+  color: var(--con-ink-soft);
+}
+.concierge .small-caps-muted {
+  font-family: "Inter", ui-sans-serif, system-ui, sans-serif;
+  font-size: 0.6875rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  font-weight: 500;
+  color: var(--con-ink-faint);
+}
+.concierge .monogram {
+  font-family: "Inter", ui-sans-serif, system-ui, sans-serif;
+  font-weight: 700;
+  font-size: 0.9375rem;
+  letter-spacing: 0.05em;
+  color: var(--con-yellow);
 }
 .concierge .con-card-tight {
   background-color: var(--con-card);
