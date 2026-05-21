@@ -1,7 +1,7 @@
 // StudioShell — the cohesive chrome wrapper for the new design.
 //
 // Wraps any route in the studio layout: dark navy sidebar on the left,
-// optional right rail, main content in the middle. Used by /today-v2,
+// optional right rail, main content in the middle. Used by /today,
 // /hub, /capture, /settings so the whole app feels like ONE app, not
 // disconnected screens.
 //
@@ -24,7 +24,7 @@ interface StudioShellProps {
 export function StudioShell({ children, rail }: StudioShellProps) {
   const routerState = useRouterState();
   const path = routerState.location.pathname;
-  const isActive = (p: string) => path === p || (p !== "/today-v2" && path.startsWith(p));
+  const isActive = (p: string) => path === p || (p !== "/today" && path.startsWith(p));
 
   return (
     <div className="concierge">
@@ -35,8 +35,8 @@ export function StudioShell({ children, rail }: StudioShellProps) {
           </div>
 
           <nav className="space-y-1 mb-8">
-            <Link to="/today-v2" data-active={isActive("/today-v2")}>
-              <span style={{ width: "1rem" }}>{isActive("/today-v2") ? "◆" : "◇"}</span> Today
+            <Link to="/today" data-active={isActive("/today")}>
+              <span style={{ width: "1rem" }}>{isActive("/today") ? "◆" : "◇"}</span> Today
             </Link>
             <Link to="/hub" data-active={isActive("/hub")}>
               <span style={{ width: "1rem" }}>{isActive("/hub") ? "◆" : "◇"}</span> Hub
