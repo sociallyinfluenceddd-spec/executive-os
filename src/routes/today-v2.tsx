@@ -363,12 +363,6 @@ function ConciergePage() {
 
         <div className="h-px mb-8" style={{ backgroundColor: "var(--con-rule)" }} />
 
-        {/* THE ONE — its own card, full width, prominent */}
-        <div className="con-card mb-8">
-          <div className="small-caps mb-3">The One</div>
-          <OneEditor user={user} initial={daily?.top_priority ?? ""} onSaved={reload} />
-        </div>
-
         {/* TWO-COLUMN MAIN BODY — each section is its own card */}
         <div className="grid grid-cols-1 lg:grid-cols-[1.1fr_1fr] gap-6 mb-8">
 
