@@ -415,6 +415,7 @@ export const Route = createFileRoute("/today")({
 type EmailRow = {
   id: string;
   account: string;
+  external_id: string | null;
   kind: "priority" | "needs_response" | "invite" | "meeting";
   sender_name: string | null;
   sender_email: string | null;
@@ -887,7 +888,7 @@ function TodayPage() {
       supabase
         .from("exec_os_emails")
         .select(
-          "id,account,kind,sender_name,sender_email,subject,snippet,received_at,scheduled_at,attendees,video_url,status",
+          "id,account,external_id,kind,sender_name,sender_email,subject,snippet,received_at,scheduled_at,attendees,video_url,status",
         )
         .eq("user_id", user.id),
       // Today's daily row only — pills must reflect TODAY, not the most-recent
@@ -1107,15 +1108,23 @@ function TodayPage() {
   const needsRespCount = filteredEmails.filter(
     (e) => e.kind === "needs_response" && e.status === "unread",
   ).length;
-  const topSenders = useMemo(() => {
-    const list = filteredEmails
+  const topPriorityEmails = useMemo(() => {
+    return filteredEmails
+      .filter((e) => e.kind === "priority" && e.status === "unread")
+      .sort(
+        (a, b) =>
+          new Date(b.received_at ?? 0).getTime() - new Date(a.received_at ?? 0).getTime(),
+      )
+      .slice(0, 8);
+  }, [filteredEmails]);
+  const topNeedsResponseEmails = useMemo(() => {
+    return filteredEmails
       .filter((e) => e.kind === "needs_response" && e.status === "unread")
       .sort(
         (a, b) =>
           new Date(b.received_at ?? 0).getTime() - new Date(a.received_at ?? 0).getTime(),
       )
-      .slice(0, 3);
-    return list;
+      .slice(0, 8);
   }, [filteredEmails]);
 
   const availableCalendars = useMemo(() => {
@@ -1729,27 +1738,46 @@ function TodayPage() {
               <BigStat value={priorityCount} label="Priority" />
               <BigStat value={needsRespCount} label="Need response" />
             </div>
-            {topSenders.length === 0 ? (
+            {topPriorityEmails.length === 0 && topNeedsResponseEmails.length === 0 ? (
               <p className="text-xs text-muted-foreground py-2">Inbox clear. ✨</p>
             ) : (
-              <ul className="space-y-1.5">
-                {topSenders.map((e) => (
-                  <li
-                    key={e.id}
-                    className="flex items-center gap-2 text-xs text-foreground"
+              <div className="space-y-3">
+                {topPriorityEmails.length > 0 && (
+                  <div>
+                    <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium mb-1">
+                      Priority · {priorityCount}
+                    </p>
+                    <ul className="space-y-1">
+                      {topPriorityEmails.map((e) => (
+                        <EmailRowItem key={e.id} email={e} dotColor="#E97451" />
+                      ))}
+                    </ul>
+                  </div>
+                )}
+                {topNeedsResponseEmails.length > 0 && (
+                  <div>
+                    <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium mb-1">
+                      Need response · {needsRespCount}
+                    </p>
+                    <ul className="space-y-1">
+                      {topNeedsResponseEmails.map((e) => (
+                        <EmailRowItem key={e.id} email={e} dotColor="#FFC100" />
+                      ))}
+                    </ul>
+                  </div>
+                )}
+                {(priorityCount > topPriorityEmails.length ||
+                  needsRespCount > topNeedsResponseEmails.length) && (
+                  <a
+                    href={`https://mail.google.com/mail/u/?authuser=${encodeURIComponent(filteredEmails[0]?.account ?? "")}#inbox`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="block text-[11px] text-[color:var(--navy)] hover:underline text-center pt-1"
                   >
-                    <span
-                      className={`h-1.5 w-1.5 rounded-full shrink-0 ${urgencyDot(e.received_at)}`}
-                    />
-                    <span className="font-medium truncate">
-                      {e.sender_name || e.sender_email || "Unknown"}
-                    </span>
-                    <span className="text-muted-foreground ml-auto shrink-0">
-                      {relTime(e.received_at)}
-                    </span>
-                  </li>
-                ))}
-              </ul>
+                    Open Gmail →
+                  </a>
+                )}
+              </div>
             )}
           </Card>
         </div>
@@ -2219,6 +2247,47 @@ function BigStat({ value, label }: { value: number | string; label: string }) {
         {label}
       </div>
     </div>
+  );
+}
+
+/**
+ * One row in the Inbox widget — sender · subject · time · clickable.
+ * Click opens the message in Gmail web in a new tab so Donna can act on it.
+ * URL format uses Gmail's authuser+inbox-hash convention which works with
+ * the Gmail API message ID we stored as external_id.
+ */
+function EmailRowItem({ email, dotColor }: { email: EmailRow; dotColor: string }) {
+  const gmailUrl = email.external_id
+    ? `https://mail.google.com/mail/u/?authuser=${encodeURIComponent(email.account)}#all/${email.external_id}`
+    : `https://mail.google.com/mail/u/?authuser=${encodeURIComponent(email.account)}#inbox`;
+  const sender = email.sender_name || email.sender_email || "Unknown";
+  return (
+    <li>
+      <a
+        href={gmailUrl}
+        target="_blank"
+        rel="noreferrer"
+        className="flex items-start gap-2 text-xs hover:bg-muted/30 -mx-1 px-1 py-1 rounded transition-colors group"
+      >
+        <span
+          className="h-1.5 w-1.5 rounded-full shrink-0 mt-1.5"
+          style={{ backgroundColor: dotColor }}
+        />
+        <span className="flex-1 min-w-0">
+          <span className="flex items-center gap-2">
+            <span className="font-medium truncate">{sender}</span>
+            <span className="text-muted-foreground ml-auto shrink-0 text-[10px]">
+              {relTime(email.received_at)}
+            </span>
+          </span>
+          {email.subject && (
+            <span className="block text-foreground/70 truncate group-hover:text-foreground transition-colors">
+              {email.subject}
+            </span>
+          )}
+        </span>
+      </a>
+    </li>
   );
 }
 

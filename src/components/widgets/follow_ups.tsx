@@ -14,6 +14,7 @@ type Tab = "all" | Channel;
 // full table schema.
 type EmailRowLite = {
   id: string;
+  account?: string | null;
   external_id?: string | null;
   kind: "priority" | "needs_response" | "invite" | "meeting" | string;
   sender_name?: string | null;
@@ -92,7 +93,7 @@ export function FollowUpsWidget({
       const [emailRes, calRes] = await Promise.all([
         supabase
           .from("exec_os_emails")
-          .select("id,external_id,kind,sender_name,sender_email,subject,snippet,received_at")
+          .select("id,account,external_id,kind,sender_name,sender_email,subject,snippet,received_at")
           .eq("user_id", userId!)
           .in("kind", ["needs_response", "priority"])
           .gte("received_at", fourteenAgo),
@@ -106,16 +107,26 @@ export function FollowUpsWidget({
 
       if (cancelled) return;
 
-      const emails: FollowUp[] = ((emailRes.data ?? []) as EmailRowLite[]).map((e) => ({
-        id: `email:${e.id}`,
-        channel: "email",
-        sender: e.sender_name || e.sender_email || "Unknown",
-        preview: e.subject || e.snippet || "(no subject)",
-        timestamp: e.received_at,
-        priority: e.kind === "priority" ? "high" : "normal",
-        source_url: e.sender_email ? `mailto:${e.sender_email}` : null,
-        raw: e,
-      }));
+      const emails: FollowUp[] = ((emailRes.data ?? []) as EmailRowLite[]).map((e) => {
+        // Deep-link to the specific message in Gmail web. The external_id we
+        // stored IS the Gmail API message ID, which doubles as the URL hash
+        // Gmail uses for /mail/u/<authuser>#all/<id>.
+        const url = e.external_id && e.account
+          ? `https://mail.google.com/mail/u/?authuser=${encodeURIComponent(e.account)}#all/${e.external_id}`
+          : e.sender_email
+            ? `mailto:${e.sender_email}`
+            : null;
+        return {
+          id: `email:${e.id}`,
+          channel: "email",
+          sender: e.sender_name || e.sender_email || "Unknown",
+          preview: e.subject || e.snippet || "(no subject)",
+          timestamp: e.received_at,
+          priority: e.kind === "priority" ? "high" : "normal",
+          source_url: url,
+          raw: e,
+        };
+      });
 
       const cal: FollowUp[] = ((calRes.data ?? []) as CalendarRowLite[])
         .filter(
@@ -181,7 +192,9 @@ export function FollowUpsWidget({
 
   function handleClick(f: FollowUp) {
     if (f.channel === "email" && f.source_url) {
-      window.location.href = f.source_url;
+      // Open Gmail thread (or mailto fallback) in a new tab so Donna doesn't
+      // lose her dashboard context.
+      window.open(f.source_url, "_blank", "noopener,noreferrer");
     } else if (f.channel === "calendar") {
       // f.raw is guaranteed to be a CalendarRowLite because we only set
       // channel="calendar" on calendar rows during the map above.
