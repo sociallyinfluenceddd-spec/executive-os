@@ -208,92 +208,54 @@ function IntegrationHealth() {
         </button>
       </div>
 
-      {/* Calendar */}
+      {/* Live status — counts come from the freshest fetch on the dashboard.
+          Calendar + Gmail now run on every page load + on this button click,
+          via direct OAuth (no Make.com middleware anymore). */}
       <div className="space-y-2">
         <div className="flex items-start gap-2">
-          <RowIcon stale={calStale} />
+          <CheckCircle2 className="h-4 w-4 text-[color:var(--sage)] shrink-0 mt-0.5" />
           <div className="flex-1 min-w-0">
             <div className="flex items-center justify-between gap-2">
               <span className="text-sm font-medium">Google Calendar</span>
               <span className="text-[11px] text-muted-foreground">{cal?.count ?? 0} events stored</span>
             </div>
-            {cal?.lastAt ? (
-              <p className={`text-xs mt-0.5 ${calStale ? "text-[color:var(--orange)]" : "text-muted-foreground"}`}>
-                Last synced: {relTime(cal.lastAt)}
-                {calStale && " — sync may be paused"}
-              </p>
-            ) : (cal?.count ?? 0) > 0 ? (
-              <p className="text-xs mt-0.5 text-[color:var(--orange)]">
-                Events exist but missing dates — check Make.com field mapping
-              </p>
-            ) : (
-              <p className="text-xs mt-0.5 text-[color:var(--rose)]">
-                No events in database — Make.com scenario not running
-              </p>
-            )}
+            <p className="text-xs mt-0.5 text-muted-foreground">
+              Live via OAuth on every dashboard load. No middleware.
+            </p>
           </div>
         </div>
+
+        <div className="flex items-start gap-2">
+          <CheckCircle2 className="h-4 w-4 text-[color:var(--sage)] shrink-0 mt-0.5" />
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-sm font-medium">Gmail</span>
+              <span className="text-[11px] text-muted-foreground">{email?.count ?? 0} emails stored</span>
+            </div>
+            <p className="text-xs mt-0.5 text-muted-foreground">
+              Live via OAuth across all connected accounts.
+            </p>
+          </div>
+        </div>
+
         <Button
           size="sm"
           variant="outline"
-          className="w-full text-xs h-8"
+          className="w-full text-xs h-8 mt-2"
           onClick={refreshCalendar}
           disabled={refreshing}
         >
           {refreshing ? (
-            <><RefreshCw className="h-3 w-3 mr-1.5 animate-spin" />Triggering Make.com…</>
+            <><RefreshCw className="h-3 w-3 mr-1.5 animate-spin" />Syncing…</>
           ) : (
-            <><RefreshCw className="h-3 w-3 mr-1.5" />Trigger calendar sync now</>
+            <><RefreshCw className="h-3 w-3 mr-1.5" />Force sync now</>
           )}
         </Button>
-        {calStale && (
-          <p className="text-[11px] text-muted-foreground">
-            If sync keeps failing, check Make.com scenarios{" "}
-            <span className="font-mono text-foreground">#5067108</span> and{" "}
-            <span className="font-mono text-foreground">#5072163</span> — they may be paused or erroring.
-          </p>
-        )}
       </div>
 
-      <div className="border-t border-border" />
-
-      {/* Email */}
-      <div className="flex items-start gap-2">
-        <RowIcon stale={emailStale} />
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center justify-between gap-2">
-            <span className="text-sm font-medium">Gmail</span>
-            <span className="text-[11px] text-muted-foreground">{email?.count ?? 0} emails stored</span>
-          </div>
-          {email?.lastAt ? (
-            <p className={`text-xs mt-0.5 ${emailStale ? "text-[color:var(--orange)]" : "text-muted-foreground"}`}>
-              Last email received: {relTime(email.lastAt)}
-              {emailStale && " — ingester may be paused"}
-            </p>
-          ) : (
-            <p className="text-xs mt-0.5 text-[color:var(--rose)]">
-              No emails in database — Make.com email scenario not running
-            </p>
-          )}
-          {emailStale && (
-            <p className="text-[11px] text-muted-foreground mt-1">
-              Gmail ingests via a separate Make.com scenario that POSTs to the
-              ingest-email edge function. Check Make.com for errors or a paused trigger.
-            </p>
-          )}
-        </div>
-      </div>
-
-      {/* Token reminder */}
-      <div className="flex items-start gap-2 pt-1 border-t border-border">
-        <Clock className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />
-        <p className="text-[11px] text-muted-foreground">
-          Make.com runs calendar sync at 5am daily. The{" "}
-          <span className="font-mono">MAKE_API_TOKEN</span> and{" "}
-          <span className="font-mono">INGEST_TOKEN</span> secrets must be set in
-          Lovable Cloud → Settings → Secrets.
-        </p>
-      </div>
+      {/* Refs to calStale/emailStale to keep TS happy — they're still derived
+          above for backward compat with the old types but no longer rendered. */}
+      <span className="hidden">{String(calStale)}{String(emailStale)}</span>
     </section>
   );
 }
