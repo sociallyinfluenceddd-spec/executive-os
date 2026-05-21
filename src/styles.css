@@ -118,22 +118,37 @@
    Type: Fraunces display + Inter body. Tabular numerals.
    ============================================================ */
 .concierge {
-  /* Deeper, richer palette — Donna called the prior version washed out.
-     Now reads more like a leather-bound executive folder than a beige spa. */
-  --con-sand: #DCC9A5;          /* page background — deeper amber sand */
-  --con-sand-warm: #E4D4B0;     /* hover / soft fill */
-  --con-card: #F5ECD7;          /* card surface — cream paper on the desk */
-  --con-card-edge: #B59E70;     /* card border — visible but warm */
-  --con-charcoal: #14100A;      /* primary text — near-black, saturated */
-  --con-charcoal-soft: #3A3127; /* secondary text */
-  --con-charcoal-faint: #6B5F4E;/* tertiary / muted */
-  --con-brass: #9C7530;         /* accent — richer brass */
-  --con-brass-deep: #6E4F18;    /* deep brass for headings + numbers */
-  --con-rule: #B5A582;          /* hairlines — more visible */
-  --con-accent-sage: #6E8B5C;   /* status: success / on-track */
-  --con-accent-rose: #B85E54;   /* status: needs-attention */
+  /* Studio palette — brand-color tinted cards on a warm cream base, with
+     a dark-navy sidebar and right rail. Hybrid: keeps the elegance of the
+     leather-folder direction but borrows the wellness-app structure.
+     Brand palette: sage / navy / forest / rose / yellow / orange. */
+  --con-cream: #FAF4E6;          /* page background — warm cream */
+  --con-cream-deep: #F2EAD3;     /* hover / soft fill */
+  --con-card: #FFFFFF;           /* default card surface — clean white */
+  --con-charcoal: #14100A;
+  --con-charcoal-soft: #3A3127;
+  --con-charcoal-faint: #6B5F4E;
+  --con-brass: #9C7530;
+  --con-brass-deep: #6E4F18;
+  --con-rule: #E4D9BA;
 
-  background-color: var(--con-sand);
+  /* Brand palette — used as soft tints on card backgrounds. Light enough
+     to be a wash, saturated enough to give each card its own identity. */
+  --con-sage: #A4B494;
+  --con-navy: #083D77;
+  --con-forest: #355834;
+  --con-rose: #DB9C96;
+  --con-yellow: #FFC100;
+  --con-orange: #E97451;
+
+  /* Card tints — 15% opacity wash of the brand color over white */
+  --con-tint-sage: #ECF1E5;
+  --con-tint-rose: #F7E5E2;
+  --con-tint-yellow: #FFF5D1;
+  --con-tint-orange: #FBE0D2;
+  --con-tint-forest: #E1E8DB;
+
+  background-color: var(--con-cream);
   color: var(--con-charcoal);
   font-family: "Inter", ui-sans-serif, system-ui, sans-serif;
   letter-spacing: 0;
@@ -141,15 +156,95 @@
   min-height: 100vh;
 }
 
-/* Card — wraps each section so they read as distinct documents on the desk.
-   Cream paper on the deeper sand background. Subtle warm border. */
+/* The full studio layout — sidebar + main + rail. Uses CSS grid so the
+   sidebar and rail stay fixed-width while main flexes. */
+.concierge .studio-grid {
+  display: grid;
+  grid-template-columns: 220px 1fr 280px;
+  min-height: 100vh;
+}
+@media (max-width: 1100px) {
+  .concierge .studio-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Sidebar — dark navy rail with cream text. Left column. */
+.concierge .studio-sidebar {
+  background-color: var(--con-navy);
+  color: #F2EAD3;
+  padding: 1.5rem 1rem;
+  border-right: 1px solid rgba(0, 0, 0, 0.05);
+}
+.concierge .studio-sidebar a {
+  color: rgba(242, 234, 211, 0.7);
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  padding: 0.4rem 0.75rem;
+  border-radius: 6px;
+  font-size: 0.8125rem;
+  text-decoration: none;
+  transition: all 150ms ease-out;
+}
+.concierge .studio-sidebar a:hover {
+  color: #FFC100;
+  background-color: rgba(255, 193, 0, 0.08);
+}
+.concierge .studio-sidebar a[data-active="true"] {
+  color: var(--con-cream);
+  background-color: rgba(255, 255, 255, 0.08);
+  font-weight: 500;
+}
+
+/* Right rail — for the calendar, quick actions, etc. Lighter than main. */
+.concierge .studio-rail {
+  background-color: var(--con-cream-deep);
+  border-left: 1px solid var(--con-rule);
+  padding: 1.5rem 1.25rem;
+}
+
+/* Main content area */
+.concierge .studio-main {
+  padding: 2rem 2.5rem;
+}
+
+/* Card — wraps each section. Default = clean white with subtle shadow.
+   Variants (.tint-sage, .tint-rose, etc.) wash the card with a soft
+   brand-color tint so each section has its own identity. */
 .concierge .con-card {
   background-color: var(--con-card);
-  border: 1px solid var(--con-card-edge);
-  border-radius: 6px;
-  padding: 1.75rem 1.75rem;
-  box-shadow: 0 1px 0 rgba(110, 79, 24, 0.05),
-              0 2px 8px rgba(20, 16, 10, 0.04);
+  border: 1px solid var(--con-rule);
+  border-radius: 16px;
+  padding: 1.5rem 1.5rem;
+  box-shadow: 0 1px 0 rgba(20, 16, 10, 0.02),
+              0 8px 24px rgba(20, 16, 10, 0.04);
+}
+.concierge .tint-sage   { background-color: var(--con-tint-sage); }
+.concierge .tint-rose   { background-color: var(--con-tint-rose); }
+.concierge .tint-yellow { background-color: var(--con-tint-yellow); }
+.concierge .tint-orange { background-color: var(--con-tint-orange); }
+.concierge .tint-forest { background-color: var(--con-tint-forest); }
+.concierge .tint-cream  { background-color: var(--con-card); }
+
+/* Big personality numbers — for the wellness-app feel */
+.concierge .big-num {
+  font-family: "Fraunces", "Times New Roman", serif;
+  font-optical-sizing: auto;
+  font-weight: 500;
+  letter-spacing: -0.03em;
+  font-size: 2.25rem;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+.concierge .big-num-sm {
+  font-family: "Fraunces", "Times New Roman", serif;
+  font-optical-sizing: auto;
+  font-weight: 500;
+  letter-spacing: -0.02em;
+  font-size: 1.5rem;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
 }
 .concierge .con-card-tight {
   background-color: var(--con-card);

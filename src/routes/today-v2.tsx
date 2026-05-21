@@ -379,9 +379,66 @@ function ConciergePage() {
 
   return (
     <div className="concierge">
-      <div className="max-w-[1100px] mx-auto px-10 py-12 fade-in">
+      <div className="studio-grid fade-in">
+
+        {/* SIDEBAR — left rail with persistent nav */}
+        <aside className="studio-sidebar">
+          <div className="flex items-center justify-between mb-8">
+            <span className="monogram" style={{ color: "var(--con-yellow)" }}>DC</span>
+            {streak > 0 && (
+              <span className="text-[0.625rem] uppercase tracking-[0.18em] font-semibold tnum" style={{ color: "var(--con-yellow)" }}>
+                {streak}d
+              </span>
+            )}
+          </div>
+          <nav className="space-y-1 mb-8">
+            <Link to="/today-v2" data-active="true">
+              <span style={{ width: "1rem" }}>◆</span> Today
+            </Link>
+            <Link to="/hub">
+              <span style={{ width: "1rem" }}>◇</span> Hub
+            </Link>
+            <Link to="/capture">
+              <span style={{ width: "1rem" }}>◇</span> Capture
+            </Link>
+            <Link to="/settings">
+              <span style={{ width: "1rem" }}>◇</span> Settings
+            </Link>
+          </nav>
+          <div className="text-[0.625rem] uppercase tracking-[0.22em] font-semibold mb-2" style={{ color: "rgba(242, 234, 211, 0.5)" }}>
+            Agents
+          </div>
+          <nav className="space-y-1">
+            <a href="#brief" data-active="false">
+              <span style={{ width: "1rem", color: "var(--con-rose)" }}>●</span> Cleo
+            </a>
+            <a href="#brief" data-active="false">
+              <span style={{ width: "1rem", color: "var(--con-sage)" }}>●</span> Sage
+            </a>
+            <a href="#brief" data-active="false">
+              <span style={{ width: "1rem", color: "var(--con-orange)" }}>●</span> Ren
+            </a>
+            <a href="#brief" data-active="false">
+              <span style={{ width: "1rem", color: "var(--con-yellow)" }}>●</span> Vee
+            </a>
+            <a href="#brief" data-active="false">
+              <span style={{ width: "1rem", color: "var(--con-navy)" }}>●</span> Maya
+            </a>
+            <a href="#brief" data-active="false">
+              <span style={{ width: "1rem", color: "var(--con-forest)" }}>●</span> Theo
+            </a>
+          </nav>
+          <div className="mt-auto pt-8 text-[0.6875rem]" style={{ color: "rgba(242, 234, 211, 0.4)" }}>
+            <Link to="/today" style={{ color: "rgba(242, 234, 211, 0.5)" }}>
+              ← old dashboard
+            </Link>
+          </div>
+        </aside>
+
+        {/* MAIN CONTENT — center */}
+        <main className="studio-main">
         {/* HEADER */}
-        <header className="space-y-5 mb-12">
+        <header className="space-y-5 mb-10">
           <div className="flex items-start justify-between gap-6">
             <div className="small-caps-muted tnum">{longDate.toUpperCase()}</div>
             <div className="flex items-center gap-6">
@@ -434,17 +491,17 @@ function ConciergePage() {
           {/* LEFT COLUMN — To Ship + Schedule + Wins */}
           <div className="space-y-6">
 
-            <div className="con-card">
+            <div className="con-card tint-yellow">
               <div className="flex items-baseline justify-between mb-4">
                 <div className="small-caps">To Ship</div>
-                <div className="text-[0.75rem] tnum" style={{ color: "var(--con-charcoal-faint)" }}>
-                  {workflowTasks.length} open
+                <div className="big-num-sm" style={{ color: "var(--con-brass-deep)" }}>
+                  {workflowTasks.length}
                 </div>
               </div>
               <WorkflowsList tasks={workflowTasks} onChanged={reload} />
             </div>
 
-            <div className="con-card">
+            <div className="con-card tint-rose">
               <div className="flex items-baseline justify-between mb-4">
                 <div className="small-caps">Schedule</div>
                 {upcoming && minutesToNext !== null && (
@@ -482,11 +539,11 @@ function ConciergePage() {
               )}
             </div>
 
-            <div className="con-card">
+            <div className="con-card tint-sage">
               <div className="flex items-baseline justify-between mb-4">
                 <div className="small-caps">Wins</div>
-                <div className="text-[0.75rem] tnum" style={{ color: "var(--con-charcoal-faint)" }}>
-                  {doneTodayItems.length} today · {doneThisWeekCount} this week
+                <div className="big-num-sm" style={{ color: "var(--con-forest)" }}>
+                  {doneTodayItems.length}
                 </div>
               </div>
               <p className="display-tight text-[1.0625rem] mb-4 leading-snug" style={{ color: doneTodayItems.length + approvedToday === 0 && revenueCents.today === 0 && doneThisWeekCount === 0 ? "var(--con-charcoal-faint)" : "var(--con-charcoal)" }}>
@@ -504,7 +561,7 @@ function ConciergePage() {
           {/* RIGHT COLUMN — Brief + Inbox + Pipeline */}
           <div className="space-y-6">
 
-            <div className="con-card">
+            <div className="con-card tint-cream" id="brief">
               <div className="flex items-baseline justify-between mb-4">
                 <div className="small-caps">Brief</div>
                 <BriefRunActions onDone={reload} />
@@ -512,25 +569,33 @@ function ConciergePage() {
               <BriefTabs brief={brief} onChanged={reload} />
             </div>
 
-            <div className="con-card">
+            <div className="con-card tint-orange">
               <div className="flex items-baseline justify-between mb-4">
                 <div className="small-caps">Inbox</div>
-                <div className="text-[0.75rem] tnum" style={{ color: "var(--con-charcoal-faint)" }}>
-                  {priorityCount} priority · {needsResponseCount} need reply
+                <div className="big-num-sm" style={{ color: "var(--con-orange)" }}>
+                  {priorityCount + needsResponseCount}
                 </div>
               </div>
+              <p className="text-[0.75rem] tnum mb-3" style={{ color: "var(--con-charcoal-faint)" }}>
+                {priorityCount} priority · {needsResponseCount} need reply
+              </p>
               <InboxList emails={emails} />
             </div>
 
-            <div className="con-card">
+            <div className="con-card tint-forest">
               <div className="flex items-baseline justify-between mb-4">
                 <div className="small-caps">Pipeline</div>
                 {pipeline && (
-                  <div className="text-[0.75rem] tnum" style={{ color: "var(--con-charcoal-faint)" }}>
-                    {pipeline.hotLeadCount} hot · {formatCents(pipeline.proposalOutValueCents)} out
+                  <div className="big-num-sm" style={{ color: "var(--con-forest)" }}>
+                    {pipeline.hotLeadCount}
                   </div>
                 )}
               </div>
+              {pipeline && (
+                <p className="text-[0.75rem] tnum mb-3" style={{ color: "var(--con-charcoal-faint)" }}>
+                  hot · {formatCents(pipeline.proposalOutValueCents)} out · {formatCents(pipeline.activeMrrCents)}/mo
+                </p>
+              )}
               <PipelineList clients={clients} onChanged={reload} />
             </div>
           </div>
@@ -539,7 +604,7 @@ function ConciergePage() {
         {/* FULL-WIDTH BOTTOM — Money + Staff each in their own card */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
 
-          <div className="con-card">
+          <div className="con-card tint-yellow">
             <div className="flex items-baseline justify-between mb-4">
               <div className="small-caps">Money</div>
               {(() => {
@@ -586,7 +651,7 @@ function ConciergePage() {
             <MoneyLog user={user} onLogged={reload} />
           </div>
 
-          <div className="con-card">
+          <div className="con-card tint-sage">
             <div className="flex items-baseline justify-between mb-4">
               <div className="small-caps">Staff</div>
               <div className="text-[0.75rem]" style={{ color: "var(--con-charcoal-faint)" }}>
@@ -597,13 +662,101 @@ function ConciergePage() {
           </div>
         </div>
 
-        <footer className="pt-2 flex flex-wrap gap-x-8 gap-y-2 text-[0.75rem]" style={{ color: "var(--con-charcoal-faint)" }}>
-          <Link to="/hub">Hub</Link>
-          <Link to="/capture">Capture</Link>
-          <Link to="/settings">Settings</Link>
-          <Link to="/today" className="ml-auto">Old dashboard</Link>
-        </footer>
+        </main>
+
+        {/* RIGHT RAIL — mini calendar + quick actions */}
+        <aside className="studio-rail">
+          <div className="small-caps mb-3">
+            {now.toLocaleDateString("en-US", { month: "long", year: "numeric" })}
+          </div>
+          <MiniCalendar today={now} events={events} />
+
+          <div className="small-caps mt-8 mb-3">Today's events</div>
+          {events.length === 0 ? (
+            <p className="text-[0.8125rem]" style={{ color: "var(--con-charcoal-faint)" }}>
+              Nothing scheduled.
+            </p>
+          ) : (
+            <ul className="space-y-2">
+              {events.slice(0, 5).map((e) => {
+                const t = e.start_at ? new Date(e.start_at).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }) : "—";
+                const isNext = upcoming?.id === e.id;
+                return (
+                  <li key={e.id} className="flex items-baseline gap-2">
+                    <span className="tnum text-[0.75rem] shrink-0" style={{ color: "var(--con-charcoal-faint)" }}>
+                      {t.toLowerCase()}
+                    </span>
+                    <span className="text-[0.8125rem]" style={{ color: isNext ? "var(--con-brass-deep)" : "var(--con-charcoal)" }}>
+                      {e.title}
+                    </span>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+
+          <div className="small-caps mt-8 mb-3">Quick</div>
+          <div className="space-y-1.5 text-[0.8125rem]">
+            <Link to="/capture" className="block py-1.5 px-2 rounded-md hover:bg-[var(--con-cream)]" style={{ color: "var(--con-charcoal)" }}>
+              + Capture a thought
+            </Link>
+            <Link to="/hub" className="block py-1.5 px-2 rounded-md hover:bg-[var(--con-cream)]" style={{ color: "var(--con-charcoal)" }}>
+              + Add a lead
+            </Link>
+          </div>
+        </aside>
       </div>
+    </div>
+  );
+}
+
+/* =====================================================================
+   MINI CALENDAR — month grid for the right rail
+   ===================================================================== */
+function MiniCalendar({ today, events }: { today: Date; events: CalendarEvent[] }) {
+  const year = today.getFullYear();
+  const month = today.getMonth();
+  const first = new Date(year, month, 1);
+  const startWeekday = first.getDay(); // 0 = Sunday
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const eventDays = new Set(
+    events.map((e) => (e.start_at ? new Date(e.start_at).getDate() : null)).filter((d): d is number => d !== null),
+  );
+  const cells: Array<number | null> = [];
+  for (let i = 0; i < startWeekday; i++) cells.push(null);
+  for (let d = 1; d <= daysInMonth; d++) cells.push(d);
+  const todayDate = today.getDate();
+  return (
+    <div className="grid grid-cols-7 gap-1 text-[0.6875rem] tnum">
+      {["S","M","T","W","T","F","S"].map((l, i) => (
+        <div key={i} className="text-center pb-1 font-medium" style={{ color: "var(--con-charcoal-faint)" }}>
+          {l}
+        </div>
+      ))}
+      {cells.map((d, i) => {
+        if (d === null) return <div key={i} />;
+        const isToday = d === todayDate;
+        const hasEvent = eventDays.has(d);
+        return (
+          <div
+            key={i}
+            className="aspect-square flex items-center justify-center rounded-full relative"
+            style={{
+              backgroundColor: isToday ? "var(--con-navy)" : "transparent",
+              color: isToday ? "var(--con-cream)" : "var(--con-charcoal)",
+              fontWeight: isToday ? 600 : 400,
+            }}
+          >
+            {d}
+            {hasEvent && !isToday && (
+              <span
+                className="absolute bottom-0 left-1/2 -translate-x-1/2 h-1 w-1 rounded-full"
+                style={{ backgroundColor: "var(--con-brass-deep)" }}
+              />
+            )}
+          </div>
+        );
+      })}
     </div>
   );
 }
