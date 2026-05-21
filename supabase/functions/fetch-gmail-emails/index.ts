@@ -245,13 +245,21 @@ Deno.serve(async (req) => {
     }
   }
 
-  // Fetch two buckets in parallel
+  // Fetch two buckets in parallel — both restricted to category:primary
+  // so promotional / social / update tabs don't pollute the dashboard.
+  // Also exclude noreply senders and any message with an unsubscribe link
+  // (newsletter pattern).
+  //
+  // Priority bucket: messages Gmail marked "Important" that are in the
+  //   Primary tab (real correspondence, not auto-marketing).
+  // Needs-response bucket: unread Primary messages not yet Important.
+  const noiseFilter = "category:primary -from:noreply -from:no-reply -from:notifications -from:donotreply";
   let priorityIds: string[] = [];
   let needsResponseIds: string[] = [];
   try {
     [priorityIds, needsResponseIds] = await Promise.all([
-      listMessageIds("is:important is:inbox newer_than:14d", accessToken, 30),
-      listMessageIds("is:unread is:inbox -is:important newer_than:14d", accessToken, 30),
+      listMessageIds(`is:important is:inbox ${noiseFilter} newer_than:14d`, accessToken, 30),
+      listMessageIds(`is:unread is:inbox -is:important ${noiseFilter} newer_than:14d`, accessToken, 30),
     ]);
   } catch (e) {
     console.error("gmail list failed", e);

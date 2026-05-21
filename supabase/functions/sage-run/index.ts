@@ -247,9 +247,35 @@ async function processUser(opts: {
     (pipelineEmails ?? []).map((p: { primary_contact_email: string | null }) => (p.primary_contact_email ?? "").toLowerCase()).filter(Boolean),
   );
 
+  // Skip emails that look promotional, automated, or otherwise not real
+  // correspondence. Even with Gmail's category:primary filter, some marketing
+  // and newsletter mail leaks through.
+  const PROMO_SENDER_PATTERNS = [
+    /noreply/i, /no-reply/i, /notifications?@/i, /donotreply/i,
+    /newsletter@/i, /marketing@/i, /hello@.*\.(co|io|app|ai)$/i,
+    /support@/i, /info@/i, /team@/i, /updates@/i,
+  ];
+  const PROMO_SUBJECT_PATTERNS = [
+    /unsubscribe/i, /% off/i, /\bsale\b/i, /your daily/i,
+    /horoscope/i, /digest/i, /newsletter/i, /weekly/i,
+    /promotion/i, /new feature/i, /\bdeal\b/i, /\boffer\b/i,
+    /verification code/i, /\breceipt\b/i, /order #/i,
+  ];
+  const looksPromotional = (e: EmailRow): boolean => {
+    const senderEmail = (e.sender_email ?? "").toLowerCase();
+    if (PROMO_SENDER_PATTERNS.some((re) => re.test(senderEmail))) return true;
+    const subj = e.subject ?? "";
+    if (PROMO_SUBJECT_PATTERNS.some((re) => re.test(subj))) return true;
+    const snip = (e.snippet ?? "").toLowerCase();
+    if (snip.includes("unsubscribe") || snip.includes("you are receiving this")) return true;
+    return false;
+  };
+
   const triageEmails = (emails ?? [] as EmailRow[]).filter((e) => {
     const senderEmail = (e.sender_email ?? "").toLowerCase();
-    return !pipelineDomains.has(senderEmail);
+    if (pipelineDomains.has(senderEmail)) return false; // Cleo's territory
+    if (looksPromotional(e)) return false;              // not real correspondence
+    return true;
   }).slice(0, 5);
 
   // ============================================================
@@ -266,15 +292,27 @@ async function processUser(opts: {
       `- ${t.title}${t.time_estimate ? ` (${t.time_estimate})` : ""}${t.dollar_lever ? ` — $: ${t.dollar_lever}` : ""}`,
     ).join("\n") || "(no open tasks)";
 
+    const calLoad = (events ?? []).length;
+    const taskLoad = (tasks ?? []).length;
+    const isQuietDay = calLoad === 0 && taskLoad === 0;
+
     const userPrompt = `TOMORROW'S CONTEXT (${startOfTomorrow.toLocaleDateString()}):
 
-CALENDAR (${(events ?? []).length} events):
+CALENDAR (${calLoad} events):
 ${calBlock}
 
-OPEN TASKS (${(tasks ?? []).length}):
+OPEN TASKS (${taskLoad}):
 ${taskBlock}
 
-Produce ONE focus directive via focus_directive. The ONE thing that matters. If tomorrow is heavy (4+ meetings OR 10+ open tasks), explicitly name what to CUT. Be blunt but warm. ND-tuned.`;
+Produce ONE focus directive via focus_directive.
+
+RULES:
+- The ONE thing that matters tomorrow. Just one. Anchor it to a SPECIFIC task or meeting from above. NEVER invent fake priorities like "fix gmail" or "review your inbox."
+- If tomorrow is heavy (4+ meetings OR 10+ open tasks), explicitly name what to CUT (specific items).
+- ${isQuietDay
+    ? "TOMORROW IS GENUINELY QUIET — no meetings, no open tasks. Acknowledge that directly: \"Pipeline is quiet. Today is yours.\" Suggest ONE proactive move (close one pipeline lead, ship one Ideafetti task, take real rest). Do NOT manufacture urgency."
+    : "Pick the ONE highest-leverage item from the lists. Name it in your output."}
+- Be blunt but warm. ND-tuned. No should/must.`;
 
     const focus = await callLlm({
       system: SAGE_SYSTEM,
