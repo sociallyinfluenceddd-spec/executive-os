@@ -143,6 +143,8 @@ Deno.serve(async (req) => {
     auth: { persistSession: false, autoRefreshToken: false },
   });
   const expiresAt = new Date(Date.now() + tokenData.expires_in * 1000).toISOString();
+  // Multi-account: upsert by (user_id, google_account_email) so connecting
+  // a second account doesn't overwrite the first.
   const { error: upsertErr } = await admin
     .from("exec_os_google_tokens")
     .upsert({
@@ -152,7 +154,7 @@ Deno.serve(async (req) => {
       refresh_token: tokenData.refresh_token,
       scope: tokenData.scope,
       expires_at: expiresAt,
-    }, { onConflict: "user_id" });
+    }, { onConflict: "user_id,google_account_email" });
   if (upsertErr) {
     console.error("upsert error", upsertErr);
     return renderResult("error", `Failed to save tokens: ${upsertErr.message}`);

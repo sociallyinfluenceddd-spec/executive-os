@@ -204,89 +204,95 @@ Deno.serve(async (req) => {
   const admin = createClient(supabaseUrl, serviceKey, {
     auth: { persistSession: false, autoRefreshToken: false },
   });
-  const { data: tokenRow, error: tokenErr } = await admin
+
+  // Multi-account: load ALL token rows for this user. We iterate each and
+  // pull its Gmail in parallel, tagging the resulting exec_os_emails rows
+  // with that specific account so the Inbox dropdown filter can split them.
+  const { data: tokenRows, error: tokenErr } = await admin
     .from("exec_os_google_tokens")
     .select("access_token, refresh_token, expires_at, google_account_email, scope")
-    .eq("user_id", user.id)
-    .maybeSingle();
+    .eq("user_id", user.id);
   if (tokenErr) {
     console.error("token lookup failed", tokenErr);
     return json({ error: "Token lookup failed" }, 500);
   }
-  if (!tokenRow) {
-    return json({ error: "not_connected", message: "Connect Google in Settings first." }, 400);
+  if (!tokenRows || tokenRows.length === 0) {
+    return json({ error: "not_connected", message: "Connect at least one Google account in Settings first." }, 400);
   }
 
-  // Check that the stored token actually has Gmail scope. If it was granted
-  // before we added gmail.readonly, Donna needs to reconnect.
-  const scopeStr = (tokenRow as { scope?: string }).scope ?? "";
-  if (!scopeStr.includes("gmail.readonly")) {
-    return json({
-      error: "scope_missing",
-      message: "Google connection is missing Gmail permission. Disconnect + reconnect Google in Settings to grant Gmail read access.",
-    }, 400);
-  }
-
-  // Refresh access token if it expires in the next 60s
-  let accessToken = tokenRow.access_token;
-  const expiresAt = new Date(tokenRow.expires_at).getTime();
-  if (Date.now() > expiresAt - 60_000) {
-    try {
-      const fresh = await refreshAccessToken(tokenRow.refresh_token, clientId, clientSecret);
-      accessToken = fresh.access_token;
-      const newExpiresAt = new Date(Date.now() + fresh.expires_in * 1000).toISOString();
-      await admin
-        .from("exec_os_google_tokens")
-        .update({ access_token: accessToken, expires_at: newExpiresAt })
-        .eq("user_id", user.id);
-    } catch (e) {
-      console.error("refresh failed", e);
-      return json({ error: "refresh_failed", message: e instanceof Error ? e.message : String(e) }, 500);
-    }
-  }
-
-  // Fetch two buckets in parallel — both restricted to category:primary
-  // so promotional / social / update tabs don't pollute the dashboard.
-  // Also exclude noreply senders and any message with an unsubscribe link
-  // (newsletter pattern).
-  //
-  // Priority bucket: messages Gmail marked "Important" that are in the
-  //   Primary tab (real correspondence, not auto-marketing).
-  // Needs-response bucket: unread Primary messages not yet Important.
   const noiseFilter = "category:primary -from:noreply -from:no-reply -from:notifications -from:donotreply";
-  let priorityIds: string[] = [];
-  let needsResponseIds: string[] = [];
-  try {
-    [priorityIds, needsResponseIds] = await Promise.all([
-      listMessageIds(`is:important is:inbox ${noiseFilter} newer_than:14d`, accessToken, 30),
-      listMessageIds(`is:unread is:inbox -is:important ${noiseFilter} newer_than:14d`, accessToken, 30),
+
+  /**
+   * Fetch one account's Gmail. Refreshes its access token if expired, then
+   * pulls the two buckets and returns the upserts plus a per-account count.
+   * Errors don't fail the whole multi-account run — one bad token just
+   * skips that account.
+   */
+  async function pullAccount(t: {
+    access_token: string;
+    refresh_token: string;
+    expires_at: string;
+    google_account_email: string;
+    scope: string;
+  }): Promise<{ account: string; upserts: EmailUpsert[]; priority: number; needs_response: number; error?: string }> {
+    const account = t.google_account_email;
+    if (!t.scope.includes("gmail.readonly")) {
+      return { account, upserts: [], priority: 0, needs_response: 0, error: "scope_missing" };
+    }
+
+    // Refresh if expiring
+    let accessToken = t.access_token;
+    const expMs = new Date(t.expires_at).getTime();
+    if (Date.now() > expMs - 60_000) {
+      try {
+        const fresh = await refreshAccessToken(t.refresh_token, clientId!, clientSecret!);
+        accessToken = fresh.access_token;
+        const newExpiresAt = new Date(Date.now() + fresh.expires_in * 1000).toISOString();
+        await admin
+          .from("exec_os_google_tokens")
+          .update({ access_token: accessToken, expires_at: newExpiresAt })
+          .eq("user_id", user!.id)
+          .eq("google_account_email", account);
+      } catch (e) {
+        return { account, upserts: [], priority: 0, needs_response: 0, error: `refresh_failed: ${(e as Error).message}` };
+      }
+    }
+
+    let priorityIds: string[] = [];
+    let needsResponseIds: string[] = [];
+    try {
+      [priorityIds, needsResponseIds] = await Promise.all([
+        listMessageIds(`is:important is:inbox ${noiseFilter} newer_than:14d`, accessToken, 30),
+        listMessageIds(`is:unread is:inbox -is:important ${noiseFilter} newer_than:14d`, accessToken, 30),
+      ]);
+    } catch (e) {
+      return { account, upserts: [], priority: 0, needs_response: 0, error: `gmail_api: ${(e as Error).message}` };
+    }
+
+    const priorityIdSet = new Set(priorityIds);
+    const needsResponseUnique = needsResponseIds.filter((id) => !priorityIdSet.has(id));
+
+    const [priorityMsgs, needsResponseMsgs] = await Promise.all([
+      fetchMessages(priorityIds, accessToken),
+      fetchMessages(needsResponseUnique, accessToken),
     ]);
-  } catch (e) {
-    console.error("gmail list failed", e);
-    return json({ error: "gmail_api_failed", message: e instanceof Error ? e.message : String(e) }, 502);
+
+    const upserts: EmailUpsert[] = [
+      ...priorityMsgs.map((m) => toUpsert(m, user!.id, account, "priority")),
+      ...needsResponseMsgs.map((m) => toUpsert(m, user!.id, account, "needs_response")),
+    ];
+    return { account, upserts, priority: priorityMsgs.length, needs_response: needsResponseMsgs.length };
   }
 
-  // De-dupe: a message in both buckets gets the higher-priority kind
-  const priorityIdSet = new Set(priorityIds);
-  const needsResponseUnique = needsResponseIds.filter((id) => !priorityIdSet.has(id));
+  const perAccountResults = await Promise.all(
+    (tokenRows as Array<{ access_token: string; refresh_token: string; expires_at: string; google_account_email: string; scope: string }>).map(pullAccount),
+  );
 
-  const account = tokenRow.google_account_email;
-
-  // Fetch metadata for all messages
-  const [priorityMsgs, needsResponseMsgs] = await Promise.all([
-    fetchMessages(priorityIds, accessToken),
-    fetchMessages(needsResponseUnique, accessToken),
-  ]);
-
-  const upserts: EmailUpsert[] = [
-    ...priorityMsgs.map((m) => toUpsert(m, user.id, account, "priority")),
-    ...needsResponseMsgs.map((m) => toUpsert(m, user.id, account, "needs_response")),
-  ];
-
-  if (upserts.length > 0) {
+  const allUpserts = perAccountResults.flatMap((r) => r.upserts);
+  if (allUpserts.length > 0) {
     const { error: upErr } = await admin
       .from("exec_os_emails")
-      .upsert(upserts, { onConflict: "user_id,external_id" });
+      .upsert(allUpserts, { onConflict: "user_id,external_id" });
     if (upErr) {
       console.error("emails upsert failed", upErr);
       return json({ error: "upsert_failed", message: upErr.message }, 500);
@@ -303,12 +309,21 @@ Deno.serve(async (req) => {
     .in("kind", ["priority", "needs_response"])
     .lt("received_at", thirtyDaysAgo);
 
+  // Aggregate counts across all accounts for the response.
+  const totalPriority = perAccountResults.reduce((acc, r) => acc + r.priority, 0);
+  const totalNeedsResponse = perAccountResults.reduce((acc, r) => acc + r.needs_response, 0);
+
   return json({
-    account,
+    accounts: perAccountResults.map((r) => ({
+      account: r.account,
+      priority: r.priority,
+      needs_response: r.needs_response,
+      error: r.error ?? null,
+    })),
     refreshed_at: new Date().toISOString(),
     counts: {
-      priority: priorityMsgs.length,
-      needs_response: needsResponseMsgs.length,
+      priority: totalPriority,
+      needs_response: totalNeedsResponse,
     },
   });
 });

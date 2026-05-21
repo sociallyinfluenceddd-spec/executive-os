@@ -1,24 +1,28 @@
-// Settings widget: Connect/disconnect Google Calendar.
-// Drop-in replacement for the Make.com-based IntegrationHealth flow.
+// Settings widget: Connect/disconnect MULTIPLE Google accounts.
+//
+// Each account in exec_os_google_tokens is a separate row. The Inbox +
+// Calendar widgets read across all connected accounts. Disconnect is
+// scoped to a single account; connecting another opens a fresh OAuth
+// flow without overwriting existing tokens.
 
 import { useCallback, useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { CheckCircle2, AlertCircle, ExternalLink, Loader2 } from "lucide-react";
+import { CheckCircle2, AlertCircle, ExternalLink, Loader2, Mail, Calendar, Plus, Unplug } from "lucide-react";
 import { toast } from "sonner";
 import {
   connectGoogleCalendar,
   disconnectGoogleCalendar,
-  getGoogleConnection,
-  type GoogleConnectionStatus,
+  getGoogleConnections,
+  type GoogleAccountRow,
 } from "@/lib/google-calendar";
 import { relTime } from "@/lib/time";
 
 export function GoogleCalendarConnection() {
-  const [status, setStatus] = useState<GoogleConnectionStatus | null>(null);
+  const [accounts, setAccounts] = useState<GoogleAccountRow[] | null>(null);
   const [busy, setBusy] = useState(false);
 
   const refresh = useCallback(async () => {
-    setStatus(await getGoogleConnection());
+    setAccounts(await getGoogleConnections());
   }, []);
 
   useEffect(() => {
@@ -30,23 +34,23 @@ export function GoogleCalendarConnection() {
     try {
       const res = await connectGoogleCalendar();
       if (res.status === "ok") {
-        toast.success(`Connected ${res.account ?? "Google Calendar"}.`);
+        toast.success(`Connected ${res.account ?? "Google account"}.`);
         await refresh();
       } else {
-        toast.error(res.message || "Could not connect Google Calendar.");
+        toast.error(res.message || "Could not connect Google account.");
       }
     } finally {
       setBusy(false);
     }
   }, [refresh]);
 
-  const onDisconnect = useCallback(async () => {
-    if (!confirm("Disconnect Google Calendar? The dashboard will stop showing events until you reconnect.")) return;
+  const onDisconnectAccount = useCallback(async (account: string) => {
+    if (!confirm(`Disconnect ${account}? The dashboard will stop pulling its email and calendar.`)) return;
     setBusy(true);
     try {
-      const res = await disconnectGoogleCalendar();
+      const res = await disconnectGoogleCalendar(account);
       if (res.ok) {
-        toast.success("Disconnected.");
+        toast.success(`Disconnected ${account}.`);
         await refresh();
       } else {
         toast.error(res.error ?? "Could not disconnect.");
@@ -56,7 +60,7 @@ export function GoogleCalendarConnection() {
     }
   }, [refresh]);
 
-  if (status === null) {
+  if (accounts === null) {
     return (
       <section className="rounded-xl border border-border bg-card p-6 space-y-3 animate-pulse">
         <div className="h-4 w-40 bg-muted rounded" />
@@ -69,80 +73,88 @@ export function GoogleCalendarConnection() {
     <section className="rounded-xl border border-border bg-card p-6 space-y-4">
       <div className="flex items-center justify-between">
         <p className="text-xs uppercase tracking-wider text-muted-foreground font-medium">
-          Google Calendar
+          Google accounts ({accounts.length})
         </p>
-        {status.connected ? (
+        {accounts.length > 0 ? (
           <CheckCircle2 className="h-4 w-4 text-[color:var(--sage)]" />
         ) : (
           <AlertCircle className="h-4 w-4 text-[color:var(--orange)]" />
         )}
       </div>
 
-      {status.connected ? (
-        <>
-          <div className="space-y-1">
-            <p className="text-sm">
-              Connected as <span className="font-medium">{status.account}</span>
-            </p>
-            {status.expiresAt && (
-              <p className="text-xs text-muted-foreground">
-                Access token refreshes automatically. Last issued{" "}
-                {relTime(new Date(new Date(status.expiresAt).getTime() - 60 * 60 * 1000).toISOString())}.
-              </p>
-            )}
-          </div>
-          <div className="flex gap-2">
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={onDisconnect}
-              disabled={busy}
-              className="text-xs"
-            >
-              Disconnect
-            </Button>
-            <Button
-              size="sm"
-              variant="ghost"
-              asChild
-              className="text-xs gap-1"
-            >
-              <a
-                href="https://myaccount.google.com/permissions"
-                target="_blank"
-                rel="noreferrer noopener"
-              >
-                Revoke on Google <ExternalLink className="h-3 w-3" />
-              </a>
-            </Button>
-          </div>
-        </>
+      {accounts.length === 0 ? (
+        <p className="text-sm text-muted-foreground">
+          Connect each Gmail account you want the dashboard to read — inbox
+          + calendar. Each one runs its own OAuth, stored separately.
+        </p>
       ) : (
-        <>
-          <p className="text-sm text-muted-foreground">
-            Connect your Google Calendar so the dashboard can read today's events
-            directly — no Make.com middleware, no daily sync delay.
-          </p>
-          <Button
-            size="sm"
-            onClick={onConnect}
-            disabled={busy}
-            className="w-full text-xs"
-          >
-            {busy ? (
-              <>
-                <Loader2 className="h-3 w-3 mr-1.5 animate-spin" />
-                Opening Google…
-              </>
-            ) : (
-              "Connect Google Calendar"
-            )}
-          </Button>
-          <p className="text-[11px] text-muted-foreground">
-            Read-only access to events. We never modify your calendar.
-          </p>
-        </>
+        <ul className="space-y-2">
+          {accounts.map((acc) => (
+            <li
+              key={acc.account}
+              className="rounded-lg border border-border bg-background/40 p-3 flex items-center gap-3"
+            >
+              <div className="flex items-center gap-1.5 shrink-0">
+                <Calendar className="h-3.5 w-3.5 text-muted-foreground" title="Calendar connected" />
+                {acc.hasGmail && (
+                  <Mail className="h-3.5 w-3.5 text-muted-foreground" title="Gmail connected" />
+                )}
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium truncate">{acc.account}</p>
+                <p className="text-[11px] text-muted-foreground">
+                  {acc.hasGmail ? "Calendar + Gmail" : "Calendar only"}
+                  {" · "}
+                  Last issued {relTime(new Date(new Date(acc.expiresAt).getTime() - 60 * 60 * 1000).toISOString())}
+                </p>
+              </div>
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => onDisconnectAccount(acc.account)}
+                disabled={busy}
+                className="text-[11px] gap-1 shrink-0"
+                title="Disconnect this account"
+              >
+                <Unplug className="h-3 w-3" />
+                Disconnect
+              </Button>
+            </li>
+          ))}
+        </ul>
       )}
+
+      <Button
+        size="sm"
+        variant={accounts.length === 0 ? "default" : "outline"}
+        onClick={onConnect}
+        disabled={busy}
+        className="w-full text-xs gap-1.5"
+      >
+        {busy ? (
+          <>
+            <Loader2 className="h-3 w-3 animate-spin" />
+            Opening Google…
+          </>
+        ) : (
+          <>
+            <Plus className="h-3 w-3" />
+            {accounts.length === 0 ? "Connect Google account" : "Connect another account"}
+          </>
+        )}
+      </Button>
+
+      <div className="flex items-center justify-between text-[11px] text-muted-foreground pt-1">
+        <span>Read-only. We never modify your data.</span>
+        <a
+          href="https://myaccount.google.com/permissions"
+          target="_blank"
+          rel="noreferrer noopener"
+          className="inline-flex items-center gap-1 hover:text-foreground"
+        >
+          Revoke on Google <ExternalLink className="h-3 w-3" />
+        </a>
+      </div>
     </section>
   );
 }

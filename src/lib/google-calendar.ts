@@ -29,24 +29,39 @@ export interface GoogleConnectionStatus {
   scope: string | null;
 }
 
+export interface GoogleAccountRow {
+  account: string;
+  expiresAt: string;
+  scope: string;
+  hasGmail: boolean;
+}
+
 /**
- * Read the current Google connection status from exec_os_google_tokens.
- * Uses RLS, so users only see their own row.
+ * Read ALL connected Google accounts for the current user. Each row has its
+ * own access/refresh token pair and scope set.
  */
-export async function getGoogleConnection(): Promise<GoogleConnectionStatus> {
+export async function getGoogleConnections(): Promise<GoogleAccountRow[]> {
   const { data, error } = await supabase
     .from("exec_os_google_tokens")
-    .select("google_account_email, expires_at, scope")
-    .maybeSingle();
-  if (error || !data) {
-    return { connected: false, account: null, expiresAt: null, scope: null };
-  }
-  return {
-    connected: true,
-    account: data.google_account_email,
-    expiresAt: data.expires_at,
-    scope: data.scope,
-  };
+    .select("google_account_email, expires_at, scope");
+  if (error || !data) return [];
+  return (data as Array<{ google_account_email: string; expires_at: string; scope: string }>).map((r) => ({
+    account: r.google_account_email,
+    expiresAt: r.expires_at,
+    scope: r.scope,
+    hasGmail: r.scope.includes("gmail.readonly"),
+  }));
+}
+
+/**
+ * Legacy single-account view. Returns the first connected account (or
+ * not-connected if none). Kept around so older callers don't break.
+ */
+export async function getGoogleConnection(): Promise<GoogleConnectionStatus> {
+  const all = await getGoogleConnections();
+  if (all.length === 0) return { connected: false, account: null, expiresAt: null, scope: null };
+  const first = all[0];
+  return { connected: true, account: first.account, expiresAt: first.expiresAt, scope: first.scope };
 }
 
 /**
@@ -100,10 +115,16 @@ export async function connectGoogleCalendar(): Promise<{ status: "ok" | "error";
  * the OAuth grant on Google's side — the user can do that at
  * https://myaccount.google.com/permissions if they want to fully revoke.
  */
-export async function disconnectGoogleCalendar(): Promise<{ ok: boolean; error?: string }> {
-  const { error } = await supabase.from("exec_os_google_tokens").delete().neq("user_id", "00000000-0000-0000-0000-000000000000");
-  // The .neq(...) is a safety hack: Supabase delete() without a filter is rejected.
-  // RLS still scopes this to the caller's row only.
+export async function disconnectGoogleCalendar(account?: string): Promise<{ ok: boolean; error?: string }> {
+  let q = supabase.from("exec_os_google_tokens").delete();
+  if (account) {
+    q = q.eq("google_account_email", account);
+  } else {
+    // No account specified = nuke ALL of the caller's tokens. RLS limits this
+    // to the caller's own rows.
+    q = q.neq("user_id", "00000000-0000-0000-0000-000000000000");
+  }
+  const { error } = await q;
   if (error) return { ok: false, error: error.message };
   return { ok: true };
 }
