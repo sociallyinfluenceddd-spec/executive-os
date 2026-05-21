@@ -154,74 +154,86 @@ Deno.serve(async (req) => {
   const admin = createClient(supabaseUrl, serviceKey, {
     auth: { persistSession: false, autoRefreshToken: false },
   });
-  const { data: tokenRow, error: tokenErr } = await admin
+  // Multi-account: load ALL token rows for this user. We pull each
+  // calendar in parallel and merge the events.
+  const { data: tokenRows, error: tokenErr } = await admin
     .from("exec_os_google_tokens")
     .select("access_token, refresh_token, expires_at, google_account_email")
-    .eq("user_id", user.id)
-    .maybeSingle();
+    .eq("user_id", user.id);
   if (tokenErr) {
     console.error("token lookup failed", tokenErr);
     return json({ error: "Token lookup failed" }, 500);
   }
-  if (!tokenRow) {
-    return json({ error: "not_connected", message: "Connect Google Calendar in Settings first." }, 400);
+  if (!tokenRows || tokenRows.length === 0) {
+    return json({ error: "not_connected", message: "Connect at least one Google account in Settings first." }, 400);
   }
 
-  // Refresh access token if it expires in the next 60s (buffer against clock skew)
-  let accessToken = tokenRow.access_token;
-  const expiresAt = new Date(tokenRow.expires_at).getTime();
-  if (Date.now() > expiresAt - 60_000) {
-    try {
-      const fresh = await refreshAccessToken(tokenRow.refresh_token, clientId, clientSecret);
-      accessToken = fresh.access_token;
-      const newExpiresAt = new Date(Date.now() + fresh.expires_in * 1000).toISOString();
-      await admin
-        .from("exec_os_google_tokens")
-        .update({ access_token: accessToken, expires_at: newExpiresAt })
-        .eq("user_id", user.id);
-    } catch (e) {
-      console.error("refresh failed", e);
-      return json({ error: "refresh_failed", message: e instanceof Error ? e.message : String(e) }, 500);
-    }
-  }
-
-  // Parse query window. Defaults: now → now + 30 days. The frontend can
-  // override with ?days=N or ?timeMin/timeMax for the day picker.
+  // Parse query window. Defaults: now → now + 30 days.
   const url = new URL(req.url);
   const daysParam = url.searchParams.get("days");
   const days = daysParam ? Math.min(90, Math.max(1, parseInt(daysParam, 10) || 30)) : 30;
   const timeMin = url.searchParams.get("timeMin") ?? new Date().toISOString();
   const timeMax = url.searchParams.get("timeMax") ?? new Date(Date.now() + days * 86_400_000).toISOString();
 
-  // Google Calendar API: events.list on primary calendar.
-  // singleEvents=true expands recurrences. orderBy=startTime requires it.
-  // maxResults=250 is the API max — plenty for a 30-day window.
-  const eventsUrl = new URL("https://www.googleapis.com/calendar/v3/calendars/primary/events");
-  eventsUrl.searchParams.set("timeMin", timeMin);
-  eventsUrl.searchParams.set("timeMax", timeMax);
-  eventsUrl.searchParams.set("singleEvents", "true");
-  eventsUrl.searchParams.set("orderBy", "startTime");
-  eventsUrl.searchParams.set("maxResults", "250");
+  /** Pull events for one Google account. Errors per-account don't fail the run. */
+  async function pullAccount(t: {
+    access_token: string;
+    refresh_token: string;
+    expires_at: string;
+    google_account_email: string;
+  }): Promise<{ account: string; events: NormalizedEvent[]; error?: string }> {
+    let accessToken = t.access_token;
+    const expMs = new Date(t.expires_at).getTime();
+    if (Date.now() > expMs - 60_000) {
+      try {
+        const fresh = await refreshAccessToken(t.refresh_token, clientId!, clientSecret!);
+        accessToken = fresh.access_token;
+        const newExpiresAt = new Date(Date.now() + fresh.expires_in * 1000).toISOString();
+        await admin
+          .from("exec_os_google_tokens")
+          .update({ access_token: accessToken, expires_at: newExpiresAt })
+          .eq("user_id", user!.id)
+          .eq("google_account_email", t.google_account_email);
+      } catch (e) {
+        return { account: t.google_account_email, events: [], error: `refresh: ${(e as Error).message}` };
+      }
+    }
 
-  const eventsRes = await fetch(eventsUrl.toString(), {
-    headers: { Authorization: `Bearer ${accessToken}` },
-  });
-  if (!eventsRes.ok) {
-    const body = await eventsRes.text();
-    console.error("events.list failed", eventsRes.status, body);
-    return json({ error: "google_api_failed", status: eventsRes.status, message: body.slice(0, 400) }, 502);
+    const eventsUrl = new URL("https://www.googleapis.com/calendar/v3/calendars/primary/events");
+    eventsUrl.searchParams.set("timeMin", timeMin);
+    eventsUrl.searchParams.set("timeMax", timeMax);
+    eventsUrl.searchParams.set("singleEvents", "true");
+    eventsUrl.searchParams.set("orderBy", "startTime");
+    eventsUrl.searchParams.set("maxResults", "250");
+
+    const eventsRes = await fetch(eventsUrl.toString(), {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+    if (!eventsRes.ok) {
+      const body = await eventsRes.text();
+      console.error(`events.list failed for ${t.google_account_email}:`, eventsRes.status, body.slice(0, 200));
+      return { account: t.google_account_email, events: [], error: `google_api: ${eventsRes.status}` };
+    }
+    const eventsData = await eventsRes.json() as { items?: GoogleEvent[] };
+    const events = (eventsData.items ?? [])
+      .filter((ev) => ev.status !== "cancelled")
+      .map((ev) => normalize(ev, t.google_account_email));
+    return { account: t.google_account_email, events };
   }
-  const eventsData = await eventsRes.json() as { items?: GoogleEvent[] };
-  const normalized = (eventsData.items ?? [])
-    // Skip cancelled events (Google returns tombstones)
-    .filter((ev) => ev.status !== "cancelled")
-    .map((ev) => normalize(ev, tokenRow.google_account_email));
+
+  const perAccount = await Promise.all(
+    (tokenRows as Array<{ access_token: string; refresh_token: string; expires_at: string; google_account_email: string }>).map(pullAccount),
+  );
+
+  const allEvents: NormalizedEvent[] = perAccount.flatMap((r) => r.events);
+  // Sort merged events by start time so the timeline view is correct
+  allEvents.sort((a, b) => (a.start_at ?? "").localeCompare(b.start_at ?? ""));
 
   return json({
-    account: tokenRow.google_account_email,
+    accounts: perAccount.map((r) => ({ account: r.account, count: r.events.length, error: r.error ?? null })),
     timeMin,
     timeMax,
-    count: normalized.length,
-    events: normalized,
+    count: allEvents.length,
+    events: allEvents,
   });
 });
