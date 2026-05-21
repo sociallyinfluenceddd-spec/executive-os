@@ -363,239 +363,190 @@ function ConciergePage() {
 
         <hr className="hairline mb-10" />
 
-        {/* THE ONE */}
-        <Section
-          k="one"
-          title="The One"
-          headline={daily?.top_priority ?? "Set yours for today."}
-          headlineDim={!daily?.top_priority}
-          open={openSection === "one"}
-          onToggle={toggle}
-        >
+        {/* THE ONE — always visible, inline editable */}
+        <div className="mb-10">
+          <div className="small-caps mb-2">The One</div>
           <OneEditor user={user} initial={daily?.top_priority ?? ""} onSaved={reload} />
-        </Section>
+        </div>
 
-        <hr className="hairline my-8" />
+        <hr className="hairline mb-10" />
 
-        {/* WORKFLOWS — the actual work queue. Pending tasks across active workflows. */}
-        <Section
-          k="workflows"
-          title="To Ship"
-          headline={
-            workflowTasks.length === 0
-              ? "Queue is empty. Add tasks from the Hub."
-              : `${workflowTasks.length} ${workflowTasks.length === 1 ? "task" : "tasks"} in the queue.`
-          }
-          headlineDim={workflowTasks.length === 0}
-          subhead={
-            workflowTasks.length > 0
-              ? (() => {
-                  const phases = new Set(workflowTasks.map((t) => t.phase_name));
-                  return `Across ${phases.size} ${phases.size === 1 ? "phase" : "phases"}.`;
-                })()
-              : null
-          }
-          open={openSection === "workflows"}
-          onToggle={toggle}
-        >
-          <WorkflowsList tasks={workflowTasks} onChanged={reload} />
-        </Section>
+        {/* TWO-COLUMN MAIN BODY — left is do-work, right is review-AI-staff */}
+        <div className="grid grid-cols-1 lg:grid-cols-[1.1fr_1fr] gap-x-12 gap-y-10 mb-10">
 
-        <hr className="hairline my-8" />
+          {/* LEFT COLUMN — To Ship + Schedule + Wins */}
+          <div className="space-y-10">
 
-        {/* WINS — today's accomplishments, the dopamine layer */}
-        <Section
-          k="wins"
-          title="Wins"
-          headline={winsHeadline(doneTodayItems.length, approvedToday, revenueCents.today, doneThisWeekCount)}
-          headlineDim={doneTodayItems.length + approvedToday === 0 && revenueCents.today === 0 && doneThisWeekCount === 0}
-          subhead={winsSubcopy(doneTodayItems.length, approvedToday, revenueCents.today, streak, doneThisWeekCount, revenueCents.week)}
-          open={openSection === "wins"}
-          onToggle={toggle}
-        >
-          <WinsList items={doneTodayItems} weekCount={doneThisWeekCount} weekRevenueCents={revenueCents.week} />
-        </Section>
+            {/* TO SHIP — your queue, with mark-done checkboxes inline */}
+            <div>
+              <div className="flex items-baseline justify-between mb-4">
+                <div className="small-caps">To Ship</div>
+                <div className="text-[0.75rem] tnum" style={{ color: "var(--con-charcoal-faint)" }}>
+                  {workflowTasks.length} open
+                </div>
+              </div>
+              <WorkflowsList tasks={workflowTasks} onChanged={reload} />
+            </div>
 
-        <hr className="hairline my-8" />
+            {/* SCHEDULE */}
+            <div>
+              <div className="flex items-baseline justify-between mb-4">
+                <div className="small-caps">Schedule</div>
+                {upcoming && minutesToNext !== null && (
+                  <div className="text-[0.75rem] tnum" style={{ color: "var(--con-brass-deep)" }}>
+                    next in {minutesToNext}m
+                  </div>
+                )}
+              </div>
+              {events.length === 0 ? (
+                <p className="text-[0.9375rem]" style={{ color: "var(--con-charcoal-faint)" }}>
+                  Nothing on the calendar today.
+                </p>
+              ) : (
+                <ul className="space-y-2.5">
+                  {events.map((e) => {
+                    const t = e.start_at ? new Date(e.start_at).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }) : "—";
+                    const isNext = upcoming?.id === e.id;
+                    return (
+                      <li key={e.id} className="flex items-baseline gap-4">
+                        <span className="tnum text-[0.8125rem] w-16 shrink-0" style={{ color: "var(--con-charcoal-faint)" }}>
+                          {t.toLowerCase()}
+                        </span>
+                        <span className="text-[0.9375rem] flex-1" style={{ color: isNext ? "var(--con-brass-deep)" : "var(--con-charcoal)", fontWeight: isNext ? 500 : 400 }}>
+                          {e.title ?? "Untitled"}
+                        </span>
+                        {e.video_url && (
+                          <a href={e.video_url} target="_blank" rel="noreferrer" className="text-[0.75rem] shrink-0">
+                            Join →
+                          </a>
+                        )}
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+            </div>
 
-        {/* SCHEDULE */}
-        <Section
-          k="schedule"
-          title="Schedule"
-          headline={
-            events.length === 0
-              ? "Nothing on the calendar."
-              : events.length === 1
-                ? "One event today."
-                : `${events.length} events today.`
-          }
-          subhead={upcoming
-            ? `Next: ${upcoming.title} at ${new Date(upcoming.start_at!).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}.`
-            : null}
-          open={openSection === "schedule"}
-          onToggle={toggle}
-        >
-          {events.length === 0 ? (
-            <p className="text-[0.95rem]" style={{ color: "var(--con-charcoal-faint)" }}>—</p>
-          ) : (
-            <ul className="space-y-3">
-              {events.map((e) => {
-                const t = e.start_at ? new Date(e.start_at).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }) : "—";
-                const isNext = upcoming?.id === e.id;
+            {/* WINS — today's accomplishments */}
+            <div>
+              <div className="flex items-baseline justify-between mb-4">
+                <div className="small-caps">Wins</div>
+                <div className="text-[0.75rem] tnum" style={{ color: "var(--con-charcoal-faint)" }}>
+                  {doneTodayItems.length} today · {doneThisWeekCount} this week
+                </div>
+              </div>
+              <p className="display-tight text-[1.0625rem] mb-4 leading-snug" style={{ color: doneTodayItems.length + approvedToday === 0 && revenueCents.today === 0 && doneThisWeekCount === 0 ? "var(--con-charcoal-faint)" : "var(--con-charcoal)" }}>
+                {winsHeadline(doneTodayItems.length, approvedToday, revenueCents.today, doneThisWeekCount)}
+              </p>
+              <WinsList items={doneTodayItems} weekCount={doneThisWeekCount} weekRevenueCents={revenueCents.week} />
+            </div>
+          </div>
+
+          {/* RIGHT COLUMN — Brief + Inbox + Pipeline */}
+          <div className="space-y-10">
+
+            {/* BRIEF — Cleo / Sage / Ren outputs */}
+            <div>
+              <div className="flex items-baseline justify-between mb-4">
+                <div className="small-caps">Brief</div>
+                <BriefRunActions onDone={reload} />
+              </div>
+              {brief.length === 0 ? (
+                <p className="text-[0.9375rem]" style={{ color: "var(--con-charcoal-faint)" }}>
+                  Quiet morning. Run Sage or Ren above to start.
+                </p>
+              ) : (
+                <ul className="space-y-5">
+                  {brief.map((o) => (
+                    <BriefRow key={o.id} output={o} onChanged={reload} />
+                  ))}
+                </ul>
+              )}
+            </div>
+
+            {/* INBOX */}
+            <div>
+              <div className="flex items-baseline justify-between mb-4">
+                <div className="small-caps">Inbox</div>
+                <div className="text-[0.75rem] tnum" style={{ color: "var(--con-charcoal-faint)" }}>
+                  {priorityCount} priority · {needsResponseCount} need reply
+                </div>
+              </div>
+              <InboxList emails={emails} />
+            </div>
+
+            {/* PIPELINE */}
+            <div>
+              <div className="flex items-baseline justify-between mb-4">
+                <div className="small-caps">Pipeline</div>
+                {pipeline && (
+                  <div className="text-[0.75rem] tnum" style={{ color: "var(--con-charcoal-faint)" }}>
+                    {pipeline.hotLeadCount} hot · {formatCents(pipeline.proposalOutValueCents)} out
+                  </div>
+                )}
+              </div>
+              <PipelineList clients={clients} onChanged={reload} />
+            </div>
+          </div>
+        </div>
+
+        <hr className="hairline mb-10" />
+
+        {/* FULL-WIDTH BOTTOM — Money + Staff side by side */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-10 mb-10">
+
+          {/* MONEY — log revenue inline + week velocity */}
+          <div>
+            <div className="flex items-baseline justify-between mb-4">
+              <div className="small-caps">Money</div>
+              {(() => {
+                const delta = revenueCents.lastWeek > 0
+                  ? Math.round(((revenueCents.week - revenueCents.lastWeek) / revenueCents.lastWeek) * 100)
+                  : null;
+                if (delta === null) return null;
                 return (
-                  <li key={e.id} className="flex items-baseline gap-5">
-                    <span className="tnum text-[0.875rem] w-20 shrink-0" style={{ color: "var(--con-charcoal-faint)" }}>
-                      {t.toLowerCase()}
-                    </span>
-                    <span className="text-[1rem] flex-1" style={{ color: isNext ? "var(--con-brass-deep)" : "var(--con-charcoal)", fontWeight: isNext ? 500 : 400 }}>
-                      {e.title ?? "Untitled"}
-                    </span>
-                    {e.video_url && (
-                      <a href={e.video_url} target="_blank" rel="noreferrer" className="text-[0.8125rem]">
-                        Join →
-                      </a>
-                    )}
-                  </li>
+                  <div className="text-[0.75rem] tnum" style={{ color: delta > 0 ? "var(--con-brass-deep)" : "var(--con-charcoal-faint)" }}>
+                    {delta > 0 ? `↑ ${delta}%` : delta < 0 ? `↓ ${Math.abs(delta)}%` : "flat"} vs last week
+                  </div>
                 );
-              })}
-            </ul>
-          )}
-        </Section>
+              })()}
+            </div>
+            <div className="flex items-baseline gap-6 mb-4">
+              <div>
+                <p className="display-tight text-[1.75rem] tnum" style={{ color: "var(--con-charcoal)" }}>
+                  {formatCents(revenueCents.today)}
+                </p>
+                <p className="text-[0.75rem] mt-0.5" style={{ color: "var(--con-charcoal-faint)" }}>today</p>
+              </div>
+              <div>
+                <p className="display-tight text-[1.25rem] tnum" style={{ color: "var(--con-charcoal-soft)" }}>
+                  {formatCents(revenueCents.week)}
+                </p>
+                <p className="text-[0.75rem] mt-0.5" style={{ color: "var(--con-charcoal-faint)" }}>this week</p>
+              </div>
+              <div>
+                <p className="display-tight text-[1.25rem] tnum" style={{ color: "var(--con-charcoal-soft)" }}>
+                  {formatCents(revenueCents.month)}
+                </p>
+                <p className="text-[0.75rem] mt-0.5" style={{ color: "var(--con-charcoal-faint)" }}>MTD</p>
+              </div>
+            </div>
+            <MoneyLog user={user} onLogged={reload} />
+          </div>
 
-        <hr className="hairline my-8" />
+          {/* STAFF — agent box scores */}
+          <div>
+            <div className="flex items-baseline justify-between mb-4">
+              <div className="small-caps">Staff</div>
+              <div className="text-[0.75rem]" style={{ color: "var(--con-charcoal-faint)" }}>
+                last 7 days
+              </div>
+            </div>
+            <StaffActions onChanged={reload} stats={agentStats} />
+          </div>
+        </div>
 
-        {/* BRIEF */}
-        <Section
-          k="brief"
-          title="Brief"
-          headline={
-            brief.length === 0
-              ? "Your staff have nothing pending."
-              : brief.length === 1
-                ? "One item awaiting your review."
-                : `${brief.length} items awaiting your review.`
-          }
-          subhead={
-            Object.keys(briefByAgent).length > 0
-              ? Object.entries(briefByAgent)
-                  .map(([id, c]) => `${AGENT_META[id as keyof typeof AGENT_META]?.name ?? id} · ${c}`)
-                  .join("  ·  ")
-              : null
-          }
-          open={openSection === "brief"}
-          onToggle={toggle}
-          rightActions={
-            <BriefRunActions onDone={reload} />
-          }
-        >
-          {brief.length === 0 ? (
-            <p className="text-[0.95rem]" style={{ color: "var(--con-charcoal-faint)" }}>
-              Quiet morning. Click Run Sage or Run Ren above to wake them.
-            </p>
-          ) : (
-            <ul className="space-y-6">
-              {brief.map((o) => (
-                <BriefRow key={o.id} output={o} onChanged={reload} />
-              ))}
-            </ul>
-          )}
-        </Section>
-
-        <hr className="hairline my-8" />
-
-        {/* INBOX */}
-        <Section
-          k="inbox"
-          title="Inbox"
-          headline={
-            needsResponseCount === 0 && priorityCount === 0
-              ? "Inbox is clear."
-              : `${needsResponseCount} awaiting your reply.`
-          }
-          subhead={priorityCount > 0 ? `${priorityCount} marked priority.` : null}
-          open={openSection === "inbox"}
-          onToggle={toggle}
-        >
-          <InboxList emails={emails} />
-        </Section>
-
-        <hr className="hairline my-8" />
-
-        {/* PIPELINE */}
-        <Section
-          k="pipeline"
-          title="Pipeline"
-          headline={
-            pipeline === null
-              ? "—"
-              : pipeline.hotLeadCount === 0
-                ? "No hot leads. Pipeline quiet."
-                : `${pipeline.hotLeadCount} hot ${pipeline.hotLeadCount === 1 ? "lead" : "leads"}.`
-          }
-          subhead={
-            pipeline && (pipeline.proposalOutValueCents > 0 || pipeline.activeMrrCents > 0)
-              ? [
-                  pipeline.proposalOutValueCents > 0 ? `${formatCents(pipeline.proposalOutValueCents)} in proposals` : null,
-                  pipeline.activeMrrCents > 0 ? `${formatCents(pipeline.activeMrrCents)}/mo active` : null,
-                ].filter(Boolean).join(" · ")
-              : null
-          }
-          open={openSection === "pipeline"}
-          onToggle={toggle}
-        >
-          <PipelineList clients={clients} onChanged={reload} />
-        </Section>
-
-        <hr className="hairline my-8" />
-
-        {/* MONEY */}
-        <Section
-          k="money"
-          title="Money"
-          headline={
-            revenueCents.today > 0
-              ? `${formatCents(revenueCents.today)} today.`
-              : revenueCents.week > 0
-                ? `${formatCents(revenueCents.week)} this week.`
-                : "No revenue logged yet."
-          }
-          subhead={(() => {
-            const delta = revenueCents.lastWeek > 0
-              ? Math.round(((revenueCents.week - revenueCents.lastWeek) / revenueCents.lastWeek) * 100)
-              : null;
-            const deltaTxt = delta === null
-              ? ""
-              : delta > 0 ? ` · ↑ ${delta}% vs last week`
-              : delta < 0 ? ` · ↓ ${Math.abs(delta)}% vs last week`
-              : ` · flat vs last week`;
-            return `${formatCents(revenueCents.week)} this week · ${formatCents(revenueCents.month)} MTD${deltaTxt}`;
-          })()}
-          open={openSection === "money"}
-          onToggle={toggle}
-        >
-          <MoneyLog user={user} onLogged={reload} />
-        </Section>
-
-        <hr className="hairline my-8" />
-
-        {/* STAFF */}
-        <Section
-          k="staff"
-          title="Staff"
-          headline={(() => {
-            const totalDrafted = Object.values(agentStats).reduce((a, s) => a + s.drafted, 0);
-            const totalSent = Object.values(agentStats).reduce((a, s) => a + s.sent, 0);
-            if (totalDrafted === 0) return "All six of your agents are at their posts.";
-            return `Your staff drafted ${totalDrafted} this week. ${totalSent} sent.`;
-          })()}
-          subhead="Cleo, Sage, Ren running on schedule. Maya, Vee, Theo quiet today."
-          open={openSection === "staff"}
-          onToggle={toggle}
-        >
-          <StaffActions onChanged={reload} stats={agentStats} />
-        </Section>
-
-        <hr className="hairline mt-10 mb-6" />
+        <hr className="hairline mt-2 mb-6" />
 
         <footer className="pt-2 flex flex-wrap gap-x-8 gap-y-2 text-[0.75rem]" style={{ color: "var(--con-charcoal-faint)" }}>
           <Link to="/hub">Hub</Link>
