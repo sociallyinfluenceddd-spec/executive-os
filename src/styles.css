@@ -118,16 +118,20 @@
    Type: Fraunces display + Inter body. Tabular numerals.
    ============================================================ */
 .concierge {
-  --con-sand: #EFE9DD;
-  --con-sand-warm: #F5F0E6;
-  --con-charcoal: #1F1A14;
-  --con-charcoal-soft: #4A413A;
-  --con-charcoal-faint: #897F75;
-  --con-brass: #A88B5C;
-  --con-brass-deep: #806846;
-  --con-rule: #D6CDB9;
-  --con-accent-sage: #A4B494;
-  --con-accent-rose: #DB9C96;
+  /* Deeper, richer palette — Donna called the prior version washed out.
+     Now reads more like a leather-bound executive folder than a beige spa. */
+  --con-sand: #DCC9A5;          /* page background — deeper amber sand */
+  --con-sand-warm: #E4D4B0;     /* hover / soft fill */
+  --con-card: #F5ECD7;          /* card surface — cream paper on the desk */
+  --con-card-edge: #B59E70;     /* card border — visible but warm */
+  --con-charcoal: #14100A;      /* primary text — near-black, saturated */
+  --con-charcoal-soft: #3A3127; /* secondary text */
+  --con-charcoal-faint: #6B5F4E;/* tertiary / muted */
+  --con-brass: #9C7530;         /* accent — richer brass */
+  --con-brass-deep: #6E4F18;    /* deep brass for headings + numbers */
+  --con-rule: #B5A582;          /* hairlines — more visible */
+  --con-accent-sage: #6E8B5C;   /* status: success / on-track */
+  --con-accent-rose: #B85E54;   /* status: needs-attention */
 
   background-color: var(--con-sand);
   color: var(--con-charcoal);
@@ -135,6 +139,25 @@
   letter-spacing: 0;
   font-feature-settings: "ss01", "cv11", "tnum";
   min-height: 100vh;
+}
+
+/* Card — wraps each section so they read as distinct documents on the desk.
+   Cream paper on the deeper sand background. Subtle warm border. */
+.concierge .con-card {
+  background-color: var(--con-card);
+  border: 1px solid var(--con-card-edge);
+  border-radius: 6px;
+  padding: 1.75rem 1.75rem;
+  box-shadow: 0 1px 0 rgba(110, 79, 24, 0.05),
+              0 2px 8px rgba(20, 16, 10, 0.04);
+}
+.concierge .con-card-tight {
+  background-color: var(--con-card);
+  border: 1px solid var(--con-card-edge);
+  border-radius: 6px;
+  padding: 1.25rem 1.5rem;
+  box-shadow: 0 1px 0 rgba(110, 79, 24, 0.05),
+              0 2px 8px rgba(20, 16, 10, 0.04);
 }
 
 /* Subtle paper grain — barely there. Pure CSS noise via gradient + opacity. */

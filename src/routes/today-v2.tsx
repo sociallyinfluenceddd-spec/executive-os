@@ -361,24 +361,21 @@ function ConciergePage() {
           </div>
         </header>
 
-        <hr className="hairline mb-10" />
+        <div className="h-px mb-8" style={{ backgroundColor: "var(--con-rule)" }} />
 
-        {/* THE ONE — always visible, inline editable */}
-        <div className="mb-10">
-          <div className="small-caps mb-2">The One</div>
+        {/* THE ONE — its own card, full width, prominent */}
+        <div className="con-card mb-8">
+          <div className="small-caps mb-3">The One</div>
           <OneEditor user={user} initial={daily?.top_priority ?? ""} onSaved={reload} />
         </div>
 
-        <hr className="hairline mb-10" />
-
-        {/* TWO-COLUMN MAIN BODY — left is do-work, right is review-AI-staff */}
-        <div className="grid grid-cols-1 lg:grid-cols-[1.1fr_1fr] gap-x-12 gap-y-10 mb-10">
+        {/* TWO-COLUMN MAIN BODY — each section is its own card */}
+        <div className="grid grid-cols-1 lg:grid-cols-[1.1fr_1fr] gap-6 mb-8">
 
           {/* LEFT COLUMN — To Ship + Schedule + Wins */}
-          <div className="space-y-10">
+          <div className="space-y-6">
 
-            {/* TO SHIP — your queue, with mark-done checkboxes inline */}
-            <div>
+            <div className="con-card">
               <div className="flex items-baseline justify-between mb-4">
                 <div className="small-caps">To Ship</div>
                 <div className="text-[0.75rem] tnum" style={{ color: "var(--con-charcoal-faint)" }}>
@@ -388,8 +385,7 @@ function ConciergePage() {
               <WorkflowsList tasks={workflowTasks} onChanged={reload} />
             </div>
 
-            {/* SCHEDULE */}
-            <div>
+            <div className="con-card">
               <div className="flex items-baseline justify-between mb-4">
                 <div className="small-caps">Schedule</div>
                 {upcoming && minutesToNext !== null && (
@@ -412,7 +408,7 @@ function ConciergePage() {
                         <span className="tnum text-[0.8125rem] w-16 shrink-0" style={{ color: "var(--con-charcoal-faint)" }}>
                           {t.toLowerCase()}
                         </span>
-                        <span className="text-[0.9375rem] flex-1" style={{ color: isNext ? "var(--con-brass-deep)" : "var(--con-charcoal)", fontWeight: isNext ? 500 : 400 }}>
+                        <span className="text-[0.9375rem] flex-1" style={{ color: isNext ? "var(--con-brass-deep)" : "var(--con-charcoal)", fontWeight: isNext ? 600 : 400 }}>
                           {e.title ?? "Untitled"}
                         </span>
                         {e.video_url && (
@@ -427,8 +423,7 @@ function ConciergePage() {
               )}
             </div>
 
-            {/* WINS — today's accomplishments */}
-            <div>
+            <div className="con-card">
               <div className="flex items-baseline justify-between mb-4">
                 <div className="small-caps">Wins</div>
                 <div className="text-[0.75rem] tnum" style={{ color: "var(--con-charcoal-faint)" }}>
@@ -443,10 +438,9 @@ function ConciergePage() {
           </div>
 
           {/* RIGHT COLUMN — Brief + Inbox + Pipeline */}
-          <div className="space-y-10">
+          <div className="space-y-6">
 
-            {/* BRIEF — Cleo / Sage / Ren outputs */}
-            <div>
+            <div className="con-card">
               <div className="flex items-baseline justify-between mb-4">
                 <div className="small-caps">Brief</div>
                 <BriefRunActions onDone={reload} />
@@ -464,8 +458,7 @@ function ConciergePage() {
               )}
             </div>
 
-            {/* INBOX */}
-            <div>
+            <div className="con-card">
               <div className="flex items-baseline justify-between mb-4">
                 <div className="small-caps">Inbox</div>
                 <div className="text-[0.75rem] tnum" style={{ color: "var(--con-charcoal-faint)" }}>
@@ -475,8 +468,7 @@ function ConciergePage() {
               <InboxList emails={emails} />
             </div>
 
-            {/* PIPELINE */}
-            <div>
+            <div className="con-card">
               <div className="flex items-baseline justify-between mb-4">
                 <div className="small-caps">Pipeline</div>
                 {pipeline && (
@@ -490,13 +482,10 @@ function ConciergePage() {
           </div>
         </div>
 
-        <hr className="hairline mb-10" />
+        {/* FULL-WIDTH BOTTOM — Money + Staff each in their own card */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
 
-        {/* FULL-WIDTH BOTTOM — Money + Staff side by side */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-10 mb-10">
-
-          {/* MONEY — log revenue inline + week velocity */}
-          <div>
+          <div className="con-card">
             <div className="flex items-baseline justify-between mb-4">
               <div className="small-caps">Money</div>
               {(() => {
@@ -534,8 +523,7 @@ function ConciergePage() {
             <MoneyLog user={user} onLogged={reload} />
           </div>
 
-          {/* STAFF — agent box scores */}
-          <div>
+          <div className="con-card">
             <div className="flex items-baseline justify-between mb-4">
               <div className="small-caps">Staff</div>
               <div className="text-[0.75rem]" style={{ color: "var(--con-charcoal-faint)" }}>
@@ -545,8 +533,6 @@ function ConciergePage() {
             <StaffActions onChanged={reload} stats={agentStats} />
           </div>
         </div>
-
-        <hr className="hairline mt-2 mb-6" />
 
         <footer className="pt-2 flex flex-wrap gap-x-8 gap-y-2 text-[0.75rem]" style={{ color: "var(--con-charcoal-faint)" }}>
           <Link to="/hub">Hub</Link>
