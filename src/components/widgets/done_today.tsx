@@ -135,6 +135,26 @@ export function DoneTodayWidget() {
       return acc + (m ? parseInt(m[1].replace(/,/g, ""), 10) * 100 : 0);
     }, 0);
 
+  // Wins encouragement copy — AUDHD dopamine hit. Reframes the count as a
+  // motivation tile, not just a number in the corner.
+  const winsHeadline = (() => {
+    if (taskCount === 0 && revenueCents === 0) return null;
+    const bits: string[] = [];
+    if (taskCount > 0) bits.push(`${taskCount} ${taskCount === 1 ? "task shipped" : "tasks shipped"}`);
+    if (revenueCents > 0) bits.push(`$${(revenueCents / 100).toLocaleString("en-US", { maximumFractionDigits: 0 })} logged`);
+    return bits.join(" · ");
+  })();
+  const winsSubcopy = (() => {
+    if (taskCount === 0 && revenueCents === 0) return null;
+    if (taskCount >= 5 && revenueCents > 0) return "You shipped AND closed. Real day.";
+    if (taskCount >= 5) return "Five-plus closes today. Momentum day.";
+    if (revenueCents >= 100_000) return "$1K+ logged. Bank that win.";
+    if (revenueCents > 0) return "Cash hit the account.";
+    if (taskCount >= 3) return "Three tasks down. You're moving.";
+    if (taskCount > 0) return "Shipped today. That counts.";
+    return null;
+  })();
+
   return (
     <div className="space-y-2 h-full flex flex-col">
       <div className="flex items-center justify-between gap-2">
@@ -152,6 +172,23 @@ export function DoneTodayWidget() {
           )}
         </div>
       </div>
+
+      {/* WINS TILE — prominent motivation summary above the list */}
+      {winsHeadline && (
+        <div
+          className="rounded-md px-3 py-2"
+          style={{ backgroundColor: "rgba(53, 88, 52, 0.08)", borderLeft: "3px solid var(--forest)" }}
+        >
+          <div className="text-sm font-semibold" style={{ color: "var(--forest)" }}>
+            {winsHeadline}
+          </div>
+          {winsSubcopy && (
+            <div className="text-[11px] text-muted-foreground mt-0.5 leading-snug">
+              {winsSubcopy}
+            </div>
+          )}
+        </div>
+      )}
       <ul className="space-y-1 overflow-auto flex-1 min-h-0">
         {events.map((e) => (
           <li key={e.id} className="flex items-start gap-2 text-[11px] leading-snug">

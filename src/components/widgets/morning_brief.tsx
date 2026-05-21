@@ -27,10 +27,13 @@ import {
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { Sparkles, Check, X, Edit3, Archive, ChevronDown, ChevronRight, Clock, Copy, ExternalLink, Mail, MessageSquare, RefreshCw } from "lucide-react";
+import { Sparkles, Check, X, Edit3, Archive, ChevronDown, ChevronRight, Clock, Copy, ExternalLink, Mail, MessageSquare, RefreshCw, Loader2, Target, PenLine } from "lucide-react";
 import { relTime } from "@/lib/time";
 import { toast } from "sonner";
 import { reissueDraft } from "@/lib/cleo";
+import { runSageNow } from "@/lib/sage";
+import { runRenNow } from "@/lib/ren";
+import { Button } from "@/components/ui/button";
 
 export function MorningBriefWidget() {
   const [outputs, setOutputs] = useState<AgentOutput[]>([]);
@@ -123,20 +126,88 @@ export function MorningBriefWidget() {
     return byAgent;
   }, [outputs]);
 
+  // Run-agent state for Sage + Ren manual triggers
+  const [sageRunning, setSageRunning] = useState(false);
+  const [renRunning, setRenRunning] = useState(false);
+
+  const onRunSage = async () => {
+    setSageRunning(true);
+    try {
+      const r = await runSageNow();
+      if (r.ok) {
+        toast.success(r.summary ?? `Sage produced ${r.outputs ?? 0} items`);
+        await refresh();
+      } else {
+        toast.error(r.error ?? "Sage failed");
+      }
+    } finally {
+      setSageRunning(false);
+    }
+  };
+
+  const onRunRen = async () => {
+    setRenRunning(true);
+    try {
+      const r = await runRenNow();
+      if (r.ok) {
+        toast.success(r.summary ?? `Ren drafted ${r.outputs ?? 0} hooks`);
+        await refresh();
+      } else {
+        toast.error(r.error ?? "Ren failed");
+      }
+    } finally {
+      setRenRunning(false);
+    }
+  };
+
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between gap-2">
+      <div className="flex items-center justify-between gap-2 flex-wrap">
         {outputs.length > 0 && (
           <Badge variant="outline" className="text-[10px] px-1.5 py-0">
             {outputs.length} pending
           </Badge>
         )}
-        <button
-          onClick={refresh}
-          className="text-[11px] text-muted-foreground hover:text-foreground ml-auto"
-        >
-          Refresh
-        </button>
+        <div className="flex items-center gap-1.5 ml-auto">
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={onRunSage}
+            disabled={sageRunning}
+            className="text-xs h-7"
+            style={{ borderColor: "#A4B494", color: "#A4B494" }}
+            title="Trigger Sage's focus + triage now"
+          >
+            {sageRunning ? (
+              <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+            ) : (
+              <Target className="h-3 w-3 mr-1" />
+            )}
+            Run Sage
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={onRunRen}
+            disabled={renRunning}
+            className="text-xs h-7"
+            style={{ borderColor: "#E97451", color: "#E97451" }}
+            title="Trigger Ren to draft 3 TikTok hooks now"
+          >
+            {renRunning ? (
+              <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+            ) : (
+              <PenLine className="h-3 w-3 mr-1" />
+            )}
+            Run Ren
+          </Button>
+          <button
+            onClick={refresh}
+            className="text-[11px] text-muted-foreground hover:text-foreground"
+          >
+            Refresh
+          </button>
+        </div>
       </div>
 
       {loading ? (

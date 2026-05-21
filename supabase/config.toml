@@ -35,3 +35,16 @@ verify_jwt = true
 # function itself enforces auth per-mode.
 [functions.cleo-run]
 verify_jwt = false
+
+# Sage — Focus + Inbox Triage Agent. Same auth pattern as Cleo.
+[functions.sage-run]
+verify_jwt = false
+
+# Ren — Content Agent. Same auth pattern as Cleo.
+[functions.ren-run]
+verify_jwt = false
+
+# Stripe + LemonSqueezy webhook receiver. Public endpoint, secured by
+# provider signature verification using STRIPE_WEBHOOK_SECRET / LS_WEBHOOK_SECRET.
+[functions.stripe-webhook]
+verify_jwt = false

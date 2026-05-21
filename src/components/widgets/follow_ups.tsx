@@ -90,7 +90,22 @@ export function FollowUpsWidget({
       const in72h = new Date(now.getTime() + 72 * 3600_000).toISOString();
       const in24h = new Date(now.getTime() + 24 * 3600_000).toISOString();
 
-      const [emailRes, calRes] = await Promise.all([
+      // We now pull email follow-ups from BOTH sources:
+      //   1. exec_os_agent_outputs where kind='follow_up' — Sage + Cleo's
+      //      triaged drafts (preferred — already has a draft body + urgency)
+      //   2. exec_os_emails as a raw fallback for messages no agent has
+      //      triaged yet
+      // The agent_outputs path takes priority when both reference the same
+      // email (by ref_id). We de-dupe by email_id.
+      const [agentRes, emailRes, calRes] = await Promise.all([
+        supabase
+          .from("exec_os_agent_outputs")
+          .select("id, agent_id, title, body, priority, metadata, ref_table, ref_id, created_at")
+          .eq("user_id", userId!)
+          .eq("kind", "follow_up")
+          .eq("status", "pending")
+          .order("priority", { ascending: false })
+          .order("created_at", { ascending: false }),
         supabase
           .from("exec_os_emails")
           .select("id,account,external_id,kind,sender_name,sender_email,subject,snippet,received_at")
@@ -107,26 +122,60 @@ export function FollowUpsWidget({
 
       if (cancelled) return;
 
-      const emails: FollowUp[] = ((emailRes.data ?? []) as EmailRowLite[]).map((e) => {
-        // Deep-link to the specific message in Gmail web. The external_id we
-        // stored IS the Gmail API message ID, which doubles as the URL hash
-        // Gmail uses for /mail/u/<authuser>#all/<id>.
-        const url = e.external_id && e.account
-          ? `https://mail.google.com/mail/u/?authuser=${encodeURIComponent(e.account)}#all/${e.external_id}`
-          : e.sender_email
-            ? `mailto:${e.sender_email}`
-            : null;
+      // Email IDs already covered by an agent triage row — we don't want to
+      // show both the agent draft AND the raw email separately.
+      const triagedEmailIds = new Set(
+        ((agentRes.data ?? []) as Array<{ ref_table: string | null; ref_id: string | null }>)
+          .filter((r) => r.ref_table === "exec_os_emails" && r.ref_id)
+          .map((r) => r.ref_id as string),
+      );
+
+      // Agent-drafted follow-ups (Sage + Cleo)
+      const agentItems: FollowUp[] = ((agentRes.data ?? []) as Array<{
+        id: string;
+        agent_id: string;
+        title: string;
+        body: string | null;
+        priority: number;
+        metadata: { gmail_url?: string; urgency?: string; sender_name?: string; sender_email?: string; subject?: string } | null;
+        ref_id: string | null;
+      }>).map((o) => {
+        const md = o.metadata ?? {};
+        const url = md.gmail_url ?? (md.sender_email ? `mailto:${md.sender_email}` : null);
+        const urgency = md.urgency ?? "this_week";
         return {
-          id: `email:${e.id}`,
-          channel: "email",
-          sender: e.sender_name || e.sender_email || "Unknown",
-          preview: e.subject || e.snippet || "(no subject)",
-          timestamp: e.received_at,
-          priority: e.kind === "priority" ? "high" : "normal",
+          id: `agent:${o.id}`,
+          channel: "email" as const,
+          sender: md.sender_name || md.sender_email || "Triage",
+          preview: md.subject ? `${md.subject} · ${(o.body ?? "").slice(0, 80)}` : (o.body ?? o.title).slice(0, 120),
+          timestamp: new Date().toISOString(),
+          priority: urgency === "respond_today" || o.priority >= 80 ? "high" as const : "normal" as const,
           source_url: url,
-          raw: e,
+          raw: { id: o.id } as EmailRowLite,
         };
       });
+
+      const rawEmails: FollowUp[] = ((emailRes.data ?? []) as EmailRowLite[])
+        .filter((e) => !triagedEmailIds.has(e.id))
+        .map((e) => {
+          const url = e.external_id && e.account
+            ? `https://mail.google.com/mail/u/?authuser=${encodeURIComponent(e.account)}#all/${e.external_id}`
+            : e.sender_email
+              ? `mailto:${e.sender_email}`
+              : null;
+          return {
+            id: `email:${e.id}`,
+            channel: "email" as const,
+            sender: e.sender_name || e.sender_email || "Unknown",
+            preview: e.subject || e.snippet || "(no subject)",
+            timestamp: e.received_at,
+            priority: e.kind === "priority" ? "high" as const : "normal" as const,
+            source_url: url,
+            raw: e,
+          };
+        });
+
+      const emails: FollowUp[] = [...agentItems, ...rawEmails];
 
       const cal: FollowUp[] = ((calRes.data ?? []) as CalendarRowLite[])
         .filter(
