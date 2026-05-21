@@ -574,23 +574,24 @@ function ConciergePage() {
               <div className="small-caps mb-4">Pipeline</div>
               <div className="flex items-center gap-5 mb-4">
                 <PipelineDonut clients={clients} />
-                <div className="flex-1 min-w-0">
-                  {pipeline && (
-                    <>
-                      <div className="big-num" style={{ color: "var(--con-forest)" }}>
-                        {pipeline.hotLeadCount}
-                      </div>
-                      <div className="text-[0.75rem] mt-1" style={{ color: "var(--con-ink-faint)" }}>
-                        hot {pipeline.hotLeadCount === 1 ? "lead" : "leads"}
-                      </div>
-                      <div className="text-[0.8125rem] tnum mt-3 space-y-0.5" style={{ color: "var(--con-ink-soft)" }}>
-                        <div>{formatCents(pipeline.proposalOutValueCents)} out</div>
-                        <div>{formatCents(pipeline.activeMrrCents)}/mo</div>
-                      </div>
-                    </>
-                  )}
-                </div>
+                <PipelineStageLegend clients={clients} />
               </div>
+              {pipeline && (pipeline.proposalOutValueCents > 0 || pipeline.activeMrrCents > 0) && (
+                <div className="flex gap-6 text-[0.8125rem] tnum mb-4 pb-4" style={{ color: "var(--con-ink-soft)", borderBottom: "1px solid var(--con-rule)" }}>
+                  <div>
+                    <div className="font-semibold text-[1rem]" style={{ color: "var(--con-ink)" }}>
+                      {formatCents(pipeline.proposalOutValueCents)}
+                    </div>
+                    <div className="text-[0.6875rem] mt-0.5" style={{ color: "var(--con-ink-faint)" }}>out</div>
+                  </div>
+                  <div>
+                    <div className="font-semibold text-[1rem]" style={{ color: "var(--con-ink)" }}>
+                      {formatCents(pipeline.activeMrrCents)}<span className="text-[0.6875rem] font-normal" style={{ color: "var(--con-ink-faint)" }}>/mo</span>
+                    </div>
+                    <div className="text-[0.6875rem] mt-0.5" style={{ color: "var(--con-ink-faint)" }}>active</div>
+                  </div>
+                </div>
+              )}
               <PipelineList clients={clients} onChanged={reload} />
             </div>
           </div>
@@ -1751,5 +1752,53 @@ function PipelineDonut({ clients }: { clients: Client[] }) {
         </text>
       </g>
     </svg>
+  );
+}
+
+/**
+ * Stage legend — counts per stage with a colored dot. Designed to sit
+ * next to PipelineDonut so the donut's colors are decoded immediately.
+ * Stages with 0 clients are hidden so the legend stays tight.
+ */
+function PipelineStageLegend({ clients }: { clients: Client[] }) {
+  const stages: Array<{ id: string; color: string; label: string }> = [
+    { id: "lead", color: "var(--con-sage)", label: "Lead" },
+    { id: "contacted", color: "var(--con-rose)", label: "Contacted" },
+    { id: "qualified", color: "var(--con-orange)", label: "Qualified" },
+    { id: "proposal_sent", color: "var(--con-yellow)", label: "Proposal" },
+    { id: "active", color: "var(--con-forest)", label: "Active" },
+    { id: "paused", color: "#A8A8A8", label: "Paused" },
+  ];
+  const counts: Record<string, number> = {};
+  for (const c of clients) counts[c.status] = (counts[c.status] ?? 0) + 1;
+  const visible = stages.filter((s) => (counts[s.id] ?? 0) > 0);
+
+  if (visible.length === 0) {
+    return (
+      <div className="flex-1 min-w-0">
+        <p className="text-[0.875rem]" style={{ color: "var(--con-ink-faint)" }}>
+          No clients yet. Add one to start the pipeline.
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <ul className="flex-1 min-w-0 space-y-1.5">
+      {visible.map((s) => (
+        <li key={s.id} className="flex items-center gap-2.5 text-[0.8125rem]">
+          <span
+            className="shrink-0 rounded-full"
+            style={{ width: 9, height: 9, backgroundColor: s.color }}
+          />
+          <span className="flex-1" style={{ color: "var(--con-ink)" }}>
+            {s.label}
+          </span>
+          <span className="tnum font-semibold" style={{ color: "var(--con-ink)" }}>
+            {counts[s.id]}
+          </span>
+        </li>
+      ))}
+    </ul>
   );
 }
