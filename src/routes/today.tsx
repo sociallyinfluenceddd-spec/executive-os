@@ -571,19 +571,26 @@ function ConciergePage() {
             </div>
 
             <div className="con-card tint-forest">
-              <div className="flex items-baseline justify-between mb-4">
-                <div className="small-caps">Pipeline</div>
-                {pipeline && (
-                  <div className="big-num-sm" style={{ color: "var(--con-forest)" }}>
-                    {pipeline.hotLeadCount}
-                  </div>
-                )}
+              <div className="small-caps mb-4">Pipeline</div>
+              <div className="flex items-center gap-5 mb-4">
+                <PipelineDonut clients={clients} />
+                <div className="flex-1 min-w-0">
+                  {pipeline && (
+                    <>
+                      <div className="big-num" style={{ color: "var(--con-forest)" }}>
+                        {pipeline.hotLeadCount}
+                      </div>
+                      <div className="text-[0.75rem] mt-1" style={{ color: "var(--con-ink-faint)" }}>
+                        hot {pipeline.hotLeadCount === 1 ? "lead" : "leads"}
+                      </div>
+                      <div className="text-[0.8125rem] tnum mt-3 space-y-0.5" style={{ color: "var(--con-ink-soft)" }}>
+                        <div>{formatCents(pipeline.proposalOutValueCents)} out</div>
+                        <div>{formatCents(pipeline.activeMrrCents)}/mo</div>
+                      </div>
+                    </>
+                  )}
+                </div>
               </div>
-              {pipeline && (
-                <p className="text-[0.75rem] tnum mb-3" style={{ color: "var(--con-charcoal-faint)" }}>
-                  hot · {formatCents(pipeline.proposalOutValueCents)} out · {formatCents(pipeline.activeMrrCents)}/mo
-                </p>
-              )}
               <PipelineList clients={clients} onChanged={reload} />
             </div>
           </div>
@@ -1625,5 +1632,124 @@ function TaskBars({ values }: { values: number[] }) {
         ))}
       </div>
     </div>
+  );
+}
+
+/**
+ * Pipeline donut — distribution of clients across pipeline stages.
+ * Each stage is a colored arc, sized by client count.
+ * Pure SVG, no chart library. Sized for hero placement in the Pipeline card.
+ */
+function PipelineDonut({ clients }: { clients: Client[] }) {
+  const stageColors: Record<string, string> = {
+    lead: "var(--con-sage)",
+    contacted: "var(--con-rose)",
+    qualified: "var(--con-orange)",
+    proposal_sent: "var(--con-yellow)",
+    active: "var(--con-forest)",
+    paused: "#A8A8A8",
+    churned: "#C4C4C4",
+    lost: "#D4D4D4",
+  };
+  const stageOrder = ["lead", "contacted", "qualified", "proposal_sent", "active", "paused", "churned", "lost"];
+
+  // Count clients per stage
+  const counts: Record<string, number> = {};
+  for (const c of clients) counts[c.status] = (counts[c.status] ?? 0) + 1;
+  const total = clients.length;
+
+  const size = 96;
+  const stroke = 14;
+  const radius = (size - stroke) / 2;
+  const cx = size / 2;
+  const cy = size / 2;
+  const circumference = 2 * Math.PI * radius;
+
+  // Empty pipeline → render dashed outline
+  if (total === 0) {
+    return (
+      <svg width={size} height={size} aria-label="Pipeline distribution">
+        <circle
+          cx={cx}
+          cy={cy}
+          r={radius}
+          fill="none"
+          stroke="var(--con-rule)"
+          strokeWidth={stroke}
+          strokeDasharray="3 4"
+        />
+        <text
+          x={cx}
+          y={cy + 4}
+          textAnchor="middle"
+          style={{ fontSize: "0.75rem", fill: "var(--con-ink-faint)" }}
+        >
+          empty
+        </text>
+      </svg>
+    );
+  }
+
+  // Build arcs
+  let cumulative = 0;
+  const arcs = stageOrder
+    .filter((s) => (counts[s] ?? 0) > 0)
+    .map((s) => {
+      const count = counts[s];
+      const pct = count / total;
+      const arc = {
+        stage: s,
+        color: stageColors[s] ?? "#999",
+        offset: cumulative,
+        length: pct * circumference,
+        count,
+      };
+      cumulative += pct * circumference;
+      return arc;
+    });
+
+  return (
+    <svg width={size} height={size} aria-label="Pipeline distribution" style={{ transform: "rotate(-90deg)" }}>
+      <circle
+        cx={cx}
+        cy={cy}
+        r={radius}
+        fill="none"
+        stroke="var(--con-rule)"
+        strokeWidth={stroke}
+        opacity={0.3}
+      />
+      {arcs.map((a, i) => (
+        <circle
+          key={i}
+          cx={cx}
+          cy={cy}
+          r={radius}
+          fill="none"
+          stroke={a.color}
+          strokeWidth={stroke}
+          strokeDasharray={`${a.length} ${circumference}`}
+          strokeDashoffset={-a.offset}
+          strokeLinecap="butt"
+        />
+      ))}
+      {/* Center number — unrotate via inner group so text reads upright */}
+      <g transform={`rotate(90 ${cx} ${cy})`}>
+        <text
+          x={cx}
+          y={cy + 2}
+          textAnchor="middle"
+          dominantBaseline="middle"
+          style={{
+            fontSize: "1.25rem",
+            fontWeight: 700,
+            fill: "var(--con-ink)",
+            fontVariantNumeric: "tabular-nums",
+          }}
+        >
+          {total}
+        </text>
+      </g>
+    </svg>
   );
 }
