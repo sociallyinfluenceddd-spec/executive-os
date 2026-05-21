@@ -4,6 +4,10 @@
 @import "react-grid-layout/css/styles.css";
 @import "react-resizable/css/styles.css";
 
+/* Fonts for the Concierge design language (only loaded; only used when
+   a child opts in via the .concierge wrapper class). */
+@import url("https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,400;9..144,500;9..144,600&display=swap");
+
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
@@ -105,4 +109,117 @@
 .today-personalized-text .text-foreground,
 .today-personalized-text .text-muted-foreground {
   color: #ffffff !important;
+}
+
+/* ============================================================
+   CONCIERGE — Hotel-luxury design language
+   Scoped to `.concierge` so it never bleeds into other routes.
+   Palette: sand background, warm charcoal text, brushed brass accent.
+   Type: Fraunces display + Inter body. Tabular numerals.
+   ============================================================ */
+.concierge {
+  --con-sand: #EFE9DD;
+  --con-sand-warm: #F5F0E6;
+  --con-charcoal: #1F1A14;
+  --con-charcoal-soft: #4A413A;
+  --con-charcoal-faint: #897F75;
+  --con-brass: #A88B5C;
+  --con-brass-deep: #806846;
+  --con-rule: #D6CDB9;
+  --con-accent-sage: #A4B494;
+  --con-accent-rose: #DB9C96;
+
+  background-color: var(--con-sand);
+  color: var(--con-charcoal);
+  font-family: "Inter", ui-sans-serif, system-ui, sans-serif;
+  letter-spacing: 0;
+  font-feature-settings: "ss01", "cv11", "tnum";
+  min-height: 100vh;
+}
+
+/* Subtle paper grain — barely there. Pure CSS noise via gradient + opacity. */
+.concierge::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background-image:
+    radial-gradient(circle at 1px 1px, rgba(31, 26, 20, 0.025) 1px, transparent 0);
+  background-size: 3px 3px;
+  opacity: 0.6;
+}
+.concierge > * { position: relative; z-index: 1; }
+
+.concierge .display {
+  font-family: "Fraunces", "Times New Roman", serif;
+  font-optical-sizing: auto;
+  font-weight: 400;
+  letter-spacing: -0.01em;
+}
+
+.concierge .display-tight {
+  font-family: "Fraunces", "Times New Roman", serif;
+  font-optical-sizing: auto;
+  font-weight: 400;
+  letter-spacing: -0.02em;
+}
+
+.concierge .small-caps {
+  font-family: "Inter", sans-serif;
+  font-size: 0.6875rem;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  font-weight: 500;
+  color: var(--con-brass-deep);
+}
+
+.concierge .small-caps-muted {
+  font-family: "Inter", sans-serif;
+  font-size: 0.6875rem;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  font-weight: 500;
+  color: var(--con-charcoal-faint);
+}
+
+.concierge .tnum {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum";
+}
+
+.concierge .hairline {
+  height: 1px;
+  background: var(--con-rule);
+  border: 0;
+}
+
+.concierge .vrule {
+  width: 1px;
+  background: var(--con-rule);
+  align-self: stretch;
+}
+
+.concierge a {
+  color: var(--con-brass-deep);
+  text-underline-offset: 3px;
+  text-decoration-thickness: 1px;
+}
+.concierge a:hover { color: var(--con-brass); }
+
+.concierge .monogram {
+  font-family: "Fraunces", serif;
+  font-weight: 500;
+  font-size: 1rem;
+  letter-spacing: 0.15em;
+  color: var(--con-brass);
+}
+
+/* Slow, deliberate fade-in on load. */
+@keyframes concierge-fade {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.concierge .fade-in {
+  animation: concierge-fade 600ms ease-out both;
 }
