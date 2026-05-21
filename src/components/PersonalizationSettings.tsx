@@ -1,4 +1,4 @@
-import { useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { HexColorPicker } from "react-colorful";
 import { toast } from "sonner";
 import {
@@ -10,6 +10,8 @@ import {
   type Personalization,
   type PersonalizationMode,
 } from "@/lib/personalization";
+import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
 
 const MAX_BYTES = 4 * 1024 * 1024;
 
@@ -201,6 +203,42 @@ function HeaderPreview({ p }: { p: Personalization }) {
   const textColor = dark ? "#ffffff" : "var(--color-foreground)";
   const subColor = dark ? "rgba(255,255,255,0.8)" : "var(--color-muted-foreground)";
   const textShadow = isImage ? "0 1px 2px rgba(0,0,0,0.3)" : undefined;
+
+  // Real data for the preview — name, today's top priority, current time.
+  // No more "Alex / Ship the v1 launch" placeholders that made the section
+  // look fake.
+  const { user } = useAuth();
+  const firstName = (() => {
+    const meta = (user?.user_metadata ?? {}) as { full_name?: string; first_name?: string };
+    if (meta.first_name) return meta.first_name;
+    if (meta.full_name) return meta.full_name.split(" ")[0];
+    if (user?.email) return user.email.split("@")[0].split(".")[0].split("+")[0].replace(/^./, (c) => c.toUpperCase());
+    return null;
+  })();
+  const [topPriority, setTopPriority] = useState<string | null>(null);
+  useEffect(() => {
+    if (!user) return;
+    const today = new Date().toISOString().slice(0, 10);
+    (async () => {
+      const { data } = await supabase
+        .from("exec_os_daily")
+        .select("top_priority")
+        .eq("user_id", user.id)
+        .eq("entry_date", today)
+        .maybeSingle();
+      const tp = (data as { top_priority?: string } | null)?.top_priority;
+      if (tp) setTopPriority(tp);
+    })();
+  }, [user]);
+  const [now, setNow] = useState(() => new Date());
+  useEffect(() => {
+    const id = setInterval(() => setNow(new Date()), 30_000);
+    return () => clearInterval(id);
+  }, []);
+  const hour = now.getHours();
+  const greeting = hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
+  const clock = now.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+
   return (
     <div className="space-y-1.5">
       <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Preview</p>
@@ -212,16 +250,18 @@ function HeaderPreview({ p }: { p: Personalization }) {
           <div className="absolute inset-0 pointer-events-none" style={{ backgroundColor: "rgba(255,255,255,0.6)" }} />
         )}
         <div className="relative" style={{ color: textColor, textShadow }}>
-          <div className="text-sm font-semibold">Good morning, Alex</div>
+          <div className="text-sm font-semibold">
+            {greeting}{firstName ? `, ${firstName}` : ""}
+          </div>
           <div className="text-[11px]" style={{ color: subColor, textShadow }}>
-            Top priority: Ship the v1 launch
+            {topPriority ? `Top priority: ${topPriority}` : "Top priority: set yours in Today"}
           </div>
         </div>
         <div
           className="relative text-sm tabular-nums font-mono"
           style={{ color: textColor, textShadow }}
         >
-          09:42
+          {clock}
         </div>
       </div>
     </div>
