@@ -247,36 +247,23 @@ async function processUser(opts: {
     (pipelineEmails ?? []).map((p: { primary_contact_email: string | null }) => (p.primary_contact_email ?? "").toLowerCase()).filter(Boolean),
   );
 
-  // Skip emails that look promotional, automated, or otherwise not real
-  // correspondence. Even with Gmail's category:primary filter, some marketing
-  // and newsletter mail leaks through.
-  const PROMO_SENDER_PATTERNS = [
-    /noreply/i, /no-reply/i, /notifications?@/i, /donotreply/i,
-    /newsletter@/i, /marketing@/i, /hello@.*\.(co|io|app|ai)$/i,
-    /support@/i, /info@/i, /team@/i, /updates@/i,
-  ];
-  const PROMO_SUBJECT_PATTERNS = [
-    /unsubscribe/i, /% off/i, /\bsale\b/i, /your daily/i,
-    /horoscope/i, /digest/i, /newsletter/i, /weekly/i,
-    /promotion/i, /new feature/i, /\bdeal\b/i, /\boffer\b/i,
-    /verification code/i, /\breceipt\b/i, /order #/i,
-  ];
-  const looksPromotional = (e: EmailRow): boolean => {
-    const senderEmail = (e.sender_email ?? "").toLowerCase();
-    if (PROMO_SENDER_PATTERNS.some((re) => re.test(senderEmail))) return true;
-    const subj = e.subject ?? "";
-    if (PROMO_SUBJECT_PATTERNS.some((re) => re.test(subj))) return true;
-    const snip = (e.snippet ?? "").toLowerCase();
-    if (snip.includes("unsubscribe") || snip.includes("you are receiving this")) return true;
-    return false;
-  };
-
-  const triageEmails = (emails ?? [] as EmailRow[]).filter((e) => {
-    const senderEmail = (e.sender_email ?? "").toLowerCase();
-    if (pipelineDomains.has(senderEmail)) return false; // Cleo's territory
-    if (looksPromotional(e)) return false;              // not real correspondence
-    return true;
-  }).slice(0, 5);
+  // INBOX TRIAGE IS DISABLED IN V1.1.
+  //
+  // Reason: with a single Gmail inbox full of newsletters, marketing,
+  // horoscopes, and only occasional real correspondence, we can't reliably
+  // separate "real reply needed" from "noise" without a signal like "has
+  // Donna replied to this sender before." That signal requires reading
+  // her Sent folder (separate Gmail API scope + extra round-trip) which
+  // we'll add in v2.
+  //
+  // For now: Sage only produces the focus directive. Cleo continues to
+  // draft sales follow-ups via the Pipeline path.
+  //
+  // If you need to manually trigger triage for a specific person, use
+  // Cleo's "Cleo Now" flow in the Pipeline widget.
+  const triageEmails: EmailRow[] = [];
+  void pipelineDomains;
+  void emails;
 
   // ============================================================
   // (A) FOCUS DIRECTIVE
@@ -306,13 +293,15 @@ ${taskBlock}
 
 Produce ONE focus directive via focus_directive.
 
-RULES:
-- The ONE thing that matters tomorrow. Just one. Anchor it to a SPECIFIC task or meeting from above. NEVER invent fake priorities like "fix gmail" or "review your inbox."
-- If tomorrow is heavy (4+ meetings OR 10+ open tasks), explicitly name what to CUT (specific items).
+STRICT RULES — VIOLATIONS WILL BE REJECTED:
+- Your output body MUST contain a VERBATIM phrase from one of the task titles or calendar event titles above. Quote at least 5 consecutive words from one specific item.
+- DO NOT use any words like "gmail", "inbox", "ingest", "review your emails", "fix your", "your dashboard" unless those exact words appear in the lists above.
+- DO NOT invent priorities. The ONE thing you name must literally appear in the lists above.
 - ${isQuietDay
-    ? "TOMORROW IS GENUINELY QUIET — no meetings, no open tasks. Acknowledge that directly: \"Pipeline is quiet. Today is yours.\" Suggest ONE proactive move (close one pipeline lead, ship one Ideafetti task, take real rest). Do NOT manufacture urgency."
-    : "Pick the ONE highest-leverage item from the lists. Name it in your output."}
-- Be blunt but warm. ND-tuned. No should/must.`;
+    ? "Tomorrow is genuinely empty (0 meetings, 0 tasks). Say so directly. Use this exact frame: \"Pipeline is quiet. Today is yours.\" Then suggest ONE specific proactive move — close one Pipeline lead OR take real rest. NO manufactured urgency."
+    : "Pick the ONE highest-leverage item from the lists. Name it verbatim. If 4+ meetings or 10+ tasks, also name 1-2 specific items to CUT (also verbatim)."}
+- Be blunt but warm. ND-tuned. No should/must.
+- Body: 2-4 sentences total. No headers. No bullet points. No em dashes.`;
 
     const focus = await callLlm({
       system: SAGE_SYSTEM,
