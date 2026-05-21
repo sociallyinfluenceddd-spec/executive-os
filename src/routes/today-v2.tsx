@@ -36,7 +36,20 @@ export const Route = createFileRoute("/today-v2")({
   component: ConciergePage,
 });
 
-type SectionKey = "schedule" | "brief" | "inbox" | "pipeline" | "money" | "staff" | "one" | "wins";
+type SectionKey = "schedule" | "brief" | "inbox" | "pipeline" | "money" | "staff" | "one" | "wins" | "workflows";
+
+interface WorkflowTask {
+  id: string;
+  title: string;
+  status: string;
+  time_estimate: string | null;
+  dollar_lever: string | null;
+  workflow_id: string;
+  workflow_name: string;
+  phase_id: string;
+  phase_name: string;
+  sort_order: number;
+}
 
 interface CalendarEvent {
   id: string;
@@ -96,10 +109,14 @@ function ConciergePage() {
 
   // Gamification state
   const [doneTodayItems, setDoneTodayItems] = useState<Array<{ id: string; title: string; dollar_lever: string | null; completed_at: string }>>([]);
+  const [doneThisWeekCount, setDoneThisWeekCount] = useState(0);
   const [approvedToday, setApprovedToday] = useState(0);
-  const [sentToday, setSentToday] = useState(0); // includes 'sent' status; falls back to approved if not used
-  const [streak, setStreak] = useState(0); // consecutive days with at least one completed task
+  const [sentToday, setSentToday] = useState(0);
+  const [streak, setStreak] = useState(0);
   const [agentStats, setAgentStats] = useState<Record<string, { drafted: number; sent: number }>>({});
+
+  // Workflows — active workflow's pending tasks (the daily build queue)
+  const [workflowTasks, setWorkflowTasks] = useState<WorkflowTask[]>([]);
 
   const [reloadTick, setReloadTick] = useState(0);
   const reload = () => setReloadTick((t) => t + 1);
@@ -118,7 +135,7 @@ function ConciergePage() {
     const lastWeekEnd = new Date(weekStart);
 
     void (async () => {
-      const [cal, em, br, pp, cl, dailyRow, revToday, revWeek, revMonth, revLastWeek, doneToday, agentToday, streakRows, allAgentOutputs] = await Promise.all([
+      const [cal, em, br, pp, cl, dailyRow, revToday, revWeek, revMonth, revLastWeek, doneToday, agentToday, streakRows, allAgentOutputs, wfTasksRaw, workflows, phasesRaw, doneThisWeek] = await Promise.all([
         fetchCalendarEvents({ timeMin: dayStart.toISOString(), timeMax: dayEnd.toISOString() }).then((r) => r.events),
         supabase
           .from("exec_os_emails")
@@ -162,6 +179,31 @@ function ConciergePage() {
           .select("agent_id, status")
           .eq("user_id", user.id)
           .gte("created_at", weekStart.toISOString()),
+        // Open workflow tasks across all active workflows
+        supabase
+          .from("exec_os_workflow_tasks")
+          .select("id, title, status, time_estimate, dollar_lever, workflow_id, phase_id, sort_order")
+          .eq("user_id", user.id)
+          .in("status", ["pending", "in_progress"])
+          .order("sort_order", { ascending: true })
+          .limit(40),
+        // Workflows + phases lookup (so we can show readable names on each task)
+        supabase
+          .from("exec_os_workflows")
+          .select("id, name")
+          .eq("user_id", user.id)
+          .eq("status", "active"),
+        supabase
+          .from("exec_os_workflow_phases")
+          .select("id, name, workflow_id")
+          .eq("user_id", user.id),
+        // This week's completed task count — for broader Wins context
+        supabase
+          .from("exec_os_workflow_tasks")
+          .select("id")
+          .eq("user_id", user.id)
+          .eq("status", "done")
+          .gte("completed_at", weekStart.toISOString()),
       ]);
       setEvents((cal ?? []) as CalendarEvent[]);
       setEmails(((em.data ?? []) as EmailFull[]));
@@ -179,6 +221,25 @@ function ConciergePage() {
 
       // Gamification derives
       setDoneTodayItems(((doneToday.data ?? []) as Array<{ id: string; title: string; dollar_lever: string | null; completed_at: string }>));
+      setDoneThisWeekCount(((doneThisWeek.data ?? []) as Array<{ id: string }>).length);
+
+      // Workflow tasks — join phase + workflow names client-side for readability
+      const wfMap = new Map<string, string>(((workflows.data ?? []) as Array<{ id: string; name: string }>).map((w) => [w.id, w.name]));
+      const phaseMap = new Map<string, { name: string; workflow_id: string }>(
+        ((phasesRaw.data ?? []) as Array<{ id: string; name: string; workflow_id: string }>).map((p) => [p.id, { name: p.name, workflow_id: p.workflow_id }]),
+      );
+      const tasks: WorkflowTask[] = ((wfTasksRaw.data ?? []) as Array<{
+        id: string; title: string; status: string; time_estimate: string | null;
+        dollar_lever: string | null; workflow_id: string; phase_id: string; sort_order: number;
+      }>).map((t) => {
+        const phase = phaseMap.get(t.phase_id);
+        return {
+          ...t,
+          workflow_name: wfMap.get(t.workflow_id) ?? "Workflow",
+          phase_name: phase?.name ?? "Phase",
+        };
+      });
+      setWorkflowTasks(tasks);
 
       const aRows = (agentToday.data ?? []) as Array<{ status: string }>;
       setApprovedToday(aRows.filter((r) => r.status === "approved" || r.status === "edited").length);
@@ -227,10 +288,17 @@ function ConciergePage() {
     return "Good evening";
   })();
   const firstName = (() => {
-    const meta = (user?.user_metadata ?? {}) as { full_name?: string; first_name?: string };
+    const meta = (user?.user_metadata ?? {}) as { full_name?: string; first_name?: string; name?: string };
     if (meta.first_name) return meta.first_name;
     if (meta.full_name) return meta.full_name.split(" ")[0];
-    if (user?.email) return user.email.split("@")[0].split(".")[0].split("+")[0].replace(/^./, (c) => c.toUpperCase());
+    if (meta.name) return meta.name.split(" ")[0];
+    // Email handle fallback — ONLY if it looks like a real name (short,
+    // alphabetic, no obvious handle markers). Otherwise drop the name.
+    if (user?.email) {
+      const handle = user.email.split("@")[0].split(".")[0].split("+")[0];
+      const looksLikeName = /^[a-z]{2,12}$/i.test(handle) && !/(^hello$|^info$|^team$|socially|ideafetti|noreply)/i.test(handle);
+      if (looksLikeName) return handle.replace(/^./, (c) => c.toUpperCase());
+    }
     return "";
   })();
   const longDate = now.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" });
@@ -309,17 +377,43 @@ function ConciergePage() {
 
         <hr className="hairline my-8" />
 
+        {/* WORKFLOWS — the actual work queue. Pending tasks across active workflows. */}
+        <Section
+          k="workflows"
+          title="To Ship"
+          headline={
+            workflowTasks.length === 0
+              ? "Queue is empty. Add tasks from the Hub."
+              : `${workflowTasks.length} ${workflowTasks.length === 1 ? "task" : "tasks"} in the queue.`
+          }
+          headlineDim={workflowTasks.length === 0}
+          subhead={
+            workflowTasks.length > 0
+              ? (() => {
+                  const phases = new Set(workflowTasks.map((t) => t.phase_name));
+                  return `Across ${phases.size} ${phases.size === 1 ? "phase" : "phases"}.`;
+                })()
+              : null
+          }
+          open={openSection === "workflows"}
+          onToggle={toggle}
+        >
+          <WorkflowsList tasks={workflowTasks} onChanged={reload} />
+        </Section>
+
+        <hr className="hairline my-8" />
+
         {/* WINS — today's accomplishments, the dopamine layer */}
         <Section
           k="wins"
           title="Wins"
-          headline={winsHeadline(doneTodayItems.length, approvedToday, revenueCents.today)}
-          headlineDim={doneTodayItems.length + approvedToday === 0 && revenueCents.today === 0}
-          subhead={winsSubcopy(doneTodayItems.length, approvedToday, revenueCents.today, streak)}
+          headline={winsHeadline(doneTodayItems.length, approvedToday, revenueCents.today, doneThisWeekCount)}
+          headlineDim={doneTodayItems.length + approvedToday === 0 && revenueCents.today === 0 && doneThisWeekCount === 0}
+          subhead={winsSubcopy(doneTodayItems.length, approvedToday, revenueCents.today, streak, doneThisWeekCount, revenueCents.week)}
           open={openSection === "wins"}
           onToggle={toggle}
         >
-          <WinsList items={doneTodayItems} />
+          <WinsList items={doneTodayItems} weekCount={doneThisWeekCount} weekRevenueCents={revenueCents.week} />
         </Section>
 
         <hr className="hairline my-8" />
@@ -1072,13 +1166,12 @@ function StatMoney({ cents, label }: { cents: number; label: string }) {
 }
 
 /**
- * The "Wins" section headline. AUDHD-tuned: blunt but warm. Reframes the
- * count as accomplishment, not just a number.
+ * The "Wins" section headline. AUDHD-tuned: blunt but warm.
+ * Now broader — if today is empty, falls back to this week's stats so
+ * Donna never sees just "Nothing logged" when she shipped 10 yesterday.
  */
-function winsHeadline(tasks: number, drafts: number, revenueCents: number): string {
-  if (tasks === 0 && drafts === 0 && revenueCents === 0) {
-    return "Nothing logged yet. The day is still yours.";
-  }
+function winsHeadline(tasks: number, drafts: number, revenueCents: number, weekTasks: number): string {
+  // Today has activity → today-focused headline
   if (revenueCents > 0 && tasks >= 5) return `${tasks} shipped, ${formatCents(revenueCents)} closed. Real day.`;
   if (revenueCents > 0) return `${formatCents(revenueCents)} closed today. Bank that win.`;
   if (tasks >= 5) return `${tasks} shipped. Momentum day.`;
@@ -1087,25 +1180,43 @@ function winsHeadline(tasks: number, drafts: number, revenueCents: number): stri
   if (tasks > 0 && drafts > 0) return `${tasks} shipped, ${drafts} drafts cleared.`;
   if (tasks > 0) return `${tasks} ${tasks === 1 ? "task" : "tasks"} shipped today. That counts.`;
   if (drafts > 0) return `${drafts} ${drafts === 1 ? "draft" : "drafts"} cleared from the Brief.`;
+  // Today empty → fall back to this week's pace so it doesn't feel demoralizing
+  if (weekTasks >= 10) return `${weekTasks} shipped this week. Keep going.`;
+  if (weekTasks >= 5) return `${weekTasks} shipped this week. Add one today.`;
+  if (weekTasks > 0) return `${weekTasks} ${weekTasks === 1 ? "task" : "tasks"} shipped this week.`;
   return "Slow start. Pick one small thing.";
 }
 
-function winsSubcopy(tasks: number, drafts: number, revenueCents: number, streak: number): string | null {
-  if (tasks === 0 && drafts === 0 && revenueCents === 0) {
-    if (streak >= 3) return `Don't break the ${streak}-day streak.`;
-    return null;
-  }
-  if (streak >= 7) return `${streak}-day streak. You haven't missed a day in a week.`;
-  if (streak >= 3) return `${streak}-day streak going.`;
-  return null;
+function winsSubcopy(tasks: number, drafts: number, revenueCents: number, streak: number, weekTasks: number, weekRev: number): string | null {
+  const bits: string[] = [];
+  if (streak >= 3) bits.push(`${streak}-day streak`);
+  if (weekTasks > 0 && tasks < weekTasks) bits.push(`${weekTasks} this week`);
+  if (weekRev > 0 && revenueCents < weekRev) bits.push(`${formatCents(weekRev)} closed this week`);
+  if (bits.length === 0) return null;
+  return bits.join("  ·  ") + ".";
 }
 
-function WinsList({ items }: { items: Array<{ id: string; title: string; dollar_lever: string | null; completed_at: string }> }) {
+function WinsList({ items, weekCount, weekRevenueCents }: { items: Array<{ id: string; title: string; dollar_lever: string | null; completed_at: string }>; weekCount: number; weekRevenueCents: number }) {
   if (items.length === 0) {
     return (
-      <p className="text-[0.95rem]" style={{ color: "var(--con-charcoal-faint)" }}>
-        Nothing shipped yet today. Open The One above and start.
-      </p>
+      <div className="space-y-3">
+        <p className="text-[0.95rem]" style={{ color: "var(--con-charcoal-faint)" }}>
+          Nothing shipped yet today. Open To Ship above and mark one done.
+        </p>
+        {(weekCount > 0 || weekRevenueCents > 0) && (
+          <p className="text-[0.875rem]" style={{ color: "var(--con-charcoal-soft)" }}>
+            This week so far: <span className="tnum font-medium" style={{ color: "var(--con-brass-deep)" }}>{weekCount}</span>{" "}
+            {weekCount === 1 ? "task" : "tasks"}
+            {weekRevenueCents > 0 && (
+              <>
+                {" · "}
+                <span className="tnum font-medium" style={{ color: "var(--con-brass-deep)" }}>{formatCents(weekRevenueCents)}</span> closed
+              </>
+            )}
+            .
+          </p>
+        )}
+      </div>
     );
   }
   return (
@@ -1129,5 +1240,80 @@ function WinsList({ items }: { items: Array<{ id: string; title: string; dollar_
         );
       })}
     </ul>
+  );
+}
+
+/* =====================================================================
+   WORKFLOWS — the build queue. Pending tasks across active workflows.
+   Click a checkbox → marks done, updates Done Today + Wins immediately.
+   ===================================================================== */
+function WorkflowsList({ tasks, onChanged }: { tasks: WorkflowTask[]; onChanged: () => void }) {
+  const [busyId, setBusyId] = useState<string | null>(null);
+
+  if (tasks.length === 0) {
+    return (
+      <p className="text-[0.95rem]" style={{ color: "var(--con-charcoal-faint)" }}>
+        No open tasks. Add one from the Hub or via Capture.
+      </p>
+    );
+  }
+
+  // Group by workflow + phase
+  const groups: Record<string, { workflow: string; phase: string; items: WorkflowTask[] }> = {};
+  for (const t of tasks) {
+    const key = `${t.workflow_id}:${t.phase_id}`;
+    if (!groups[key]) groups[key] = { workflow: t.workflow_name, phase: t.phase_name, items: [] };
+    groups[key].items.push(t);
+  }
+
+  const markDone = async (id: string) => {
+    setBusyId(id);
+    const { error } = await supabase
+      .from("exec_os_workflow_tasks")
+      .update({ status: "done", completed_at: new Date().toISOString() })
+      .eq("id", id);
+    setBusyId(null);
+    if (error) toast.error(error.message);
+    else { toast.success("Shipped."); onChanged(); }
+  };
+
+  return (
+    <div className="space-y-8">
+      {Object.entries(groups).map(([key, g]) => (
+        <div key={key}>
+          <div className="small-caps-muted mb-3">
+            {g.workflow} · {g.phase}
+          </div>
+          <ul className="space-y-3">
+            {g.items.map((t) => (
+              <li key={t.id} className="flex items-baseline gap-3 group">
+                <button
+                  onClick={() => markDone(t.id)}
+                  disabled={busyId === t.id}
+                  className="shrink-0 mt-0.5 inline-flex items-center justify-center h-4 w-4 rounded-sm border transition-colors hover:bg-[var(--con-sand-warm)]"
+                  style={{ borderColor: "var(--con-rule)" }}
+                  aria-label="Mark done"
+                  title="Mark done"
+                >
+                  {busyId === t.id && <Loader2 className="h-2.5 w-2.5 animate-spin" />}
+                </button>
+                <div className="flex-1 min-w-0">
+                  <p className="text-[0.9375rem]" style={{ color: "var(--con-charcoal)" }}>
+                    {t.title}
+                  </p>
+                  {(t.dollar_lever || t.time_estimate) && (
+                    <p className="text-[0.75rem] mt-0.5" style={{ color: "var(--con-charcoal-faint)" }}>
+                      {t.time_estimate ? <span className="tnum">{t.time_estimate}</span> : null}
+                      {t.time_estimate && t.dollar_lever ? "  ·  " : ""}
+                      {t.dollar_lever}
+                    </p>
+                  )}
+                </div>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ))}
+    </div>
   );
 }
