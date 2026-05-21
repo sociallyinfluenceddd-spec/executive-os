@@ -18,15 +18,17 @@ export const CLIENT_STATUSES = [
 ] as const;
 export type ClientStatus = (typeof CLIENT_STATUSES)[number];
 
+// Stage markers are refined unicode symbols, not cartoon emoji. They mostly
+// communicate via the color anyway; the symbol is a discrete shape cue.
 export const STATUS_META: Record<ClientStatus, { label: string; emoji: string; color: string; pipeline: boolean }> = {
-  lead:          { label: "Lead",          emoji: "🌱", color: "#A4B494", pipeline: true  },  // sage
-  contacted:     { label: "Contacted",     emoji: "💬", color: "#DB9C96", pipeline: true  },  // rose
-  qualified:     { label: "Qualified",     emoji: "🔥", color: "#E97451", pipeline: true  },  // orange
-  proposal_sent: { label: "Proposal out",  emoji: "📋", color: "#FFC100", pipeline: true  },  // yellow
-  active:        { label: "Active",        emoji: "💼", color: "#355834", pipeline: false },  // forest
-  paused:        { label: "Paused",        emoji: "⏸",  color: "#8899aa", pipeline: false },  // muted
-  churned:       { label: "Churned",       emoji: "👋", color: "#6b7280", pipeline: false },  // gray
-  lost:          { label: "Lost",          emoji: "❌", color: "#6b7280", pipeline: false },  // gray
+  lead:          { label: "Lead",          emoji: "◔", color: "#A4B494", pipeline: true  },
+  contacted:     { label: "Contacted",     emoji: "◑", color: "#DB9C96", pipeline: true  },
+  qualified:     { label: "Qualified",     emoji: "◕", color: "#E97451", pipeline: true  },
+  proposal_sent: { label: "Proposal out",  emoji: "●", color: "#FFC100", pipeline: true  },
+  active:        { label: "Active",        emoji: "◉", color: "#355834", pipeline: false },
+  paused:        { label: "Paused",        emoji: "‖", color: "#8899aa", pipeline: false },
+  churned:       { label: "Churned",       emoji: "—", color: "#6b7280", pipeline: false },
+  lost:          { label: "Lost",          emoji: "✕", color: "#6b7280", pipeline: false },
 };
 
 export interface Client {
