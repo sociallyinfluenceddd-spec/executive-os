@@ -439,17 +439,7 @@ function ConciergePage() {
                 <div className="small-caps">Brief</div>
                 <BriefRunActions onDone={reload} />
               </div>
-              {brief.length === 0 ? (
-                <p className="text-[0.9375rem]" style={{ color: "var(--con-charcoal-faint)" }}>
-                  Quiet morning. Run Sage or Ren above to start.
-                </p>
-              ) : (
-                <ul className="space-y-5">
-                  {brief.map((o) => (
-                    <BriefRow key={o.id} output={o} onChanged={reload} />
-                  ))}
-                </ul>
-              )}
+              <BriefTabs brief={brief} onChanged={reload} />
             </div>
 
             <div className="con-card">
@@ -665,6 +655,77 @@ function BriefRunActions({ onDone }: { onDone: () => void }) {
         {busy === "ren" ? <Loader2 className="h-3 w-3 animate-spin" /> : <PenLine className="h-3 w-3" />}
         Run Ren
       </button>
+    </div>
+  );
+}
+
+/**
+ * Brief tabs — one tab per agent. Click a tab to see only that agent's
+ * drafts. Default tab is whichever agent has the most pending items.
+ * Keeps the card tight; each agent gets focused review space.
+ */
+function BriefTabs({ brief, onChanged }: { brief: AgentOutput[]; onChanged: () => void }) {
+  // Group by agent_id
+  const byAgent = useMemo(() => {
+    const map: Record<string, AgentOutput[]> = {};
+    for (const o of brief) {
+      if (!map[o.agent_id]) map[o.agent_id] = [];
+      map[o.agent_id].push(o);
+    }
+    return map;
+  }, [brief]);
+
+  const agents = Object.keys(byAgent).sort((a, b) => byAgent[b].length - byAgent[a].length);
+  const [active, setActive] = useState<string | null>(null);
+  const activeAgent = active && byAgent[active] ? active : agents[0] ?? null;
+
+  if (brief.length === 0 || !activeAgent) {
+    return (
+      <p className="text-[0.9375rem]" style={{ color: "var(--con-charcoal-faint)" }}>
+        Quiet morning. Run Sage or Ren above to start.
+      </p>
+    );
+  }
+
+  return (
+    <div>
+      {/* Tab row — only shown when there's more than one agent with output */}
+      {agents.length > 1 && (
+        <div
+          className="flex items-center gap-5 mb-5 pb-3 border-b"
+          style={{ borderColor: "var(--con-rule)" }}
+        >
+          {agents.map((id) => {
+            const meta = AGENT_META[id as keyof typeof AGENT_META];
+            const count = byAgent[id].length;
+            const isActive = id === activeAgent;
+            return (
+              <button
+                key={id}
+                onClick={() => setActive(id)}
+                className="text-[0.6875rem] uppercase tracking-[0.22em] font-medium pb-1 transition-colors"
+                style={{
+                  color: isActive ? "var(--con-charcoal)" : "var(--con-charcoal-faint)",
+                  borderBottom: isActive ? "2px solid var(--con-brass-deep)" : "2px solid transparent",
+                  marginBottom: "-13px",
+                }}
+              >
+                {meta?.name ?? id}{" "}
+                <span className="tnum" style={{ color: isActive ? "var(--con-brass-deep)" : "inherit" }}>
+                  {count}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Active agent's drafts */}
+      <ul className="space-y-5">
+        {byAgent[activeAgent].map((o) => (
+          <BriefRow key={o.id} output={o} onChanged={onChanged} />
+        ))}
+      </ul>
     </div>
   );
 }
