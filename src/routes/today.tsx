@@ -473,6 +473,49 @@ function ConciergePage() {
 
         <div className="h-px mb-8" style={{ backgroundColor: "var(--con-rule)" }} />
 
+        {/* PIPELINE — full-width horizontal hero. Donut + stage legend + money
+            kpis + client list all readable side-by-side. */}
+        <div className="con-card tint-forest mb-6">
+          <div className="flex items-baseline justify-between mb-5">
+            <div className="small-caps">Pipeline</div>
+            {pipeline && (
+              <div className="flex items-center gap-6 text-[0.75rem]" style={{ color: "var(--con-ink-faint)" }}>
+                <span><span className="tnum font-semibold" style={{ color: "var(--con-ink)" }}>{pipeline.todayFollowUps + pipeline.overdueFollowUps}</span> follow-ups due</span>
+              </div>
+            )}
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-[auto_1fr_auto] gap-8 items-start mb-5">
+            {/* Donut */}
+            <div className="shrink-0">
+              <PipelineDonut clients={clients} />
+            </div>
+            {/* Stage legend */}
+            <PipelineStageLegend clients={clients} />
+            {/* Money KPIs */}
+            {pipeline && (
+              <div className="flex gap-6 shrink-0 pl-6" style={{ borderLeft: "1px solid var(--con-rule)" }}>
+                <div>
+                  <div className="big-num-sm" style={{ color: "var(--con-forest)" }}>
+                    {formatCents(pipeline.proposalOutValueCents)}
+                  </div>
+                  <div className="text-[0.6875rem] mt-1" style={{ color: "var(--con-ink-faint)" }}>out</div>
+                </div>
+                <div>
+                  <div className="big-num-sm" style={{ color: "var(--con-forest)" }}>
+                    {formatCents(pipeline.activeMrrCents)}
+                    <span className="text-[0.875rem] font-normal" style={{ color: "var(--con-ink-faint)" }}>/mo</span>
+                  </div>
+                  <div className="text-[0.6875rem] mt-1" style={{ color: "var(--con-ink-faint)" }}>active</div>
+                </div>
+              </div>
+            )}
+          </div>
+          {/* Client list */}
+          <div className="pt-4" style={{ borderTop: "1px solid var(--con-rule)" }}>
+            <PipelineList clients={clients} onChanged={reload} />
+          </div>
+        </div>
+
         {/* TWO-COLUMN MAIN BODY — each section is its own card */}
         <div className="grid grid-cols-1 lg:grid-cols-[1.1fr_1fr] gap-6 mb-8">
 
@@ -481,7 +524,16 @@ function ConciergePage() {
 
             <div className="con-card tint-yellow">
               <div className="flex items-baseline justify-between mb-4">
-                <div className="small-caps">To Ship</div>
+                <div className="flex items-baseline gap-3">
+                  <div className="small-caps">To Ship</div>
+                  <span
+                    className="text-[0.625rem] uppercase tracking-[0.14em] font-semibold px-2 py-0.5 rounded-full"
+                    style={{ color: "var(--con-navy)", backgroundColor: "rgba(8, 61, 119, 0.08)" }}
+                    title="Maya is your build agent. Tasks here are her territory."
+                  >
+                    Maya
+                  </span>
+                </div>
                 <div className="big-num-sm" style={{ color: "var(--con-brass-deep)" }}>
                   {workflowTasks.length}
                 </div>
@@ -570,30 +622,6 @@ function ConciergePage() {
               <InboxList emails={emails} />
             </div>
 
-            <div className="con-card tint-forest">
-              <div className="small-caps mb-4">Pipeline</div>
-              <div className="flex items-center gap-5 mb-4">
-                <PipelineDonut clients={clients} />
-                <PipelineStageLegend clients={clients} />
-              </div>
-              {pipeline && (pipeline.proposalOutValueCents > 0 || pipeline.activeMrrCents > 0) && (
-                <div className="flex gap-6 text-[0.8125rem] tnum mb-4 pb-4" style={{ color: "var(--con-ink-soft)", borderBottom: "1px solid var(--con-rule)" }}>
-                  <div>
-                    <div className="font-semibold text-[1rem]" style={{ color: "var(--con-ink)" }}>
-                      {formatCents(pipeline.proposalOutValueCents)}
-                    </div>
-                    <div className="text-[0.6875rem] mt-0.5" style={{ color: "var(--con-ink-faint)" }}>out</div>
-                  </div>
-                  <div>
-                    <div className="font-semibold text-[1rem]" style={{ color: "var(--con-ink)" }}>
-                      {formatCents(pipeline.activeMrrCents)}<span className="text-[0.6875rem] font-normal" style={{ color: "var(--con-ink-faint)" }}>/mo</span>
-                    </div>
-                    <div className="text-[0.6875rem] mt-0.5" style={{ color: "var(--con-ink-faint)" }}>active</div>
-                  </div>
-                </div>
-              )}
-              <PipelineList clients={clients} onChanged={reload} />
-            </div>
           </div>
         </div>
 
