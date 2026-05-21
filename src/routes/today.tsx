@@ -12,6 +12,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Fragment, useCallback, useEffect, useMemo, useState } from "react";
 import { StudioShell } from "@/components/StudioShell";
+import { TimersAlarmsMenu } from "@/components/header/TimersAlarmsMenu";
 import { ExternalLink, Copy, Check, X, Edit3, Archive, RefreshCw, Plus, Target, PenLine, Loader2, Sparkles, ChevronRight, ChevronDown } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -429,12 +430,13 @@ function ConciergePage() {
         <header className="space-y-5 mb-10">
           <div className="flex items-start justify-between gap-6">
             <div className="small-caps-muted tnum">{longDate.toUpperCase()}</div>
-            <div className="flex items-center gap-6">
+            <div className="flex items-center gap-5">
               {streak > 0 && (
                 <span className="small-caps tnum">
                   {streak}-DAY STREAK
                 </span>
               )}
+              <TimersAlarmsMenu />
               <span className="small-caps-muted tnum">{clock}</span>
               <span className="monogram">DC</span>
             </div>
