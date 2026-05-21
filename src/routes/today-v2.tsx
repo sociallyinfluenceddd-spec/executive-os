@@ -11,6 +11,7 @@
 
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Fragment, useCallback, useEffect, useMemo, useState } from "react";
+import { StudioShell } from "@/components/StudioShell";
 import { ExternalLink, Copy, Check, X, Edit3, Archive, RefreshCw, Plus, Target, PenLine, Loader2, Sparkles, ChevronRight, ChevronDown } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -377,61 +378,53 @@ function ConciergePage() {
     return map;
   }, [brief]);
 
+  // Build the right-rail content for the shell
+  const railContent = (
+    <>
+      <div className="small-caps mb-3">
+        {now.toLocaleDateString("en-US", { month: "long", year: "numeric" })}
+      </div>
+      <MiniCalendar today={now} events={events} />
+
+      <div className="small-caps mt-8 mb-3">Today's events</div>
+      {events.length === 0 ? (
+        <p className="text-[0.8125rem]" style={{ color: "var(--con-ink-faint)" }}>
+          Nothing scheduled.
+        </p>
+      ) : (
+        <ul className="space-y-2">
+          {events.slice(0, 5).map((e) => {
+            const t = e.start_at ? new Date(e.start_at).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }) : "—";
+            const isNext = upcoming?.id === e.id;
+            return (
+              <li key={e.id} className="flex items-baseline gap-2">
+                <span className="tnum text-[0.75rem] shrink-0" style={{ color: "var(--con-ink-faint)" }}>
+                  {t.toLowerCase()}
+                </span>
+                <span className="text-[0.8125rem]" style={{ color: isNext ? "var(--con-navy)" : "var(--con-ink)" }}>
+                  {e.title}
+                </span>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+
+      <div className="small-caps mt-8 mb-3">Quick</div>
+      <div className="space-y-1.5 text-[0.8125rem]">
+        <Link to="/capture" className="block py-1.5 px-2 rounded-md hover:bg-[var(--con-hover)]" style={{ color: "var(--con-ink)" }}>
+          + Capture a thought
+        </Link>
+        <Link to="/hub" className="block py-1.5 px-2 rounded-md hover:bg-[var(--con-hover)]" style={{ color: "var(--con-ink)" }}>
+          + Add a lead
+        </Link>
+      </div>
+    </>
+  );
+
   return (
-    <div className="concierge">
-      <div className="studio-grid fade-in">
-
-        {/* SIDEBAR — left rail with persistent nav */}
-        <aside className="studio-sidebar">
-          <div className="flex items-center justify-between mb-8">
-            <span className="monogram" style={{ color: "var(--con-yellow)" }}>DC</span>
-            {streak > 0 && (
-              <span className="text-[0.625rem] uppercase tracking-[0.18em] font-semibold tnum" style={{ color: "var(--con-yellow)" }}>
-                {streak}d
-              </span>
-            )}
-          </div>
-          <nav className="space-y-1 mb-8">
-            <Link to="/today-v2" data-active="true">
-              <span style={{ width: "1rem" }}>◆</span> Today
-            </Link>
-            <Link to="/hub">
-              <span style={{ width: "1rem" }}>◇</span> Hub
-            </Link>
-            <Link to="/capture">
-              <span style={{ width: "1rem" }}>◇</span> Capture
-            </Link>
-            <Link to="/settings">
-              <span style={{ width: "1rem" }}>◇</span> Settings
-            </Link>
-          </nav>
-          <div className="text-[0.625rem] uppercase tracking-[0.22em] font-semibold mb-2" style={{ color: "rgba(242, 234, 211, 0.5)" }}>
-            Agents
-          </div>
-          <nav className="space-y-1">
-            <a href="#brief" data-active="false">
-              <span style={{ width: "1rem", color: "var(--con-rose)" }}>●</span> Cleo
-            </a>
-            <a href="#brief" data-active="false">
-              <span style={{ width: "1rem", color: "var(--con-sage)" }}>●</span> Sage
-            </a>
-            <a href="#brief" data-active="false">
-              <span style={{ width: "1rem", color: "var(--con-orange)" }}>●</span> Ren
-            </a>
-            <a href="#brief" data-active="false">
-              <span style={{ width: "1rem", color: "var(--con-yellow)" }}>●</span> Vee
-            </a>
-            <a href="#brief" data-active="false">
-              <span style={{ width: "1rem", color: "var(--con-navy)" }}>●</span> Maya
-            </a>
-            <a href="#brief" data-active="false">
-              <span style={{ width: "1rem", color: "var(--con-forest)" }}>●</span> Theo
-            </a>
-          </nav>
-        </aside>
-
-        {/* MAIN CONTENT — center */}
-        <main className="studio-main">
+    <StudioShell rail={railContent}>
+      <div className="fade-in">
         {/* HEADER */}
         <header className="space-y-5 mb-10">
           <div className="flex items-start justify-between gap-6">
@@ -657,51 +650,8 @@ function ConciergePage() {
           </div>
         </div>
 
-        </main>
-
-        {/* RIGHT RAIL — mini calendar + quick actions */}
-        <aside className="studio-rail">
-          <div className="small-caps mb-3">
-            {now.toLocaleDateString("en-US", { month: "long", year: "numeric" })}
-          </div>
-          <MiniCalendar today={now} events={events} />
-
-          <div className="small-caps mt-8 mb-3">Today's events</div>
-          {events.length === 0 ? (
-            <p className="text-[0.8125rem]" style={{ color: "var(--con-charcoal-faint)" }}>
-              Nothing scheduled.
-            </p>
-          ) : (
-            <ul className="space-y-2">
-              {events.slice(0, 5).map((e) => {
-                const t = e.start_at ? new Date(e.start_at).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }) : "—";
-                const isNext = upcoming?.id === e.id;
-                return (
-                  <li key={e.id} className="flex items-baseline gap-2">
-                    <span className="tnum text-[0.75rem] shrink-0" style={{ color: "var(--con-charcoal-faint)" }}>
-                      {t.toLowerCase()}
-                    </span>
-                    <span className="text-[0.8125rem]" style={{ color: isNext ? "var(--con-brass-deep)" : "var(--con-charcoal)" }}>
-                      {e.title}
-                    </span>
-                  </li>
-                );
-              })}
-            </ul>
-          )}
-
-          <div className="small-caps mt-8 mb-3">Quick</div>
-          <div className="space-y-1.5 text-[0.8125rem]">
-            <Link to="/capture" className="block py-1.5 px-2 rounded-md hover:bg-[var(--con-cream)]" style={{ color: "var(--con-charcoal)" }}>
-              + Capture a thought
-            </Link>
-            <Link to="/hub" className="block py-1.5 px-2 rounded-md hover:bg-[var(--con-cream)]" style={{ color: "var(--con-charcoal)" }}>
-              + Add a lead
-            </Link>
-          </div>
-        </aside>
       </div>
-    </div>
+    </StudioShell>
   );
 }
 

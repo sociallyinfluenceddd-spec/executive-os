@@ -23,7 +23,7 @@ import {
   SheetTitle,
   SheetDescription,
 } from "@/components/ui/sheet";
-import { AppShell } from "@/components/AppShell";
+import { StudioShell as AppShell } from "@/components/StudioShell";
 import { StackTab } from "@/components/StackTab";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
