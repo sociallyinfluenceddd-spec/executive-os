@@ -118,6 +118,11 @@ function ConciergePage() {
   // Workflows — active workflow's pending tasks (the daily build queue)
   const [workflowTasks, setWorkflowTasks] = useState<WorkflowTask[]>([]);
 
+  // Visualization data
+  const [habitGrid, setHabitGrid] = useState<boolean[]>([]); // last 30 days, true if any task done
+  const [taskBars, setTaskBars] = useState<number[]>([]); // last 7 days, count of done tasks per day
+  const [revenueSeries, setRevenueSeries] = useState<number[]>([]); // last 14 days, cents per day
+
   const [reloadTick, setReloadTick] = useState(0);
   const reload = () => setReloadTick((t) => t + 1);
 
@@ -134,8 +139,11 @@ function ConciergePage() {
     const lastWeekStart = new Date(); lastWeekStart.setDate(lastWeekStart.getDate() - 13); lastWeekStart.setHours(0, 0, 0, 0);
     const lastWeekEnd = new Date(weekStart);
 
+    // For 14-day revenue sparkline
+    const fourteenAgoIso = new Date(Date.now() - 13 * 86_400_000).toISOString().slice(0, 10);
+
     void (async () => {
-      const [cal, em, br, pp, cl, dailyRow, revToday, revWeek, revMonth, revLastWeek, doneToday, agentToday, streakRows, allAgentOutputs, wfTasksRaw, workflows, phasesRaw, doneThisWeek] = await Promise.all([
+      const [cal, em, br, pp, cl, dailyRow, revToday, revWeek, revMonth, revLastWeek, doneToday, agentToday, streakRows, allAgentOutputs, wfTasksRaw, workflows, phasesRaw, doneThisWeek, revDaily] = await Promise.all([
         fetchCalendarEvents({ timeMin: dayStart.toISOString(), timeMax: dayEnd.toISOString() }).then((r) => r.events),
         supabase
           .from("exec_os_emails")
@@ -204,6 +212,13 @@ function ConciergePage() {
           .eq("user_id", user.id)
           .eq("status", "done")
           .gte("completed_at", weekStart.toISOString()),
+        // Revenue over the last 14 days (daily) — for the Money sparkline
+        supabase
+          .from("exec_os_revenue")
+          .select("amount_cents, entry_date")
+          .eq("user_id", user.id)
+          .gte("entry_date", fourteenAgoIso)
+          .order("entry_date", { ascending: true }),
       ]);
       setEvents((cal ?? []) as CalendarEvent[]);
       setEmails(((em.data ?? []) as EmailFull[]));
@@ -245,11 +260,16 @@ function ConciergePage() {
       setApprovedToday(aRows.filter((r) => r.status === "approved" || r.status === "edited").length);
       setSentToday(aRows.filter((r) => r.status === "sent").length);
 
-      // Streak: count consecutive days back from today where >= 1 task was completed
-      const streakDates = new Set<string>();
+      // Build a "tasks completed per day" map from the last 30 days
+      const tasksByDay: Map<string, number> = new Map();
       for (const r of (streakRows.data ?? []) as Array<{ completed_at: string }>) {
-        if (r.completed_at) streakDates.add(r.completed_at.slice(0, 10));
+        if (!r.completed_at) continue;
+        const k = r.completed_at.slice(0, 10);
+        tasksByDay.set(k, (tasksByDay.get(k) ?? 0) + 1);
       }
+      const streakDates = new Set(tasksByDay.keys());
+
+      // Streak: count consecutive days back from today where >= 1 task was completed
       let streakCount = 0;
       const cursor = new Date();
       cursor.setHours(0, 0, 0, 0);
@@ -266,6 +286,41 @@ function ConciergePage() {
         }
       }
       setStreak(streakCount);
+
+      // Habit grid — last 30 days, true if any task done
+      const habit: boolean[] = [];
+      for (let i = 29; i >= 0; i--) {
+        const d = new Date();
+        d.setHours(0, 0, 0, 0);
+        d.setDate(d.getDate() - i);
+        habit.push(streakDates.has(d.toISOString().slice(0, 10)));
+      }
+      setHabitGrid(habit);
+
+      // Task bars — last 7 days, count of tasks completed per day
+      const bars: number[] = [];
+      for (let i = 6; i >= 0; i--) {
+        const d = new Date();
+        d.setHours(0, 0, 0, 0);
+        d.setDate(d.getDate() - i);
+        bars.push(tasksByDay.get(d.toISOString().slice(0, 10)) ?? 0);
+      }
+      setTaskBars(bars);
+
+      // Revenue sparkline — last 14 days, cents per day
+      const revByDay: Map<string, number> = new Map();
+      for (const r of (revDaily.data ?? []) as Array<{ amount_cents: number; entry_date: string }>) {
+        const k = r.entry_date;
+        revByDay.set(k, (revByDay.get(k) ?? 0) + r.amount_cents);
+      }
+      const rev: number[] = [];
+      for (let i = 13; i >= 0; i--) {
+        const d = new Date();
+        d.setHours(0, 0, 0, 0);
+        d.setDate(d.getDate() - i);
+        rev.push(revByDay.get(d.toISOString().slice(0, 10)) ?? 0);
+      }
+      setRevenueSeries(rev);
 
       // Per-agent box scores: drafted = total outputs (any status); sent = approved/edited/sent
       const stats: Record<string, { drafted: number; sent: number }> = {};
@@ -359,6 +414,16 @@ function ConciergePage() {
             {sentToday > 0 && <Stat n={sentToday} label={sentToday === 1 ? "message sent" : "messages sent"} />}
             <StatMoney cents={revenueCents.today} label="logged" />
           </div>
+
+          {/* HABIT GRID — last 30 days. Filled brass square = shipped at least
+              one task. Faint outline = didn't ship. Reads like a private
+              quantified-self log. */}
+          {habitGrid.length > 0 && (
+            <div className="pt-2 flex items-center gap-4">
+              <span className="small-caps-muted">Last 30</span>
+              <HabitGrid days={habitGrid} />
+            </div>
+          )}
         </header>
 
         <div className="h-px mb-8" style={{ backgroundColor: "var(--con-rule)" }} />
@@ -427,6 +492,11 @@ function ConciergePage() {
               <p className="display-tight text-[1.0625rem] mb-4 leading-snug" style={{ color: doneTodayItems.length + approvedToday === 0 && revenueCents.today === 0 && doneThisWeekCount === 0 ? "var(--con-charcoal-faint)" : "var(--con-charcoal)" }}>
                 {winsHeadline(doneTodayItems.length, approvedToday, revenueCents.today, doneThisWeekCount)}
               </p>
+              {taskBars.length > 0 && (
+                <div className="mb-4">
+                  <TaskBars values={taskBars} />
+                </div>
+              )}
               <WinsList items={doneTodayItems} weekCount={doneThisWeekCount} weekRevenueCents={revenueCents.week} />
             </div>
           </div>
@@ -504,6 +574,15 @@ function ConciergePage() {
                 <p className="text-[0.75rem] mt-0.5" style={{ color: "var(--con-charcoal-faint)" }}>MTD</p>
               </div>
             </div>
+            {revenueSeries.length > 0 && (
+              <div className="mb-4">
+                <Sparkline values={revenueSeries} />
+                <div className="flex justify-between mt-1 text-[0.625rem]" style={{ color: "var(--con-charcoal-faint)" }}>
+                  <span>14 days ago</span>
+                  <span>today</span>
+                </div>
+              </div>
+            )}
             <MoneyLog user={user} onLogged={reload} />
           </div>
 
@@ -1326,6 +1405,127 @@ function WorkflowsList({ tasks, onChanged }: { tasks: WorkflowTask[]; onChanged:
           Show less
         </button>
       )}
+    </div>
+  );
+}
+
+/* =====================================================================
+   VISUALIZATIONS — pure SVG, Concierge palette, no chart libraries.
+   ===================================================================== */
+
+/**
+ * Habit grid — 30 squares in a row. Filled brass square = at least one
+ * task completed that day. Faint outline = nothing logged. Reads like a
+ * quantified-self log in a private journal.
+ */
+function HabitGrid({ days }: { days: boolean[] }) {
+  const size = 9;
+  const gap = 3;
+  const w = days.length * (size + gap) - gap;
+  return (
+    <svg width={w} height={size} aria-label={`Last ${days.length} days activity`}>
+      {days.map((shipped, i) => (
+        <rect
+          key={i}
+          x={i * (size + gap)}
+          y={0}
+          width={size}
+          height={size}
+          rx={1.5}
+          fill={shipped ? "var(--con-brass-deep)" : "transparent"}
+          stroke={shipped ? "var(--con-brass-deep)" : "var(--con-rule)"}
+          strokeWidth={1}
+        />
+      ))}
+    </svg>
+  );
+}
+
+/**
+ * Revenue sparkline — a soft area chart for 14 days of daily revenue.
+ * Brass line, faint fill underneath. Width is responsive; height fixed.
+ */
+function Sparkline({ values }: { values: number[] }) {
+  const W = 320;
+  const H = 48;
+  const padding = 2;
+  if (values.length === 0) return null;
+  const max = Math.max(...values, 1);
+  const stepX = (W - padding * 2) / Math.max(1, values.length - 1);
+  const points = values.map((v, i) => {
+    const x = padding + i * stepX;
+    const y = H - padding - (v / max) * (H - padding * 2);
+    return [x, y] as const;
+  });
+  const line = points.map(([x, y], i) => `${i === 0 ? "M" : "L"} ${x.toFixed(2)} ${y.toFixed(2)}`).join(" ");
+  const area = `${line} L ${points[points.length - 1][0].toFixed(2)} ${H - padding} L ${points[0][0].toFixed(2)} ${H - padding} Z`;
+  return (
+    <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" width="100%" height={H} aria-label="14-day revenue trend">
+      <path d={area} fill="var(--con-brass-deep)" opacity={0.08} />
+      <path d={line} stroke="var(--con-brass-deep)" strokeWidth={1.5} fill="none" strokeLinecap="round" strokeLinejoin="round" />
+      {points.map(([x, y], i) => {
+        const isToday = i === points.length - 1;
+        return (
+          <circle
+            key={i}
+            cx={x}
+            cy={y}
+            r={isToday ? 2.5 : 1.25}
+            fill={isToday ? "var(--con-brass-deep)" : "var(--con-brass)"}
+          />
+        );
+      })}
+    </svg>
+  );
+}
+
+/**
+ * Task-per-day bars — 7 thin bars showing how many tasks completed each
+ * day. Today's bar is brass, prior days are faint. Quick rhythm read.
+ */
+function TaskBars({ values }: { values: number[] }) {
+  const max = Math.max(...values, 1);
+  const labels = (() => {
+    const out: string[] = [];
+    for (let i = values.length - 1; i >= 0; i--) {
+      const d = new Date();
+      d.setDate(d.getDate() - i);
+      out.push(d.toLocaleDateString("en-US", { weekday: "short" }).slice(0, 1));
+    }
+    return out;
+  })();
+  return (
+    <div>
+      <div className="flex items-end gap-2 h-12">
+        {values.map((v, i) => {
+          const isToday = i === values.length - 1;
+          const h = Math.max(2, Math.round((v / max) * 48));
+          return (
+            <div key={i} className="flex-1 flex flex-col items-center justify-end gap-1">
+              <div
+                className="w-full rounded-sm"
+                style={{
+                  height: `${h}px`,
+                  backgroundColor: isToday ? "var(--con-brass-deep)" : "var(--con-brass)",
+                  opacity: isToday ? 1 : 0.35,
+                }}
+                title={`${v} tasks`}
+              />
+            </div>
+          );
+        })}
+      </div>
+      <div className="flex items-center gap-2 mt-1.5">
+        {labels.map((l, i) => (
+          <div
+            key={i}
+            className="flex-1 text-center text-[0.625rem]"
+            style={{ color: i === values.length - 1 ? "var(--con-brass-deep)" : "var(--con-charcoal-faint)" }}
+          >
+            {l}
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
