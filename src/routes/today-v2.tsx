@@ -10,7 +10,7 @@
 // cards. Hairline rules instead of borders.
 
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { Fragment, useCallback, useEffect, useMemo, useState } from "react";
 import { ExternalLink, Copy, Check, X, Edit3, Archive, RefreshCw, Plus, Target, PenLine, Loader2, Sparkles, ChevronRight, ChevronDown } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -1180,6 +1180,8 @@ function WinsList({ items, weekCount, weekRevenueCents }: { items: Array<{ id: s
    ===================================================================== */
 function WorkflowsList({ tasks, onChanged }: { tasks: WorkflowTask[]; onChanged: () => void }) {
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [showAll, setShowAll] = useState(false);
+  const VISIBLE_CAP = 8;
 
   if (tasks.length === 0) {
     return (
@@ -1187,14 +1189,6 @@ function WorkflowsList({ tasks, onChanged }: { tasks: WorkflowTask[]; onChanged:
         No open tasks. Add one from the Hub or via Capture.
       </p>
     );
-  }
-
-  // Group by workflow + phase
-  const groups: Record<string, { workflow: string; phase: string; items: WorkflowTask[] }> = {};
-  for (const t of tasks) {
-    const key = `${t.workflow_id}:${t.phase_id}`;
-    if (!groups[key]) groups[key] = { workflow: t.workflow_name, phase: t.phase_name, items: [] };
-    groups[key].items.push(t);
   }
 
   const markDone = async (id: string) => {
@@ -1208,16 +1202,28 @@ function WorkflowsList({ tasks, onChanged }: { tasks: WorkflowTask[]; onChanged:
     else { toast.success("Shipped."); onChanged(); }
   };
 
+  // Render a flat list capped at VISIBLE_CAP with a phase divider when the
+  // workflow/phase changes between rows. Compact: single-line tasks, no
+  // descriptions, just title + tiny meta. Click "Show all" to expand.
+  const visible = showAll ? tasks : tasks.slice(0, VISIBLE_CAP);
+  const hidden = tasks.length - visible.length;
+
   return (
-    <div className="space-y-8">
-      {Object.entries(groups).map(([key, g]) => (
-        <div key={key}>
-          <div className="small-caps-muted mb-3">
-            {g.workflow} · {g.phase}
-          </div>
-          <ul className="space-y-3">
-            {g.items.map((t) => (
-              <li key={t.id} className="flex items-baseline gap-3 group">
+    <div>
+      <ul className="space-y-2">
+        {visible.map((t, i) => {
+          const prev = i > 0 ? visible[i - 1] : null;
+          const showPhaseDivider = !prev || prev.workflow_id !== t.workflow_id || prev.phase_id !== t.phase_id;
+          return (
+            <Fragment key={t.id}>
+              {showPhaseDivider && (
+                <li className="pt-3 first:pt-0">
+                  <div className="small-caps-muted text-[0.625rem]">
+                    {t.workflow_name} · {t.phase_name}
+                  </div>
+                </li>
+              )}
+              <li className="flex items-baseline gap-3">
                 <button
                   onClick={() => markDone(t.id)}
                   disabled={busyId === t.id}
@@ -1228,23 +1234,37 @@ function WorkflowsList({ tasks, onChanged }: { tasks: WorkflowTask[]; onChanged:
                 >
                   {busyId === t.id && <Loader2 className="h-2.5 w-2.5 animate-spin" />}
                 </button>
-                <div className="flex-1 min-w-0">
-                  <p className="text-[0.9375rem]" style={{ color: "var(--con-charcoal)" }}>
-                    {t.title}
-                  </p>
-                  {(t.dollar_lever || t.time_estimate) && (
-                    <p className="text-[0.75rem] mt-0.5" style={{ color: "var(--con-charcoal-faint)" }}>
-                      {t.time_estimate ? <span className="tnum">{t.time_estimate}</span> : null}
-                      {t.time_estimate && t.dollar_lever ? "  ·  " : ""}
-                      {t.dollar_lever}
-                    </p>
-                  )}
-                </div>
+                <span className="flex-1 min-w-0 text-[0.9375rem]" style={{ color: "var(--con-charcoal)" }}>
+                  {t.title}
+                </span>
+                {t.time_estimate && (
+                  <span className="text-[0.6875rem] tnum shrink-0" style={{ color: "var(--con-charcoal-faint)" }}>
+                    {t.time_estimate}
+                  </span>
+                )}
               </li>
-            ))}
-          </ul>
-        </div>
-      ))}
+            </Fragment>
+          );
+        })}
+      </ul>
+      {hidden > 0 && !showAll && (
+        <button
+          onClick={() => setShowAll(true)}
+          className="text-[0.8125rem] mt-4"
+          style={{ color: "var(--con-brass-deep)" }}
+        >
+          Show all {tasks.length} →
+        </button>
+      )}
+      {showAll && tasks.length > VISIBLE_CAP && (
+        <button
+          onClick={() => setShowAll(false)}
+          className="text-[0.8125rem] mt-4"
+          style={{ color: "var(--con-charcoal-faint)" }}
+        >
+          Show less
+        </button>
+      )}
     </div>
   );
 }
