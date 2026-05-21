@@ -36,7 +36,7 @@ export const Route = createFileRoute("/today-v2")({
   component: ConciergePage,
 });
 
-type SectionKey = "schedule" | "brief" | "inbox" | "pipeline" | "money" | "staff" | "one";
+type SectionKey = "schedule" | "brief" | "inbox" | "pipeline" | "money" | "staff" | "one" | "wins";
 
 interface CalendarEvent {
   id: string;
@@ -92,7 +92,15 @@ function ConciergePage() {
   const [pipeline, setPipeline] = useState<PipelineSummary | null>(null);
   const [clients, setClients] = useState<Client[]>([]);
   const [daily, setDaily] = useState<DailyRow | null>(null);
-  const [revenueCents, setRevenueCents] = useState({ today: 0, week: 0, month: 0 });
+  const [revenueCents, setRevenueCents] = useState({ today: 0, week: 0, month: 0, lastWeek: 0 });
+
+  // Gamification state
+  const [doneTodayItems, setDoneTodayItems] = useState<Array<{ id: string; title: string; dollar_lever: string | null; completed_at: string }>>([]);
+  const [approvedToday, setApprovedToday] = useState(0);
+  const [sentToday, setSentToday] = useState(0); // includes 'sent' status; falls back to approved if not used
+  const [streak, setStreak] = useState(0); // consecutive days with at least one completed task
+  const [agentStats, setAgentStats] = useState<Record<string, { drafted: number; sent: number }>>({});
+
   const [reloadTick, setReloadTick] = useState(0);
   const reload = () => setReloadTick((t) => t + 1);
 
@@ -105,8 +113,12 @@ function ConciergePage() {
     const weekStart = new Date(); weekStart.setDate(weekStart.getDate() - 6); weekStart.setHours(0, 0, 0, 0);
     const monthStart = new Date(); monthStart.setDate(1); monthStart.setHours(0, 0, 0, 0);
 
+    // For streak + velocity comparisons
+    const lastWeekStart = new Date(); lastWeekStart.setDate(lastWeekStart.getDate() - 13); lastWeekStart.setHours(0, 0, 0, 0);
+    const lastWeekEnd = new Date(weekStart);
+
     void (async () => {
-      const [cal, em, br, pp, cl, dailyRow, revToday, revWeek, revMonth] = await Promise.all([
+      const [cal, em, br, pp, cl, dailyRow, revToday, revWeek, revMonth, revLastWeek, doneToday, agentToday, streakRows, allAgentOutputs] = await Promise.all([
         fetchCalendarEvents({ timeMin: dayStart.toISOString(), timeMax: dayEnd.toISOString() }).then((r) => r.events),
         supabase
           .from("exec_os_emails")
@@ -119,6 +131,37 @@ function ConciergePage() {
         supabase.from("exec_os_revenue").select("amount_cents").eq("user_id", user.id).eq("entry_date", todayStr),
         supabase.from("exec_os_revenue").select("amount_cents").eq("user_id", user.id).gte("entry_date", weekStart.toISOString().slice(0, 10)),
         supabase.from("exec_os_revenue").select("amount_cents").eq("user_id", user.id).gte("entry_date", monthStart.toISOString().slice(0, 10)),
+        supabase.from("exec_os_revenue").select("amount_cents").eq("user_id", user.id).gte("entry_date", lastWeekStart.toISOString().slice(0, 10)).lt("entry_date", lastWeekEnd.toISOString().slice(0, 10)),
+        // Today's completed workflow tasks (for Wins section + score)
+        supabase
+          .from("exec_os_workflow_tasks")
+          .select("id, title, dollar_lever, completed_at")
+          .eq("user_id", user.id)
+          .eq("status", "done")
+          .gte("completed_at", dayStart.toISOString())
+          .lt("completed_at", dayEnd.toISOString())
+          .order("completed_at", { ascending: false }),
+        // Today's approved + sent agent outputs (for score)
+        supabase
+          .from("exec_os_agent_outputs")
+          .select("status, acted_at")
+          .eq("user_id", user.id)
+          .gte("acted_at", dayStart.toISOString())
+          .in("status", ["approved", "edited", "sent"]),
+        // Streak — last 30 days of completed task dates
+        supabase
+          .from("exec_os_workflow_tasks")
+          .select("completed_at")
+          .eq("user_id", user.id)
+          .eq("status", "done")
+          .gte("completed_at", new Date(Date.now() - 30 * 86_400_000).toISOString())
+          .order("completed_at", { ascending: false }),
+        // All agent outputs from last 7 days — for per-agent box scores
+        supabase
+          .from("exec_os_agent_outputs")
+          .select("agent_id, status")
+          .eq("user_id", user.id)
+          .gte("created_at", weekStart.toISOString()),
       ]);
       setEvents((cal ?? []) as CalendarEvent[]);
       setEmails(((em.data ?? []) as EmailFull[]));
@@ -131,7 +174,48 @@ function ConciergePage() {
         today: sum((revToday.data ?? []) as { amount_cents: number }[]),
         week: sum((revWeek.data ?? []) as { amount_cents: number }[]),
         month: sum((revMonth.data ?? []) as { amount_cents: number }[]),
+        lastWeek: sum((revLastWeek.data ?? []) as { amount_cents: number }[]),
       });
+
+      // Gamification derives
+      setDoneTodayItems(((doneToday.data ?? []) as Array<{ id: string; title: string; dollar_lever: string | null; completed_at: string }>));
+
+      const aRows = (agentToday.data ?? []) as Array<{ status: string }>;
+      setApprovedToday(aRows.filter((r) => r.status === "approved" || r.status === "edited").length);
+      setSentToday(aRows.filter((r) => r.status === "sent").length);
+
+      // Streak: count consecutive days back from today where >= 1 task was completed
+      const streakDates = new Set<string>();
+      for (const r of (streakRows.data ?? []) as Array<{ completed_at: string }>) {
+        if (r.completed_at) streakDates.add(r.completed_at.slice(0, 10));
+      }
+      let streakCount = 0;
+      const cursor = new Date();
+      cursor.setHours(0, 0, 0, 0);
+      while (streakDates.has(cursor.toISOString().slice(0, 10))) {
+        streakCount += 1;
+        cursor.setDate(cursor.getDate() - 1);
+      }
+      // If today has no completions yet, still count yesterday's streak.
+      if (streakCount === 0) {
+        cursor.setDate(cursor.getDate() - 1);
+        while (streakDates.has(cursor.toISOString().slice(0, 10))) {
+          streakCount += 1;
+          cursor.setDate(cursor.getDate() - 1);
+        }
+      }
+      setStreak(streakCount);
+
+      // Per-agent box scores: drafted = total outputs (any status); sent = approved/edited/sent
+      const stats: Record<string, { drafted: number; sent: number }> = {};
+      for (const r of (allAgentOutputs.data ?? []) as Array<{ agent_id: string; status: string }>) {
+        if (!stats[r.agent_id]) stats[r.agent_id] = { drafted: 0, sent: 0 };
+        stats[r.agent_id].drafted += 1;
+        if (r.status === "approved" || r.status === "edited" || r.status === "sent") {
+          stats[r.agent_id].sent += 1;
+        }
+      }
+      setAgentStats(stats);
     })();
   }, [user, now.toISOString().slice(0, 10), reloadTick]);
 
@@ -178,6 +262,11 @@ function ConciergePage() {
           <div className="flex items-start justify-between gap-6">
             <div className="small-caps-muted tnum">{longDate.toUpperCase()}</div>
             <div className="flex items-center gap-6">
+              {streak > 0 && (
+                <span className="small-caps tnum">
+                  {streak}-DAY STREAK
+                </span>
+              )}
               <span className="small-caps-muted tnum">{clock}</span>
               <span className="monogram">DC</span>
             </div>
@@ -191,6 +280,16 @@ function ConciergePage() {
                 ? `Your next is ${upcoming.title ?? "an event"} in ${minutesToNext} ${minutesToNext === 1 ? "minute" : "minutes"}.`
                 : "Nothing else scheduled today. The afternoon is yours."}
             </p>
+          </div>
+
+          {/* TODAY'S SCORE — the gamification stat line. Reads like a magazine
+              box score. Tabular numerals throughout. Brass accent on numbers. */}
+          <div className="pt-3 flex flex-wrap items-baseline gap-x-8 gap-y-2 text-[0.8125rem]">
+            <span className="small-caps-muted">Today</span>
+            <Stat n={doneTodayItems.length} label={doneTodayItems.length === 1 ? "task shipped" : "tasks shipped"} />
+            <Stat n={approvedToday} label={approvedToday === 1 ? "draft approved" : "drafts approved"} />
+            {sentToday > 0 && <Stat n={sentToday} label={sentToday === 1 ? "message sent" : "messages sent"} />}
+            <StatMoney cents={revenueCents.today} label="logged" />
           </div>
         </header>
 
@@ -206,6 +305,21 @@ function ConciergePage() {
           onToggle={toggle}
         >
           <OneEditor user={user} initial={daily?.top_priority ?? ""} onSaved={reload} />
+        </Section>
+
+        <hr className="hairline my-8" />
+
+        {/* WINS — today's accomplishments, the dopamine layer */}
+        <Section
+          k="wins"
+          title="Wins"
+          headline={winsHeadline(doneTodayItems.length, approvedToday, revenueCents.today)}
+          headlineDim={doneTodayItems.length + approvedToday === 0 && revenueCents.today === 0}
+          subhead={winsSubcopy(doneTodayItems.length, approvedToday, revenueCents.today, streak)}
+          open={openSection === "wins"}
+          onToggle={toggle}
+        >
+          <WinsList items={doneTodayItems} />
         </Section>
 
         <hr className="hairline my-8" />
@@ -351,7 +465,17 @@ function ConciergePage() {
                 ? `${formatCents(revenueCents.week)} this week.`
                 : "No revenue logged yet."
           }
-          subhead={`${formatCents(revenueCents.week)} this week · ${formatCents(revenueCents.month)} MTD`}
+          subhead={(() => {
+            const delta = revenueCents.lastWeek > 0
+              ? Math.round(((revenueCents.week - revenueCents.lastWeek) / revenueCents.lastWeek) * 100)
+              : null;
+            const deltaTxt = delta === null
+              ? ""
+              : delta > 0 ? ` · ↑ ${delta}% vs last week`
+              : delta < 0 ? ` · ↓ ${Math.abs(delta)}% vs last week`
+              : ` · flat vs last week`;
+            return `${formatCents(revenueCents.week)} this week · ${formatCents(revenueCents.month)} MTD${deltaTxt}`;
+          })()}
           open={openSection === "money"}
           onToggle={toggle}
         >
@@ -364,12 +488,17 @@ function ConciergePage() {
         <Section
           k="staff"
           title="Staff"
-          headline="All six of your agents are at their posts."
+          headline={(() => {
+            const totalDrafted = Object.values(agentStats).reduce((a, s) => a + s.drafted, 0);
+            const totalSent = Object.values(agentStats).reduce((a, s) => a + s.sent, 0);
+            if (totalDrafted === 0) return "All six of your agents are at their posts.";
+            return `Your staff drafted ${totalDrafted} this week. ${totalSent} sent.`;
+          })()}
           subhead="Cleo, Sage, Ren running on schedule. Maya, Vee, Theo quiet today."
           open={openSection === "staff"}
           onToggle={toggle}
         >
-          <StaffActions onChanged={reload} />
+          <StaffActions onChanged={reload} stats={agentStats} />
         </Section>
 
         <hr className="hairline mt-10 mb-6" />
@@ -831,9 +960,15 @@ function MoneyLog({ user, onLogged }: { user: { id: string } | null; onLogged: (
 }
 
 /* =====================================================================
-   STAFF — run-now buttons + agent status table
+   STAFF — agent box scores (drafted/sent/hit-rate) + run-now buttons
    ===================================================================== */
-function StaffActions({ onChanged }: { onChanged: () => void }) {
+function StaffActions({
+  onChanged,
+  stats,
+}: {
+  onChanged: () => void;
+  stats: Record<string, { drafted: number; sent: number }>;
+}) {
   const [busy, setBusy] = useState<string | null>(null);
   const runner = useCallback(async (k: "sage" | "ren") => {
     setBusy(k);
@@ -854,28 +989,142 @@ function StaffActions({ onChanged }: { onChanged: () => void }) {
     { id: "theo", desc: "Quiet today. Decision agent (next milestone).", run: null },
   ];
   return (
+    <div className="space-y-6">
+      <p className="text-[0.8125rem]" style={{ color: "var(--con-charcoal-soft)" }}>
+        Last 7 days · drafted / sent / hit-rate
+      </p>
+      <ul className="space-y-4">
+        {agents.map((a) => {
+          const meta = AGENT_META[a.id as keyof typeof AGENT_META];
+          const s = stats[a.id] ?? { drafted: 0, sent: 0 };
+          const hit = s.drafted > 0 ? Math.round((s.sent / s.drafted) * 100) : 0;
+          const hasActivity = s.drafted > 0;
+          return (
+            <li key={a.id} className="flex items-baseline gap-4">
+              <span className="small-caps-muted shrink-0" style={{ width: "4rem", color: "var(--con-brass-deep)" }}>
+                {meta?.name}
+              </span>
+              <span className="flex-1 min-w-0">
+                <span className="text-[0.9375rem] block" style={{ color: "var(--con-charcoal)" }}>
+                  {a.desc}
+                </span>
+                {hasActivity && (
+                  <span className="text-[0.75rem] block mt-1 tnum" style={{ color: "var(--con-charcoal-soft)" }}>
+                    <span className="font-medium" style={{ color: "var(--con-brass-deep)" }}>{s.drafted}</span> drafted
+                    <span style={{ color: "var(--con-charcoal-faint)" }}>  ·  </span>
+                    <span className="font-medium" style={{ color: "var(--con-brass-deep)" }}>{s.sent}</span> sent
+                    <span style={{ color: "var(--con-charcoal-faint)" }}>  ·  </span>
+                    <span className="font-medium" style={{ color: hit >= 50 ? "var(--con-brass-deep)" : "var(--con-charcoal-soft)" }}>{hit}%</span> hit
+                  </span>
+                )}
+              </span>
+              {a.run && (
+                <button
+                  onClick={a.run}
+                  disabled={busy !== null}
+                  className="text-[0.75rem] inline-flex items-center gap-1 shrink-0"
+                  style={{ color: "var(--con-brass-deep)" }}
+                >
+                  {busy === a.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <RefreshCw className="h-3 w-3" />}
+                  Run now
+                </button>
+              )}
+            </li>
+          );
+        })}
+      </ul>
+    </div>
+  );
+}
+
+/* =====================================================================
+   GAMIFICATION PRIMITIVES — score chips + wins list + headline helpers
+   ===================================================================== */
+
+function Stat({ n, label }: { n: number; label: string }) {
+  if (n <= 0) {
+    return (
+      <span style={{ color: "var(--con-charcoal-faint)" }}>
+        <span className="tnum">0</span> {label}
+      </span>
+    );
+  }
+  return (
+    <span style={{ color: "var(--con-charcoal)" }}>
+      <span className="tnum font-medium" style={{ color: "var(--con-brass-deep)" }}>{n}</span> {label}
+    </span>
+  );
+}
+
+function StatMoney({ cents, label }: { cents: number; label: string }) {
+  const isZero = cents <= 0;
+  return (
+    <span style={{ color: isZero ? "var(--con-charcoal-faint)" : "var(--con-charcoal)" }}>
+      <span
+        className="tnum font-medium"
+        style={{ color: isZero ? "var(--con-charcoal-faint)" : "var(--con-brass-deep)" }}
+      >
+        {formatCents(cents)}
+      </span>{" "}
+      {label}
+    </span>
+  );
+}
+
+/**
+ * The "Wins" section headline. AUDHD-tuned: blunt but warm. Reframes the
+ * count as accomplishment, not just a number.
+ */
+function winsHeadline(tasks: number, drafts: number, revenueCents: number): string {
+  if (tasks === 0 && drafts === 0 && revenueCents === 0) {
+    return "Nothing logged yet. The day is still yours.";
+  }
+  if (revenueCents > 0 && tasks >= 5) return `${tasks} shipped, ${formatCents(revenueCents)} closed. Real day.`;
+  if (revenueCents > 0) return `${formatCents(revenueCents)} closed today. Bank that win.`;
+  if (tasks >= 5) return `${tasks} shipped. Momentum day.`;
+  if (tasks >= 3 && drafts >= 2) return `${tasks} shipped, ${drafts} drafts cleared. Good rhythm.`;
+  if (tasks >= 3) return `${tasks} tasks down. You're moving.`;
+  if (tasks > 0 && drafts > 0) return `${tasks} shipped, ${drafts} drafts cleared.`;
+  if (tasks > 0) return `${tasks} ${tasks === 1 ? "task" : "tasks"} shipped today. That counts.`;
+  if (drafts > 0) return `${drafts} ${drafts === 1 ? "draft" : "drafts"} cleared from the Brief.`;
+  return "Slow start. Pick one small thing.";
+}
+
+function winsSubcopy(tasks: number, drafts: number, revenueCents: number, streak: number): string | null {
+  if (tasks === 0 && drafts === 0 && revenueCents === 0) {
+    if (streak >= 3) return `Don't break the ${streak}-day streak.`;
+    return null;
+  }
+  if (streak >= 7) return `${streak}-day streak. You haven't missed a day in a week.`;
+  if (streak >= 3) return `${streak}-day streak going.`;
+  return null;
+}
+
+function WinsList({ items }: { items: Array<{ id: string; title: string; dollar_lever: string | null; completed_at: string }> }) {
+  if (items.length === 0) {
+    return (
+      <p className="text-[0.95rem]" style={{ color: "var(--con-charcoal-faint)" }}>
+        Nothing shipped yet today. Open The One above and start.
+      </p>
+    );
+  }
+  return (
     <ul className="space-y-3">
-      {agents.map((a) => {
-        const meta = AGENT_META[a.id as keyof typeof AGENT_META];
+      {items.map((t) => {
+        const time = new Date(t.completed_at).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
         return (
-          <li key={a.id} className="flex items-baseline gap-4">
-            <span className="small-caps-muted shrink-0" style={{ width: "4rem", color: "var(--con-brass-deep)" }}>
-              {meta?.name}
+          <li key={t.id} className="flex items-baseline gap-4">
+            <span className="tnum text-[0.75rem] shrink-0" style={{ width: "4rem", color: "var(--con-charcoal-faint)" }}>
+              {time.toLowerCase()}
             </span>
             <span className="flex-1 text-[0.9375rem]" style={{ color: "var(--con-charcoal)" }}>
-              {a.desc}
+              {t.title}
+              {t.dollar_lever && (
+                <span className="text-[0.8125rem] block mt-0.5" style={{ color: "var(--con-charcoal-soft)" }}>
+                  {t.dollar_lever}
+                </span>
+              )}
             </span>
-            {a.run && (
-              <button
-                onClick={a.run}
-                disabled={busy !== null}
-                className="text-[0.75rem] inline-flex items-center gap-1 shrink-0"
-                style={{ color: "var(--con-brass-deep)" }}
-              >
-                {busy === a.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <RefreshCw className="h-3 w-3" />}
-                Run now
-              </button>
-            )}
           </li>
         );
       })}
