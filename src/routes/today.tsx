@@ -1102,6 +1102,17 @@ function TodayPage() {
     [emails, accountFilter],
   );
 
+  // Inbox dropdown options — derived from accounts that have actual emails
+  // in the DB, not the hardcoded ACCOUNTS list. Falls back to the static
+  // list when there's no real data yet (e.g. first-load before fetch-gmail
+  // has populated).
+  const availableInboxAccounts = useMemo(() => {
+    const set = new Set<string>();
+    for (const e of emails) if (e.account) set.add(e.account);
+    const live = Array.from(set).sort();
+    return live.length > 0 ? live : [...ACCOUNTS];
+  }, [emails]);
+
   const priorityCount = filteredEmails.filter(
     (e) => e.kind === "priority" && e.status === "unread",
   ).length;
@@ -1725,7 +1736,7 @@ function TodayPage() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All accounts</SelectItem>
-                  {ACCOUNTS.map((a) => (
+                  {availableInboxAccounts.map((a) => (
                     <SelectItem key={a} value={a}>
                       {a.split("@")[0]}
                     </SelectItem>
