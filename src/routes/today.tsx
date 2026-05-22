@@ -120,9 +120,6 @@ function ConciergePage() {
 
   // Workflows — active workflow's pending tasks (the daily build queue)
   const [workflowTasks, setWorkflowTasks] = useState<WorkflowTask[]>([]);
-  // Maya's pending outputs — pulled out of Brief and applied to the To Ship
-  // surface directly. Maya doesn't talk in Brief; she annotates the build queue.
-  const [mayaOutputs, setMayaOutputs] = useState<AgentOutput[]>([]);
 
   // Visualization data
   const [habitGrid, setHabitGrid] = useState<boolean[]>([]); // last 30 days, true if any task done
@@ -228,14 +225,7 @@ function ConciergePage() {
       ]);
       setEvents((cal ?? []) as CalendarEvent[]);
       setEmails(((em.data ?? []) as EmailFull[]));
-      // Split Maya outputs off — they belong on the To Ship card, not Brief.
-      // Maya's "today's ship" pick (kind=insight) becomes the highlighted task
-      // at the top of To Ship; her approach notes (kind=pr_proposal) attach
-      // inline to their task row.
-      const mayaOuts = br.filter((o) => o.agent_id === "maya");
-      const briefMinusMaya = br.filter((o) => o.agent_id !== "maya");
-      setBrief(briefMinusMaya);
-      setMayaOutputs(mayaOuts);
+      setBrief(br);
       setPipeline(pp);
       setClients(cl);
       setDaily((dailyRow.data as DailyRow | null) ?? null);
@@ -554,11 +544,7 @@ function ConciergePage() {
                   </div>
                 </div>
               </div>
-              <WorkflowsList
-                tasks={workflowTasks}
-                mayaOutputs={mayaOutputs}
-                onChanged={reload}
-              />
+              <WorkflowsList tasks={workflowTasks} onChanged={reload} />
             </div>
 
             <div className="con-card tint-rose">
@@ -863,12 +849,11 @@ function OneEditor({ user, initial, onSaved }: { user: { id: string } | null; in
    BRIEF — one row per agent output, with action buttons inline
    ===================================================================== */
 function BriefRunActions({ onDone }: { onDone: () => void }) {
-  // Maya is NOT in Brief — she owns the To Ship card. Trigger her from there.
-  const [busy, setBusy] = useState<"sage" | "ren" | null>(null);
-  const run = async (k: "sage" | "ren") => {
+  const [busy, setBusy] = useState<"sage" | "ren" | "maya" | null>(null);
+  const run = async (k: "sage" | "ren" | "maya") => {
     setBusy(k);
     try {
-      const r = k === "sage" ? await runSageNow() : await runRenNow();
+      const r = k === "sage" ? await runSageNow() : k === "ren" ? await runRenNow() : await runMayaNow();
       if (r.ok) {
         toast.success(r.summary ?? `${k} done.`);
         onDone();
@@ -888,6 +873,10 @@ function BriefRunActions({ onDone }: { onDone: () => void }) {
       <button onClick={() => run("ren")} disabled={busy !== null} className="inline-flex items-center gap-1.5" style={{ color: "var(--con-brass-deep)" }}>
         {busy === "ren" ? <Loader2 className="h-3 w-3 animate-spin" /> : <PenLine className="h-3 w-3" />}
         Run Ren
+      </button>
+      <button onClick={() => run("maya")} disabled={busy !== null} className="inline-flex items-center gap-1.5" style={{ color: "var(--con-brass-deep)" }}>
+        {busy === "maya" ? <Loader2 className="h-3 w-3 animate-spin" /> : <RefreshCw className="h-3 w-3" />}
+        Run Maya
       </button>
     </div>
   );
@@ -1508,31 +1497,10 @@ function WinsList({ items, weekCount, weekRevenueCents }: { items: Array<{ id: s
    WORKFLOWS — the build queue. Pending tasks across active workflows.
    Click a checkbox → marks done, updates Done Today + Wins immediately.
    ===================================================================== */
-function WorkflowsList({
-  tasks,
-  mayaOutputs,
-  onChanged,
-}: {
-  tasks: WorkflowTask[];
-  mayaOutputs: AgentOutput[];
-  onChanged: () => void;
-}) {
+function WorkflowsList({ tasks, onChanged }: { tasks: WorkflowTask[]; onChanged: () => void }) {
   const [busyId, setBusyId] = useState<string | null>(null);
-  const [expandedId, setExpandedId] = useState<string | null>(null);
   const [showAll, setShowAll] = useState(false);
   const VISIBLE_CAP = 8;
-
-  // Maya's pick (kind=insight) → the task to ship today.
-  // Maya's approach notes (kind=pr_proposal) → keyed by task id.
-  const pickOutput = mayaOutputs.find((o) => o.kind === "insight") ?? null;
-  const pickTaskId = pickOutput?.ref_id ?? null;
-  const approachByTaskId = useMemo(() => {
-    const m = new Map<string, AgentOutput>();
-    for (const o of mayaOutputs) {
-      if (o.kind === "pr_proposal" && o.ref_id) m.set(o.ref_id, o);
-    }
-    return m;
-  }, [mayaOutputs]);
 
   if (tasks.length === 0) {
     return (
@@ -1553,24 +1521,11 @@ function WorkflowsList({
     else { toast.success("Shipped."); onChanged(); }
   };
 
-  const dismissOutput = async (id: string) => {
-    await supabase
-      .from("exec_os_agent_outputs")
-      .update({ status: "archived", acted_at: new Date().toISOString(), acted_by: "donna" })
-      .eq("id", id);
-    onChanged();
-  };
-
-  // Sort Maya's pick to the top so the eye lands on today's ship first.
-  const sortedTasks = useMemo(() => {
-    if (!pickTaskId) return tasks;
-    const pick = tasks.find((t) => t.id === pickTaskId);
-    if (!pick) return tasks;
-    return [pick, ...tasks.filter((t) => t.id !== pickTaskId)];
-  }, [tasks, pickTaskId]);
-
-  const visible = showAll ? sortedTasks : sortedTasks.slice(0, VISIBLE_CAP);
-  const hidden = sortedTasks.length - visible.length;
+  // Render a flat list capped at VISIBLE_CAP with a phase divider when the
+  // workflow/phase changes between rows. Compact: single-line tasks, no
+  // descriptions, just title + tiny meta. Click "Show all" to expand.
+  const visible = showAll ? tasks : tasks.slice(0, VISIBLE_CAP);
+  const hidden = tasks.length - visible.length;
 
   return (
     <div>
@@ -1578,9 +1533,6 @@ function WorkflowsList({
         {visible.map((t, i) => {
           const prev = i > 0 ? visible[i - 1] : null;
           const showPhaseDivider = !prev || prev.workflow_id !== t.workflow_id || prev.phase_id !== t.phase_id;
-          const isPick = t.id === pickTaskId;
-          const approach = approachByTaskId.get(t.id) ?? null;
-          const isExpanded = expandedId === t.id;
           return (
             <Fragment key={t.id}>
               {showPhaseDivider && (
@@ -1590,18 +1542,7 @@ function WorkflowsList({
                   </div>
                 </li>
               )}
-              {isPick && pickOutput && (
-                <li
-                  className="text-[0.625rem] uppercase tracking-[0.18em] font-semibold inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full"
-                  style={{ color: "var(--con-navy)", backgroundColor: "rgba(8, 61, 119, 0.08)" }}
-                >
-                  Today's ship · Maya
-                </li>
-              )}
-              <li
-                className="flex items-baseline gap-3"
-                style={isPick ? { borderLeft: "2px solid var(--con-navy)", paddingLeft: "0.5rem", marginLeft: "-0.625rem" } : undefined}
-              >
+              <li className="flex items-baseline gap-3">
                 <button
                   onClick={() => markDone(t.id)}
                   disabled={busyId === t.id}
@@ -1612,60 +1553,15 @@ function WorkflowsList({
                 >
                   {busyId === t.id && <Loader2 className="h-2.5 w-2.5 animate-spin" />}
                 </button>
-                <span
-                  className="flex-1 min-w-0 text-[0.9375rem]"
-                  style={{ color: "var(--con-charcoal)", fontWeight: isPick ? 600 : 400 }}
-                >
+                <span className="flex-1 min-w-0 text-[0.9375rem]" style={{ color: "var(--con-charcoal)" }}>
                   {t.title}
                 </span>
-                {approach && (
-                  <button
-                    onClick={() => setExpandedId(isExpanded ? null : t.id)}
-                    className="text-[0.6875rem] inline-flex items-center gap-1 shrink-0"
-                    style={{ color: "var(--con-navy)" }}
-                    title="Maya's approach"
-                  >
-                    {isExpanded ? "Hide" : "Approach"}
-                  </button>
-                )}
                 {t.time_estimate && (
                   <span className="text-[0.6875rem] tnum shrink-0" style={{ color: "var(--con-charcoal-faint)" }}>
                     {t.time_estimate}
                   </span>
                 )}
               </li>
-              {isPick && pickOutput?.body && (
-                <li
-                  className="text-[0.8125rem] leading-relaxed pl-7"
-                  style={{ color: "var(--con-charcoal-soft)", paddingRight: "0.25rem" }}
-                >
-                  {pickOutput.body}
-                  <button
-                    onClick={() => dismissOutput(pickOutput.id)}
-                    className="ml-2 text-[0.6875rem]"
-                    style={{ color: "var(--con-charcoal-faint)" }}
-                    title="Dismiss Maya's pick"
-                  >
-                    dismiss
-                  </button>
-                </li>
-              )}
-              {approach && isExpanded && (
-                <li
-                  className="text-[0.8125rem] leading-relaxed pl-7 mt-1"
-                  style={{ color: "var(--con-charcoal-soft)" }}
-                >
-                  {approach.body}
-                  <button
-                    onClick={() => dismissOutput(approach.id)}
-                    className="ml-2 text-[0.6875rem]"
-                    style={{ color: "var(--con-charcoal-faint)" }}
-                    title="Dismiss approach"
-                  >
-                    dismiss
-                  </button>
-                </li>
-              )}
             </Fragment>
           );
         })}
