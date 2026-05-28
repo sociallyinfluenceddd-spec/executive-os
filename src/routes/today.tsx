@@ -35,7 +35,8 @@ import { runSageNow } from "@/lib/sage";
 import { runRenNow } from "@/lib/ren";
 import { runMayaNow } from "@/lib/maya";
 import { sendEmail } from "@/lib/send-email";
-import { Send } from "lucide-react";
+import { Send, GripVertical } from "lucide-react";
+import { DashboardGrid } from "@/components/DashboardGrid";
 
 export const Route = createFileRoute("/today")({
   component: ConciergePage,
@@ -486,59 +487,59 @@ function ConciergePage() {
           )}
         </header>
 
-        <div className="h-px mb-8" style={{ backgroundColor: "var(--con-rule)" }} />
+        <div className="h-px mb-10" style={{ backgroundColor: "var(--con-rule)" }} />
 
-        {/* PIPELINE — full-width horizontal hero. Donut + stage legend + money
-            kpis + client list all readable side-by-side. */}
-        <div className="con-card tint-forest mb-6">
-          <div className="flex items-baseline justify-between mb-5">
-            <div className="small-caps">Pipeline</div>
-            {pipeline && (
-              <div className="flex items-center gap-6 text-[0.75rem]" style={{ color: "var(--con-ink-faint)" }}>
-                <span><span className="tnum font-semibold" style={{ color: "var(--con-ink)" }}>{pipeline.todayFollowUps + pipeline.overdueFollowUps}</span> follow-ups due</span>
+        {/* DRAGGABLE / RESIZABLE BOARD — drag a module by the grip in its
+            header, resize from the bottom-right corner. The arrangement saves
+            to localStorage so it sticks. "Reset layout" restores defaults. */}
+        <DashboardGrid>
+
+          {/* PIPELINE */}
+          <div key="pipeline" className="con-card tint-forest h-full overflow-y-auto">
+            <div className="flex items-baseline justify-between mb-5">
+              <div className="flex items-baseline gap-2">
+                <GripVertical className="rgl-handle h-3.5 w-3.5 cursor-grab shrink-0 self-center" style={{ color: "var(--con-charcoal-faint)" }} />
+                <div className="small-caps">Pipeline</div>
               </div>
-            )}
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-[auto_1fr_auto] gap-8 items-start mb-5">
-            {/* Donut */}
-            <div className="shrink-0">
-              <PipelineDonut clients={clients} />
+              {pipeline && (
+                <div className="flex items-center gap-6 text-[0.75rem]" style={{ color: "var(--con-ink-faint)" }}>
+                  <span><span className="tnum font-semibold" style={{ color: "var(--con-ink)" }}>{pipeline.todayFollowUps + pipeline.overdueFollowUps}</span> follow-ups due</span>
+                </div>
+              )}
             </div>
-            {/* Stage legend */}
-            <PipelineStageLegend clients={clients} />
-            {/* Money KPIs */}
-            {pipeline && (
-              <div className="flex gap-6 shrink-0 pl-6" style={{ borderLeft: "1px solid var(--con-rule)" }}>
-                <div>
-                  <div className="big-num-sm" style={{ color: "var(--con-forest)" }}>
-                    {formatCents(pipeline.proposalOutValueCents)}
-                  </div>
-                  <div className="text-[0.6875rem] mt-1" style={{ color: "var(--con-ink-faint)" }}>out</div>
-                </div>
-                <div>
-                  <div className="big-num-sm" style={{ color: "var(--con-forest)" }}>
-                    {formatCents(pipeline.activeMrrCents)}
-                    <span className="text-[0.875rem] font-normal" style={{ color: "var(--con-ink-faint)" }}>/mo</span>
-                  </div>
-                  <div className="text-[0.6875rem] mt-1" style={{ color: "var(--con-ink-faint)" }}>active</div>
-                </div>
+            <div className="grid grid-cols-1 md:grid-cols-[auto_1fr_auto] gap-8 items-start mb-5">
+              <div className="shrink-0">
+                <PipelineDonut clients={clients} />
               </div>
-            )}
+              <PipelineStageLegend clients={clients} />
+              {pipeline && (
+                <div className="flex gap-6 shrink-0 pl-6" style={{ borderLeft: "1px solid var(--con-rule)" }}>
+                  <div>
+                    <div className="big-num-sm" style={{ color: "var(--con-forest)" }}>
+                      {formatCents(pipeline.proposalOutValueCents)}
+                    </div>
+                    <div className="text-[0.6875rem] mt-1" style={{ color: "var(--con-ink-faint)" }}>out</div>
+                  </div>
+                  <div>
+                    <div className="big-num-sm" style={{ color: "var(--con-forest)" }}>
+                      {formatCents(pipeline.activeMrrCents)}
+                      <span className="text-[0.875rem] font-normal" style={{ color: "var(--con-ink-faint)" }}>/mo</span>
+                    </div>
+                    <div className="text-[0.6875rem] mt-1" style={{ color: "var(--con-ink-faint)" }}>active</div>
+                  </div>
+                </div>
+              )}
+            </div>
+            <div className="pt-4" style={{ borderTop: "1px solid var(--con-rule)" }}>
+              <PipelineList clients={clients} onChanged={reload} />
+            </div>
           </div>
-          {/* Client list */}
-          <div className="pt-4" style={{ borderTop: "1px solid var(--con-rule)" }}>
-            <PipelineList clients={clients} onChanged={reload} />
-          </div>
-        </div>
 
-        {/* TWO-COLUMN MAIN BODY — each section is its own card */}
-        <div className="grid grid-cols-1 lg:grid-cols-[1.1fr_1fr] gap-6 mb-8">
-
-          {/* LEFT COLUMN — To Ship + Schedule + Wins */}
-          <div className="space-y-6">
-
-            <div className="con-card tint-yellow">
-              <div className="flex items-baseline justify-between mb-4">
+          {/* TO SHIP */}
+          <div key="toship" className="con-card tint-yellow h-full overflow-y-auto">
+            <div className="flex items-baseline justify-between mb-4">
+              <div className="flex items-baseline gap-2">
+                <GripVertical className="rgl-handle h-3.5 w-3.5 cursor-grab shrink-0 self-center" style={{ color: "var(--con-charcoal-faint)" }} />
                 <div className="flex items-baseline gap-3">
                   <div className="small-caps">To Ship</div>
                   <span
@@ -549,110 +550,125 @@ function ConciergePage() {
                     Maya
                   </span>
                 </div>
-                <div className="flex items-baseline gap-4">
-                  <RunMayaButton onDone={reload} />
-                  <div className="big-num-sm" style={{ color: "var(--con-brass-deep)" }}>
-                    {workflowTasks.length}
-                  </div>
+              </div>
+              <div className="flex items-baseline gap-4">
+                <RunMayaButton onDone={reload} />
+                <div className="big-num-sm" style={{ color: "var(--con-brass-deep)" }}>
+                  {workflowTasks.length}
                 </div>
               </div>
+            </div>
+            <div className="lg:columns-2 lg:gap-x-12 [&_li]:break-inside-avoid">
               <WorkflowsList
                 tasks={workflowTasks}
                 mayaOutputs={mayaOutputs}
                 onChanged={reload}
               />
             </div>
-
-            <div className="con-card tint-rose">
-              <div className="flex items-baseline justify-between mb-4">
-                <div className="small-caps">Schedule</div>
-                {upcoming && minutesToNext !== null && (
-                  <div className="text-[0.75rem] tnum" style={{ color: "var(--con-brass-deep)" }}>
-                    next in {minutesToNext}m
-                  </div>
-                )}
-              </div>
-              {events.length === 0 ? (
-                <p className="text-[0.9375rem]" style={{ color: "var(--con-charcoal-faint)" }}>
-                  Nothing on the calendar today.
-                </p>
-              ) : (
-                <ul className="space-y-2.5">
-                  {events.map((e) => {
-                    const t = e.start_at ? new Date(e.start_at).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }) : "—";
-                    const isNext = upcoming?.id === e.id;
-                    return (
-                      <li key={e.id} className="flex items-baseline gap-4">
-                        <span className="tnum text-[0.8125rem] w-16 shrink-0" style={{ color: "var(--con-charcoal-faint)" }}>
-                          {t.toLowerCase()}
-                        </span>
-                        <span className="text-[0.9375rem] flex-1" style={{ color: isNext ? "var(--con-brass-deep)" : "var(--con-charcoal)", fontWeight: isNext ? 600 : 400 }}>
-                          {e.title ?? "Untitled"}
-                        </span>
-                        {e.video_url && (
-                          <a href={e.video_url} target="_blank" rel="noreferrer" className="text-[0.75rem] shrink-0">
-                            Join →
-                          </a>
-                        )}
-                      </li>
-                    );
-                  })}
-                </ul>
-              )}
-            </div>
-
-            <div className="con-card tint-sage">
-              <div className="flex items-baseline justify-between mb-4">
-                <div className="small-caps">Wins</div>
-                <div className="big-num-sm" style={{ color: "var(--con-forest)" }}>
-                  {doneTodayItems.length}
-                </div>
-              </div>
-              <p className="display-tight text-[1.0625rem] mb-4 leading-snug" style={{ color: doneTodayItems.length + approvedToday === 0 && revenueCents.today === 0 && doneThisWeekCount === 0 ? "var(--con-charcoal-faint)" : "var(--con-charcoal)" }}>
-                {winsHeadline(doneTodayItems.length, approvedToday, revenueCents.today, doneThisWeekCount)}
-              </p>
-              {taskBars.length > 0 && (
-                <div className="mb-4">
-                  <TaskBars values={taskBars} />
-                </div>
-              )}
-              <WinsList items={doneTodayItems} weekCount={doneThisWeekCount} weekRevenueCents={revenueCents.week} />
-            </div>
           </div>
 
-          {/* RIGHT COLUMN — Brief + Inbox + Pipeline */}
-          <div className="space-y-6">
-
-            <div className="con-card tint-cream" id="brief">
-              <div className="flex items-baseline justify-between mb-4">
+          {/* BRIEF */}
+          <div key="brief" id="brief" className="con-card tint-cream h-full overflow-y-auto">
+            <div className="flex items-baseline justify-between mb-4">
+              <div className="flex items-baseline gap-2">
+                <GripVertical className="rgl-handle h-3.5 w-3.5 cursor-grab shrink-0 self-center" style={{ color: "var(--con-charcoal-faint)" }} />
                 <div className="small-caps">Brief</div>
-                <BriefRunActions onDone={reload} />
               </div>
-              <BriefTabs brief={brief} onChanged={reload} />
+              <BriefRunActions onDone={reload} />
             </div>
+            <BriefTabs brief={brief} onChanged={reload} />
+          </div>
 
-            <div className="con-card tint-orange">
-              <div className="flex items-baseline justify-between mb-4">
+          {/* INBOX */}
+          <div key="inbox" className="con-card tint-orange h-full overflow-y-auto">
+            <div className="flex items-baseline justify-between mb-4">
+              <div className="flex items-baseline gap-2">
+                <GripVertical className="rgl-handle h-3.5 w-3.5 cursor-grab shrink-0 self-center" style={{ color: "var(--con-charcoal-faint)" }} />
                 <div className="small-caps">Inbox</div>
-                <div className="big-num-sm" style={{ color: "var(--con-orange)" }}>
-                  {priorityCount + needsResponseCount}
-                </div>
               </div>
-              <p className="text-[0.75rem] tnum mb-3" style={{ color: "var(--con-charcoal-faint)" }}>
-                {priorityCount} priority · {needsResponseCount} need reply
-              </p>
+              <div className="big-num-sm" style={{ color: "var(--con-orange)" }}>
+                {priorityCount + needsResponseCount}
+              </div>
+            </div>
+            <p className="text-[0.75rem] tnum mb-3" style={{ color: "var(--con-charcoal-faint)" }}>
+              {priorityCount} priority · {needsResponseCount} need reply
+            </p>
+            <div className="lg:columns-2 lg:gap-x-12 [&_li]:break-inside-avoid [&>div]:break-inside-avoid">
               <InboxList emails={emails} />
             </div>
-
           </div>
-        </div>
 
-        {/* FULL-WIDTH BOTTOM — Money + Staff each in their own card */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-
-          <div className="con-card tint-yellow">
+          {/* SCHEDULE */}
+          <div key="schedule" className="con-card tint-rose h-full overflow-y-auto">
             <div className="flex items-baseline justify-between mb-4">
-              <div className="small-caps">Money</div>
+              <div className="flex items-baseline gap-2">
+                <GripVertical className="rgl-handle h-3.5 w-3.5 cursor-grab shrink-0 self-center" style={{ color: "var(--con-charcoal-faint)" }} />
+                <div className="small-caps">Schedule</div>
+              </div>
+              {upcoming && minutesToNext !== null && (
+                <div className="text-[0.75rem] tnum" style={{ color: "var(--con-brass-deep)" }}>
+                  next in {minutesToNext}m
+                </div>
+              )}
+            </div>
+            {events.length === 0 ? (
+              <p className="text-[0.9375rem]" style={{ color: "var(--con-charcoal-faint)" }}>
+                Nothing on the calendar today.
+              </p>
+            ) : (
+              <ul className="space-y-2.5">
+                {events.map((e) => {
+                  const t = e.start_at ? new Date(e.start_at).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }) : "—";
+                  const isNext = upcoming?.id === e.id;
+                  return (
+                    <li key={e.id} className="flex items-baseline gap-4">
+                      <span className="tnum text-[0.8125rem] w-16 shrink-0" style={{ color: "var(--con-charcoal-faint)" }}>
+                        {t.toLowerCase()}
+                      </span>
+                      <span className="text-[0.9375rem] flex-1" style={{ color: isNext ? "var(--con-brass-deep)" : "var(--con-charcoal)", fontWeight: isNext ? 600 : 400 }}>
+                        {e.title ?? "Untitled"}
+                      </span>
+                      {e.video_url && (
+                        <a href={e.video_url} target="_blank" rel="noreferrer" className="text-[0.75rem] shrink-0">
+                          Join →
+                        </a>
+                      )}
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+          </div>
+
+          {/* WINS */}
+          <div key="wins" className="con-card tint-sage h-full overflow-y-auto">
+            <div className="flex items-baseline justify-between mb-4">
+              <div className="flex items-baseline gap-2">
+                <GripVertical className="rgl-handle h-3.5 w-3.5 cursor-grab shrink-0 self-center" style={{ color: "var(--con-charcoal-faint)" }} />
+                <div className="small-caps">Wins</div>
+              </div>
+              <div className="big-num-sm" style={{ color: "var(--con-forest)" }}>
+                {doneTodayItems.length}
+              </div>
+            </div>
+            <p className="display-tight text-[1.0625rem] mb-4 leading-snug" style={{ color: doneTodayItems.length + approvedToday === 0 && revenueCents.today === 0 && doneThisWeekCount === 0 ? "var(--con-charcoal-faint)" : "var(--con-charcoal)" }}>
+              {winsHeadline(doneTodayItems.length, approvedToday, revenueCents.today, doneThisWeekCount)}
+            </p>
+            {taskBars.length > 0 && (
+              <div className="mb-4">
+                <TaskBars values={taskBars} />
+              </div>
+            )}
+            <WinsList items={doneTodayItems} weekCount={doneThisWeekCount} weekRevenueCents={revenueCents.week} />
+          </div>
+
+          {/* MONEY */}
+          <div key="money" className="con-card tint-yellow h-full overflow-y-auto">
+            <div className="flex items-baseline justify-between mb-4">
+              <div className="flex items-baseline gap-2">
+                <GripVertical className="rgl-handle h-3.5 w-3.5 cursor-grab shrink-0 self-center" style={{ color: "var(--con-charcoal-faint)" }} />
+                <div className="small-caps">Money</div>
+              </div>
               {(() => {
                 const delta = revenueCents.lastWeek > 0
                   ? Math.round(((revenueCents.week - revenueCents.lastWeek) / revenueCents.lastWeek) * 100)
@@ -697,16 +713,21 @@ function ConciergePage() {
             <MoneyLog user={user} onLogged={reload} />
           </div>
 
-          <div className="con-card tint-sage">
+          {/* STAFF */}
+          <div key="staff" className="con-card tint-sage h-full overflow-y-auto">
             <div className="flex items-baseline justify-between mb-4">
-              <div className="small-caps">Staff</div>
+              <div className="flex items-baseline gap-2">
+                <GripVertical className="rgl-handle h-3.5 w-3.5 cursor-grab shrink-0 self-center" style={{ color: "var(--con-charcoal-faint)" }} />
+                <div className="small-caps">Staff</div>
+              </div>
               <div className="text-[0.75rem]" style={{ color: "var(--con-charcoal-faint)" }}>
                 last 7 days
               </div>
             </div>
             <StaffActions onChanged={reload} stats={agentStats} />
           </div>
-        </div>
+
+        </DashboardGrid>
 
       </div>
     </StudioShell>
