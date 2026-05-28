@@ -34,7 +34,6 @@ import { reissueDraft, runCleoForClient } from "@/lib/cleo";
 import { runSageNow } from "@/lib/sage";
 import { runRenNow } from "@/lib/ren";
 import { runMayaNow } from "@/lib/maya";
-import { dispatchBuild } from "@/lib/maya-build";
 import { sendEmail } from "@/lib/send-email";
 import { Send } from "lucide-react";
 
@@ -1604,7 +1603,6 @@ function WorkflowsList({
   // "Build it" flow: which task's prompt editor is open + its editable text.
   const [buildId, setBuildId] = useState<string | null>(null);
   const [buildPrompt, setBuildPrompt] = useState("");
-  const [dispatching, setDispatching] = useState(false);
   const VISIBLE_CAP = 8;
 
   // Maya's pick (kind=insight) → the task to ship today.
@@ -1657,21 +1655,14 @@ function WorkflowsList({
     setBuildPrompt(approach?.body ? `${t.title}\n\nApproach:\n${approach.body}` : t.title);
     setBuildId(t.id);
   };
-  const sendBuild = async (taskId: string) => {
+  // Terminal handoff: copy the (collaborated) prompt so Donna pastes it into
+  // her terminal Claude Code — which runs on her Max plan. No cloud, no keys.
+  const copyForTerminal = () => {
     if (!buildPrompt.trim()) { toast.error("Add a prompt first."); return; }
-    setDispatching(true);
-    const r = await dispatchBuild({ taskId, prompt: buildPrompt.trim() });
-    setDispatching(false);
-    if (r.ok) {
-      toast.success("Sent to Claude Code — it'll open a PR when done.", {
-        description: r.actionsUrl ? "Watch it run in GitHub Actions." : undefined,
-      });
+    navigator.clipboard.writeText(buildPrompt.trim()).then(() => {
+      toast.success("Copied — paste into your terminal Claude Code (⌘V).");
       setBuildId(null);
-    } else if (r.notConfigured) {
-      toast.error("Set the GitHub token in Lovable Cloud Secrets first.");
-    } else {
-      toast.error(r.error ?? "Build dispatch failed.");
-    }
+    });
   };
 
   if (tasks.length === 0) {
@@ -1758,7 +1749,7 @@ function WorkflowsList({
               {buildId === t.id && (
                 <li className="pl-7 mt-1 mb-2 space-y-2">
                   <p className="text-[0.6875rem]" style={{ color: "var(--con-charcoal-faint)" }}>
-                    Edit the instruction, then send it. Claude Code builds it and opens a PR for you to review.
+                    Tweak the instruction, then copy it and paste into your terminal Claude Code. It runs on your Max plan — no extra cost.
                   </p>
                   <textarea
                     value={buildPrompt}
@@ -1770,13 +1761,12 @@ function WorkflowsList({
                   />
                   <div className="flex items-center gap-3 text-[0.75rem]">
                     <button
-                      onClick={() => sendBuild(t.id)}
-                      disabled={dispatching}
+                      onClick={copyForTerminal}
                       className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full font-medium"
                       style={{ backgroundColor: "var(--con-navy)", color: "var(--con-cream)" }}
                     >
-                      {dispatching ? <Loader2 className="h-3 w-3 animate-spin" /> : <Sparkles className="h-3 w-3" />}
-                      Send to Claude Code
+                      <Copy className="h-3 w-3" />
+                      Copy for terminal
                     </button>
                     <button onClick={() => setBuildId(null)} style={{ color: "var(--con-charcoal-faint)" }}>
                       cancel

@@ -34,12 +34,6 @@ verify_jwt = true
 [functions.send-gmail]
 verify_jwt = true
 
-# Maya's execution half — dispatches the Claude Autonomous Task GitHub
-# workflow so Claude Code builds the task and opens a PR. User-triggered
-# ("Build it" button), JWT required.
-[functions.maya-build]
-verify_jwt = true
-
 # Cleo — Sales Agent. JWT required for manual/single/cold modes; scheduled
 # mode authenticates via SERVICE_ROLE which is exempt from JWT verify_jwt.
 # We keep verify_jwt = false so pg_cron can call without a user JWT; the
