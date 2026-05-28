@@ -1,0 +1,56 @@
+# Maya → Claude Code: autonomous build of a single task.
+#
+# Triggered programmatically (workflow_dispatch) by the maya-build edge
+# function when Donna clicks "Build it" on a task in /today. Claude Code runs
+# the task prompt, makes the changes on a fresh branch, and opens a PR for
+# review. Donna directs; the AI builds.
+#
+# Requires repo secret: CLAUDE_CODE_OAUTH_TOKEN — generated with
+#   `claude setup-token` on a Claude Max plan, so builds run on the Max
+#   subscription instead of billing pay-per-use API credits.
+# Requires repo setting: Settings → Actions → General → Workflow permissions →
+#   "Allow GitHub Actions to create and approve pull requests" = ON
+
+name: Claude Autonomous Task
+
+on:
+  workflow_dispatch:
+    inputs:
+      task_prompt:
+        description: "Task for Claude to complete"
+        required: true
+        type: string
+      task_id:
+        description: "Source workflow_task id (for PR reference)"
+        required: false
+        type: string
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+
+jobs:
+  claude-autonomous:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: anthropics/claude-code-action@v1
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          base_branch: main
+          track_progress: true
+          prompt: |
+            You are Maya, the build agent for the executive-os project.
+            Complete the following task end to end, then open a pull request
+            against main with a clear title and a short description of what you
+            changed and why. Keep the change focused on exactly this task —
+            do not refactor unrelated code.
+
+            Task (id: ${{ github.event.inputs.task_id }}):
+            ${{ github.event.inputs.task_prompt }}
+          claude_args: "--max-turns 20"
