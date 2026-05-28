@@ -484,6 +484,7 @@ function ConciergePage() {
                   {streak}-DAY STREAK
                 </span>
               )}
+              <HeaderRefresh onRefresh={reload} />
               <TimersAlarmsMenu />
               <span className="small-caps-muted tnum">{clock}</span>
               <span className="monogram">DC</span>
@@ -963,6 +964,32 @@ function RunMayaButton({ onDone }: { onDone: () => void }) {
     >
       {busy ? <Loader2 className="h-3 w-3 animate-spin" /> : <RefreshCw className="h-3 w-3" />}
       Ask Maya
+    </button>
+  );
+}
+
+/**
+ * Header refresh — re-pulls all dashboard data (calendar, inbox, brief,
+ * tasks) and re-derives the current week. Gives Donna an explicit "sync now"
+ * instead of waiting for the auto-reload on focus.
+ */
+function HeaderRefresh({ onRefresh }: { onRefresh: () => void }) {
+  const [spinning, setSpinning] = useState(false);
+  const click = () => {
+    if (spinning) return;
+    setSpinning(true);
+    onRefresh();
+    setTimeout(() => setSpinning(false), 1000);
+  };
+  return (
+    <button
+      onClick={click}
+      className="small-caps-muted inline-flex items-center gap-1.5"
+      style={{ color: "var(--con-charcoal-faint)" }}
+      title="Refresh — re-sync tasks, inbox, and calendar"
+      aria-label="Refresh dashboard"
+    >
+      <RefreshCw className={`h-3.5 w-3.5${spinning ? " animate-spin" : ""}`} />
     </button>
   );
 }
