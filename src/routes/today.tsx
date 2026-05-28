@@ -123,6 +123,9 @@ function ConciergePage() {
 
   // Workflows — active workflow's pending tasks (the daily build queue)
   const [workflowTasks, setWorkflowTasks] = useState<WorkflowTask[]>([]);
+  // Phase ids that are "current" by today's date — To Ship shows these first
+  // so the queue always reflects the week you're actually in, not a frozen dump.
+  const [currentPhaseIds, setCurrentPhaseIds] = useState<Set<string>>(new Set());
   // Maya's pending outputs — pulled out of Brief and applied to the To Ship
   // surface directly. Maya doesn't talk in Brief; she annotates the build queue.
   const [mayaOutputs, setMayaOutputs] = useState<AgentOutput[]>([]);
@@ -212,7 +215,7 @@ function ConciergePage() {
           .eq("status", "active"),
         supabase
           .from("exec_os_workflow_phases")
-          .select("id, name, workflow_id")
+          .select("id, name, workflow_id, starts_at, ends_at, status")
           .eq("user_id", user.id),
         // This week's completed task count — for broader Wins context
         supabase
@@ -256,8 +259,10 @@ function ConciergePage() {
 
       // Workflow tasks — join phase + workflow names client-side for readability
       const wfMap = new Map<string, string>(((workflows.data ?? []) as Array<{ id: string; name: string }>).map((w) => [w.id, w.name]));
+      type PhaseRow = { id: string; name: string; workflow_id: string; starts_at: string | null; ends_at: string | null; status: string };
+      const phaseRows = (phasesRaw.data ?? []) as PhaseRow[];
       const phaseMap = new Map<string, { name: string; workflow_id: string }>(
-        ((phasesRaw.data ?? []) as Array<{ id: string; name: string; workflow_id: string }>).map((p) => [p.id, { name: p.name, workflow_id: p.workflow_id }]),
+        phaseRows.map((p) => [p.id, { name: p.name, workflow_id: p.workflow_id }]),
       );
       const tasks: WorkflowTask[] = ((wfTasksRaw.data ?? []) as Array<{
         id: string; title: string; status: string; time_estimate: string | null;
@@ -271,6 +276,35 @@ function ConciergePage() {
         };
       });
       setWorkflowTasks(tasks);
+
+      // Current phase per workflow — keeps To Ship showing the week you're
+      // actually in. A phase is "current" if today falls in [starts_at, ends_at]
+      // or it's flagged active. If a workflow has no date-matching phase, fall
+      // back to its earliest non-done phase so the queue is never empty.
+      const todayKey = todayStr; // YYYY-MM-DD
+      const current = new Set<string>();
+      const byWorkflow = new Map<string, PhaseRow[]>();
+      for (const p of phaseRows) {
+        if (!byWorkflow.has(p.workflow_id)) byWorkflow.set(p.workflow_id, []);
+        byWorkflow.get(p.workflow_id)!.push(p);
+      }
+      for (const [, phases] of byWorkflow) {
+        const dated = phases.filter(
+          (p) => p.starts_at && p.ends_at && p.starts_at <= todayKey && todayKey <= p.ends_at,
+        );
+        const active = phases.filter((p) => p.status === "active");
+        const pick = dated.length > 0 ? dated : active.length > 0 ? active : null;
+        if (pick) {
+          for (const p of pick) current.add(p.id);
+        } else {
+          // earliest non-done phase as fallback
+          const fallback = phases
+            .filter((p) => p.status !== "done" && p.status !== "skipped")
+            .sort((a, b) => (a.starts_at ?? "").localeCompare(b.starts_at ?? ""))[0];
+          if (fallback) current.add(fallback.id);
+        }
+      }
+      setCurrentPhaseIds(current);
 
       const aRows = (agentToday.data ?? []) as Array<{ status: string }>;
       setApprovedToday(aRows.filter((r) => r.status === "approved" || r.status === "edited").length);
@@ -560,6 +594,7 @@ function ConciergePage() {
             <WorkflowsList
               tasks={workflowTasks}
               mayaOutputs={mayaOutputs}
+              currentPhaseIds={currentPhaseIds}
               onChanged={reload}
             />
           </div>
@@ -1592,10 +1627,12 @@ function WinsList({ items, weekCount, weekRevenueCents }: { items: Array<{ id: s
 function WorkflowsList({
   tasks,
   mayaOutputs,
+  currentPhaseIds,
   onChanged,
 }: {
   tasks: WorkflowTask[];
   mayaOutputs: AgentOutput[];
+  currentPhaseIds: Set<string>;
   onChanged: () => void;
 }) {
   const [busyId, setBusyId] = useState<string | null>(null);
@@ -1682,7 +1719,14 @@ function WorkflowsList({
     );
   }
 
-  const visible = showAll ? sortedTasks : sortedTasks.slice(0, VISIBLE_CAP);
+  // Default view = this week. Show only tasks in the current phase(s), plus
+  // Maya's pick (always). "Show all" reveals the full backlog. If we have no
+  // current-phase info, fall back to the old capped list so nothing breaks.
+  const haveCurrent = currentPhaseIds.size > 0;
+  const currentTasks = haveCurrent
+    ? sortedTasks.filter((t) => currentPhaseIds.has(t.phase_id) || t.id === pickTaskId)
+    : sortedTasks.slice(0, VISIBLE_CAP);
+  const visible = showAll ? sortedTasks : (currentTasks.length > 0 ? currentTasks : sortedTasks.slice(0, VISIBLE_CAP));
   const hidden = sortedTasks.length - visible.length;
 
   return (
@@ -1826,16 +1870,16 @@ function WorkflowsList({
           className="text-[0.8125rem] mt-4"
           style={{ color: "var(--con-brass-deep)" }}
         >
-          Show all {tasks.length} →
+          {haveCurrent ? `Show all ${tasks.length} (full backlog) →` : `Show all ${tasks.length} →`}
         </button>
       )}
-      {showAll && tasks.length > VISIBLE_CAP && (
+      {showAll && (
         <button
           onClick={() => setShowAll(false)}
           className="text-[0.8125rem] mt-4"
           style={{ color: "var(--con-charcoal-faint)" }}
         >
-          Show less
+          {haveCurrent ? "← Back to this week" : "Show less"}
         </button>
       )}
     </div>
