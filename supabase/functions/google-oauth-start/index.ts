@@ -28,14 +28,16 @@ function json(body: unknown, status = 200) {
 // Scopes we request:
 //   calendar.events.readonly — read events from any of the user's calendars.
 //     Narrower than full /calendar; we don't need write or settings access.
-//   gmail.readonly — read inbox messages, labels, threads. Narrower than full
-//     /gmail.modify; we don't send or label-edit from this app (Donna does
-//     that in Gmail directly).
+//   gmail.readonly — read inbox messages, labels, threads.
+//   gmail.send — send mail on the user's behalf. Used by the send-gmail
+//     function when Donna clicks "Send" on a Cleo email draft. Send-only;
+//     it cannot read or modify the mailbox (that's gmail.readonly's job).
 //   userinfo.email — so the callback can record which Google account was
 //     connected (Donna has multiple google accounts).
 const GOOGLE_SCOPES = [
   "https://www.googleapis.com/auth/calendar.events.readonly",
   "https://www.googleapis.com/auth/gmail.readonly",
+  "https://www.googleapis.com/auth/gmail.send",
   "https://www.googleapis.com/auth/userinfo.email",
   "openid",
 ];

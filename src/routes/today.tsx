@@ -34,6 +34,8 @@ import { reissueDraft, runCleoForClient } from "@/lib/cleo";
 import { runSageNow } from "@/lib/sage";
 import { runRenNow } from "@/lib/ren";
 import { runMayaNow } from "@/lib/maya";
+import { sendEmail } from "@/lib/send-email";
+import { Send } from "lucide-react";
 
 export const Route = createFileRoute("/today")({
   component: ConciergePage,
@@ -1014,10 +1016,46 @@ function BriefRow({ output, onChanged }: { output: AgentOutput; onChanged: () =>
   const gmailUrl = (output.metadata?.gmail_url as string | undefined) ?? null;
   const clientLinkedin = output.client?.linkedin_url ?? null;
   const sendUrl = gmailUrl ?? clientLinkedin ?? null;
+  const recipientEmail = output.client?.primary_contact_email ?? null;
+
+  // Real execution paths — only for Cleo, only where the channel can act:
+  //   email   → actually send through Gmail (needs a recipient address)
+  //   linkedin → one-click "copy body + open the profile" (no LinkedIn API)
+  const isCleo = output.agent_id === "cleo";
+  const canSendEmail = isCleo && channel === "email" && !!recipientEmail && !!output.body;
+  const canLinkedin = isCleo && channel === "linkedin" && !!clientLinkedin && !!output.body;
+
+  // Two-step send guard: first click arms + reveals subject, second sends.
+  const [armed, setArmed] = useState(false);
+  const [subject, setSubject] = useState("");
 
   const onCopy = () => {
     if (!output.body) return;
     navigator.clipboard.writeText(output.body).then(() => toast.success("Copied. Paste into your channel."));
+  };
+  const onSendEmail = async () => {
+    if (!recipientEmail || !output.body) return;
+    if (!armed) { setArmed(true); return; }
+    if (!subject.trim()) { toast.error("Add a subject line first."); return; }
+    setBusy(true);
+    const r = await sendEmail({ to: recipientEmail, subject: subject.trim(), body: output.body, outputId: output.id });
+    setBusy(false);
+    if (r.ok) {
+      toast.success(`Sent to ${r.to} from ${r.from}.`);
+      setArmed(false);
+      onChanged();
+    } else if (r.needsReconnect) {
+      toast.error("Gmail is connected read-only. Reconnect it in Settings to send.");
+    } else {
+      toast.error(r.error ?? "Send failed.");
+    }
+  };
+  const onLinkedinSend = () => {
+    if (!output.body || !clientLinkedin) return;
+    navigator.clipboard.writeText(output.body).then(() => {
+      window.open(clientLinkedin, "_blank", "noreferrer");
+      toast.success("Copied — paste into the LinkedIn message (⌘V).");
+    });
   };
   const onApprove = async () => {
     setBusy(true);
@@ -1104,6 +1142,47 @@ function BriefRow({ output, onChanged }: { output: AgentOutput; onChanged: () =>
               {output.body || <em style={{ color: "var(--con-charcoal-faint)" }}>No body.</em>}
             </pre>
           )}
+          {/* PRIMARY ACTION — the agent actually does the work here.
+              Email: armed two-step send through Gmail (with subject).
+              LinkedIn: one click copies the body + opens the profile. */}
+          {!editing && canSendEmail && (
+            <div className="space-y-2">
+              {armed && (
+                <input
+                  type="text"
+                  value={subject}
+                  onChange={(e) => setSubject(e.target.value)}
+                  placeholder="Subject line"
+                  autoFocus
+                  className="w-full text-[0.875rem] bg-transparent border rounded-md px-3 py-2"
+                  style={{ borderColor: "var(--con-rule)", color: "var(--con-charcoal)" }}
+                />
+              )}
+              <button
+                onClick={onSendEmail}
+                disabled={busy}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[0.8125rem] font-medium"
+                style={{ backgroundColor: "var(--con-navy)", color: "var(--con-cream)" }}
+              >
+                {busy ? <Loader2 className="h-3 w-3 animate-spin" /> : <Send className="h-3 w-3" />}
+                {armed ? `Confirm — send to ${recipientEmail}` : "Send email"}
+              </button>
+              {armed && (
+                <button onClick={() => setArmed(false)} className="ml-3 text-[0.75rem]" style={{ color: "var(--con-charcoal-faint)" }}>
+                  cancel
+                </button>
+              )}
+            </div>
+          )}
+          {!editing && canLinkedin && (
+            <button
+              onClick={onLinkedinSend}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[0.8125rem] font-medium"
+              style={{ backgroundColor: "var(--con-navy)", color: "var(--con-cream)" }}
+            >
+              <Send className="h-3 w-3" /> Copy + open LinkedIn
+            </button>
+          )}
           {!editing && (
             <div className="flex flex-wrap gap-x-6 gap-y-2 text-[0.8125rem]">
               {output.body && (
@@ -1111,13 +1190,13 @@ function BriefRow({ output, onChanged }: { output: AgentOutput; onChanged: () =>
                   <Copy className="h-3 w-3" /> Copy
                 </button>
               )}
-              {sendUrl && (
+              {sendUrl && !canLinkedin && (
                 <a href={sendUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5">
                   <ExternalLink className="h-3 w-3" /> Open
                 </a>
               )}
-              <button onClick={onApprove} disabled={busy} className="inline-flex items-center gap-1.5" style={{ color: "var(--con-brass-deep)" }}>
-                <Check className="h-3 w-3" /> Mark sent
+              <button onClick={onApprove} disabled={busy} className="inline-flex items-center gap-1.5" style={{ color: "var(--con-charcoal-soft)" }}>
+                <Check className="h-3 w-3" /> {canSendEmail || canLinkedin ? "Mark done" : "Mark sent"}
               </button>
               <button onClick={() => setEditing(true)} className="inline-flex items-center gap-1.5" style={{ color: "var(--con-charcoal-soft)" }}>
                 <Edit3 className="h-3 w-3" /> Edit
