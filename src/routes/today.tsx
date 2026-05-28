@@ -531,119 +531,120 @@ function ConciergePage() {
           </div>
         </div>
 
-        {/* TWO-COLUMN MAIN BODY — each section is its own card */}
-        <div className="grid grid-cols-1 lg:grid-cols-[1.1fr_1fr] gap-6 mb-8">
+        {/* FULL-WIDTH BANDS — every module spans the width like Pipeline,
+            stacked down the page. List-heavy modules flow into 2 columns so
+            the eye reads across. No drag library — clean, fixed, robust. */}
 
-          {/* LEFT COLUMN — To Ship + Schedule + Wins */}
-          <div className="space-y-6">
-
-            <div className="con-card tint-yellow">
-              <div className="flex items-baseline justify-between mb-4">
-                <div className="flex items-baseline gap-3">
-                  <div className="small-caps">To Ship</div>
-                  <span
-                    className="text-[0.625rem] uppercase tracking-[0.14em] font-semibold px-2 py-0.5 rounded-full"
-                    style={{ color: "var(--con-navy)", backgroundColor: "rgba(8, 61, 119, 0.08)" }}
-                    title="Maya is your build agent. Tasks here are her territory."
-                  >
-                    Maya
-                  </span>
-                </div>
-                <div className="flex items-baseline gap-4">
-                  <RunMayaButton onDone={reload} />
-                  <div className="big-num-sm" style={{ color: "var(--con-brass-deep)" }}>
-                    {workflowTasks.length}
-                  </div>
-                </div>
-              </div>
-              <WorkflowsList
-                tasks={workflowTasks}
-                mayaOutputs={mayaOutputs}
-                onChanged={reload}
-              />
+        {/* TO SHIP — full-width band, tasks flow into columns */}
+        <div className="con-card tint-yellow mb-6">
+          <div className="flex items-baseline justify-between mb-4">
+            <div className="flex items-baseline gap-3">
+              <div className="small-caps">To Ship</div>
+              <span
+                className="text-[0.625rem] uppercase tracking-[0.14em] font-semibold px-2 py-0.5 rounded-full"
+                style={{ color: "var(--con-navy)", backgroundColor: "rgba(8, 61, 119, 0.08)" }}
+                title="Maya is your build agent. Tasks here are her territory."
+              >
+                Maya
+              </span>
             </div>
-
-            <div className="con-card tint-rose">
-              <div className="flex items-baseline justify-between mb-4">
-                <div className="small-caps">Schedule</div>
-                {upcoming && minutesToNext !== null && (
-                  <div className="text-[0.75rem] tnum" style={{ color: "var(--con-brass-deep)" }}>
-                    next in {minutesToNext}m
-                  </div>
-                )}
+            <div className="flex items-baseline gap-4">
+              <RunMayaButton onDone={reload} />
+              <div className="big-num-sm" style={{ color: "var(--con-brass-deep)" }}>
+                {workflowTasks.length}
               </div>
-              {events.length === 0 ? (
-                <p className="text-[0.9375rem]" style={{ color: "var(--con-charcoal-faint)" }}>
-                  Nothing on the calendar today.
-                </p>
-              ) : (
-                <ul className="space-y-2.5">
-                  {events.map((e) => {
-                    const t = e.start_at ? new Date(e.start_at).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }) : "—";
-                    const isNext = upcoming?.id === e.id;
-                    return (
-                      <li key={e.id} className="flex items-baseline gap-4">
-                        <span className="tnum text-[0.8125rem] w-16 shrink-0" style={{ color: "var(--con-charcoal-faint)" }}>
-                          {t.toLowerCase()}
-                        </span>
-                        <span className="text-[0.9375rem] flex-1" style={{ color: isNext ? "var(--con-brass-deep)" : "var(--con-charcoal)", fontWeight: isNext ? 600 : 400 }}>
-                          {e.title ?? "Untitled"}
-                        </span>
-                        {e.video_url && (
-                          <a href={e.video_url} target="_blank" rel="noreferrer" className="text-[0.75rem] shrink-0">
-                            Join →
-                          </a>
-                        )}
-                      </li>
-                    );
-                  })}
-                </ul>
-              )}
-            </div>
-
-            <div className="con-card tint-sage">
-              <div className="flex items-baseline justify-between mb-4">
-                <div className="small-caps">Wins</div>
-                <div className="big-num-sm" style={{ color: "var(--con-forest)" }}>
-                  {doneTodayItems.length}
-                </div>
-              </div>
-              <p className="display-tight text-[1.0625rem] mb-4 leading-snug" style={{ color: doneTodayItems.length + approvedToday === 0 && revenueCents.today === 0 && doneThisWeekCount === 0 ? "var(--con-charcoal-faint)" : "var(--con-charcoal)" }}>
-                {winsHeadline(doneTodayItems.length, approvedToday, revenueCents.today, doneThisWeekCount)}
-              </p>
-              {taskBars.length > 0 && (
-                <div className="mb-4">
-                  <TaskBars values={taskBars} />
-                </div>
-              )}
-              <WinsList items={doneTodayItems} weekCount={doneThisWeekCount} weekRevenueCents={revenueCents.week} />
             </div>
           </div>
+          <div className="lg:columns-2 lg:gap-x-12 [&_li]:break-inside-avoid">
+            <WorkflowsList
+              tasks={workflowTasks}
+              mayaOutputs={mayaOutputs}
+              onChanged={reload}
+            />
+          </div>
+        </div>
 
-          {/* RIGHT COLUMN — Brief + Inbox + Pipeline */}
-          <div className="space-y-6">
+        {/* BRIEF — full-width band */}
+        <div className="con-card tint-cream mb-6" id="brief">
+          <div className="flex items-baseline justify-between mb-4">
+            <div className="small-caps">Brief</div>
+            <BriefRunActions onDone={reload} />
+          </div>
+          <BriefTabs brief={brief} onChanged={reload} />
+        </div>
 
-            <div className="con-card tint-cream" id="brief">
-              <div className="flex items-baseline justify-between mb-4">
-                <div className="small-caps">Brief</div>
-                <BriefRunActions onDone={reload} />
-              </div>
-              <BriefTabs brief={brief} onChanged={reload} />
+        {/* INBOX — full-width band, priority + needs-response side by side */}
+        <div className="con-card tint-orange mb-6">
+          <div className="flex items-baseline justify-between mb-4">
+            <div className="small-caps">Inbox</div>
+            <div className="big-num-sm" style={{ color: "var(--con-orange)" }}>
+              {priorityCount + needsResponseCount}
             </div>
+          </div>
+          <p className="text-[0.75rem] tnum mb-3" style={{ color: "var(--con-charcoal-faint)" }}>
+            {priorityCount} priority · {needsResponseCount} need reply
+          </p>
+          <div className="lg:columns-2 lg:gap-x-12 [&_li]:break-inside-avoid [&>div]:break-inside-avoid">
+            <InboxList emails={emails} />
+          </div>
+        </div>
 
-            <div className="con-card tint-orange">
-              <div className="flex items-baseline justify-between mb-4">
-                <div className="small-caps">Inbox</div>
-                <div className="big-num-sm" style={{ color: "var(--con-orange)" }}>
-                  {priorityCount + needsResponseCount}
+        {/* SCHEDULE + WINS — short modules, side by side in one full-width row */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+          <div className="con-card tint-rose">
+            <div className="flex items-baseline justify-between mb-4">
+              <div className="small-caps">Schedule</div>
+              {upcoming && minutesToNext !== null && (
+                <div className="text-[0.75rem] tnum" style={{ color: "var(--con-brass-deep)" }}>
+                  next in {minutesToNext}m
                 </div>
-              </div>
-              <p className="text-[0.75rem] tnum mb-3" style={{ color: "var(--con-charcoal-faint)" }}>
-                {priorityCount} priority · {needsResponseCount} need reply
-              </p>
-              <InboxList emails={emails} />
+              )}
             </div>
+            {events.length === 0 ? (
+              <p className="text-[0.9375rem]" style={{ color: "var(--con-charcoal-faint)" }}>
+                Nothing on the calendar today.
+              </p>
+            ) : (
+              <ul className="space-y-2.5">
+                {events.map((e) => {
+                  const t = e.start_at ? new Date(e.start_at).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }) : "—";
+                  const isNext = upcoming?.id === e.id;
+                  return (
+                    <li key={e.id} className="flex items-baseline gap-4">
+                      <span className="tnum text-[0.8125rem] w-16 shrink-0" style={{ color: "var(--con-charcoal-faint)" }}>
+                        {t.toLowerCase()}
+                      </span>
+                      <span className="text-[0.9375rem] flex-1" style={{ color: isNext ? "var(--con-brass-deep)" : "var(--con-charcoal)", fontWeight: isNext ? 600 : 400 }}>
+                        {e.title ?? "Untitled"}
+                      </span>
+                      {e.video_url && (
+                        <a href={e.video_url} target="_blank" rel="noreferrer" className="text-[0.75rem] shrink-0">
+                          Join →
+                        </a>
+                      )}
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+          </div>
 
+          <div className="con-card tint-sage">
+            <div className="flex items-baseline justify-between mb-4">
+              <div className="small-caps">Wins</div>
+              <div className="big-num-sm" style={{ color: "var(--con-forest)" }}>
+                {doneTodayItems.length}
+              </div>
+            </div>
+            <p className="display-tight text-[1.0625rem] mb-4 leading-snug" style={{ color: doneTodayItems.length + approvedToday === 0 && revenueCents.today === 0 && doneThisWeekCount === 0 ? "var(--con-charcoal-faint)" : "var(--con-charcoal)" }}>
+              {winsHeadline(doneTodayItems.length, approvedToday, revenueCents.today, doneThisWeekCount)}
+            </p>
+            {taskBars.length > 0 && (
+              <div className="mb-4">
+                <TaskBars values={taskBars} />
+              </div>
+            )}
+            <WinsList items={doneTodayItems} weekCount={doneThisWeekCount} weekRevenueCents={revenueCents.week} />
           </div>
         </div>
 
