@@ -34,6 +34,7 @@ import { reissueDraft, runCleoForClient } from "@/lib/cleo";
 import { runSageNow } from "@/lib/sage";
 import { runRenNow } from "@/lib/ren";
 import { runMayaNow } from "@/lib/maya";
+import { dispatchBuild } from "@/lib/maya-build";
 import { sendEmail } from "@/lib/send-email";
 import { Send } from "lucide-react";
 
@@ -1600,6 +1601,10 @@ function WorkflowsList({
   const [busyId, setBusyId] = useState<string | null>(null);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [showAll, setShowAll] = useState(false);
+  // "Build it" flow: which task's prompt editor is open + its editable text.
+  const [buildId, setBuildId] = useState<string | null>(null);
+  const [buildPrompt, setBuildPrompt] = useState("");
+  const [dispatching, setDispatching] = useState(false);
   const VISIBLE_CAP = 8;
 
   // Maya's pick (kind=insight) → the task to ship today.
@@ -1642,6 +1647,31 @@ function WorkflowsList({
       .update({ status: "archived", acted_at: new Date().toISOString(), acted_by: "donna" })
       .eq("id", id);
     onChanged();
+  };
+
+  // Open the build editor — pre-fill the prompt from Maya's approach note if
+  // there is one, else from the task title. Donna edits it (collaborate),
+  // then sends it to Claude Code (execute).
+  const openBuild = (t: WorkflowTask) => {
+    const approach = approachByTaskId.get(t.id);
+    setBuildPrompt(approach?.body ? `${t.title}\n\nApproach:\n${approach.body}` : t.title);
+    setBuildId(t.id);
+  };
+  const sendBuild = async (taskId: string) => {
+    if (!buildPrompt.trim()) { toast.error("Add a prompt first."); return; }
+    setDispatching(true);
+    const r = await dispatchBuild({ taskId, prompt: buildPrompt.trim() });
+    setDispatching(false);
+    if (r.ok) {
+      toast.success("Sent to Claude Code — it'll open a PR when done.", {
+        description: r.actionsUrl ? "Watch it run in GitHub Actions." : undefined,
+      });
+      setBuildId(null);
+    } else if (r.notConfigured) {
+      toast.error("Set the GitHub token in Lovable Cloud Secrets first.");
+    } else {
+      toast.error(r.error ?? "Build dispatch failed.");
+    }
   };
 
   if (tasks.length === 0) {
@@ -1711,12 +1741,49 @@ function WorkflowsList({
                     {isExpanded ? "Hide" : "Approach"}
                   </button>
                 )}
+                <button
+                  onClick={() => (buildId === t.id ? setBuildId(null) : openBuild(t))}
+                  className="text-[0.6875rem] inline-flex items-center gap-1 shrink-0 font-semibold"
+                  style={{ color: "var(--con-navy)" }}
+                  title="Have Claude Code build this and open a PR"
+                >
+                  <Sparkles className="h-3 w-3" /> Build it
+                </button>
                 {t.time_estimate && (
                   <span className="text-[0.6875rem] tnum shrink-0" style={{ color: "var(--con-charcoal-faint)" }}>
                     {t.time_estimate}
                   </span>
                 )}
               </li>
+              {buildId === t.id && (
+                <li className="pl-7 mt-1 mb-2 space-y-2">
+                  <p className="text-[0.6875rem]" style={{ color: "var(--con-charcoal-faint)" }}>
+                    Edit the instruction, then send it. Claude Code builds it and opens a PR for you to review.
+                  </p>
+                  <textarea
+                    value={buildPrompt}
+                    onChange={(e) => setBuildPrompt(e.target.value)}
+                    rows={4}
+                    autoFocus
+                    className="w-full text-[0.8125rem] leading-relaxed bg-transparent border rounded-md p-2.5"
+                    style={{ borderColor: "var(--con-rule)", color: "var(--con-charcoal)" }}
+                  />
+                  <div className="flex items-center gap-3 text-[0.75rem]">
+                    <button
+                      onClick={() => sendBuild(t.id)}
+                      disabled={dispatching}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full font-medium"
+                      style={{ backgroundColor: "var(--con-navy)", color: "var(--con-cream)" }}
+                    >
+                      {dispatching ? <Loader2 className="h-3 w-3 animate-spin" /> : <Sparkles className="h-3 w-3" />}
+                      Send to Claude Code
+                    </button>
+                    <button onClick={() => setBuildId(null)} style={{ color: "var(--con-charcoal-faint)" }}>
+                      cancel
+                    </button>
+                  </div>
+                </li>
+              )}
               {isPick && pickOutput?.body && (
                 <li
                   className="text-[0.8125rem] leading-relaxed pl-7"
