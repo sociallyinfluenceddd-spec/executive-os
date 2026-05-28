@@ -1534,13 +1534,16 @@ function WorkflowsList({
     return m;
   }, [mayaOutputs]);
 
-  if (tasks.length === 0) {
-    return (
-      <p className="text-[0.95rem]" style={{ color: "var(--con-charcoal-faint)" }}>
-        No open tasks. Add one from the Hub or via Capture.
-      </p>
-    );
-  }
+  // Sort Maya's pick to the top so the eye lands on today's ship first.
+  // NOTE: this useMemo MUST run before any early return — hooks have to be
+  // called in the same order on every render. (An early-return-then-useMemo
+  // ordering is what crashed this card the first time around.)
+  const sortedTasks = useMemo(() => {
+    if (!pickTaskId) return tasks;
+    const pick = tasks.find((t) => t.id === pickTaskId);
+    if (!pick) return tasks;
+    return [pick, ...tasks.filter((t) => t.id !== pickTaskId)];
+  }, [tasks, pickTaskId]);
 
   const markDone = async (id: string) => {
     setBusyId(id);
@@ -1561,13 +1564,13 @@ function WorkflowsList({
     onChanged();
   };
 
-  // Sort Maya's pick to the top so the eye lands on today's ship first.
-  const sortedTasks = useMemo(() => {
-    if (!pickTaskId) return tasks;
-    const pick = tasks.find((t) => t.id === pickTaskId);
-    if (!pick) return tasks;
-    return [pick, ...tasks.filter((t) => t.id !== pickTaskId)];
-  }, [tasks, pickTaskId]);
+  if (tasks.length === 0) {
+    return (
+      <p className="text-[0.95rem]" style={{ color: "var(--con-charcoal-faint)" }}>
+        No open tasks. Add one from the Hub or via Capture.
+      </p>
+    );
+  }
 
   const visible = showAll ? sortedTasks : sortedTasks.slice(0, VISIBLE_CAP);
   const hidden = sortedTasks.length - visible.length;
